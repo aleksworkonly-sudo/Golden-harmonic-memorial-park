@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GH Admin · Golden Harmonic Memorial Park</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2f5d4c; --green-l:#3d7a63; --gold:#b08544;
+  --bg:#f3f5fb; --card:#fff; --border:#e6e9f2;
+  --ink:#1a2822; --ink-2:#4a5f57; --ink-3:#8a93a6;
+  --red:#c0392b; --orange:#e67e22; --blue:#2980b9;
+  --badge-1:#eef0ff; --badge-1-ic:#5b57d1;
+  --badge-2:#e8f7f1; --badge-2-ic:#2f5d4c;
+  --badge-3:#fff3e0; --badge-3-ic:#b08544;
+  --badge-4:#fdeaea; --badge-4-ic:#c0392b;
+  --badge-5:#e7f3fb; --badge-5-ic:#2980b9;
+  --radius:14px; --shadow:0 1px 2px rgba(20,20,60,.04),0 8px 24px rgba(20,20,60,.06);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;min-height:100vh}
+button{cursor:pointer;font-family:inherit;font-size:13px}
+input,select,textarea{font-family:inherit;font-size:13px}
+a{text-decoration:none;color:inherit}
+
+/* ── Login ── */
+.login-wrap{min-height:100vh;display:grid;place-items:center;background:var(--green)}
+.login-card{background:var(--card);border-radius:16px;padding:40px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.login-mark{width:44px;height:44px;border-radius:12px;background:var(--green);color:#fff;
+  display:grid;place-items:center;font-size:22px;font-weight:700}
+.login-title{font-size:18px;font-weight:700;color:var(--ink)}
+.login-sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+.login-card label{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:5px}
+.login-card input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+  outline:none;transition:border-color .15s}
+.login-card input:focus{border-color:var(--green)}
+.login-field{margin-bottom:16px}
+.login-btn{width:100%;padding:10px;background:var(--green);color:#fff;border:none;
+  border-radius:8px;font-weight:600;font-size:14px;margin-top:8px;transition:background .15s}
+.login-btn:hover{background:var(--green-l)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-err{font-size:12px;color:var(--red);margin-top:10px;text-align:center}
+
+/* ── Layout ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--green);color:#fff;display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:20px 16px 16px}
+.sidebar-mark{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.2);
+  display:grid;place-items:center;font-size:18px;font-weight:700}
+.sidebar-name{font-size:13px;font-weight:700;line-height:1.2}
+.sidebar-sub{font-size:10px;opacity:.6;margin-top:1px}
+.sidebar-divider{height:1px;background:rgba(255,255,255,.12);margin:4px 16px}
+.sidebar-section{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:rgba(255,255,255,.45);padding:14px 16px 6px}
+.sidebar-nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+  cursor:pointer;transition:background .12s;font-size:13px;font-weight:500;color:rgba(255,255,255,.8)}
+.nav-item:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.18);color:#fff}
+.nav-item .ico{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.sidebar-footer{padding:12px 8px}
+.logout-btn{width:100%;padding:9px 10px;background:rgba(255,255,255,.1);border:none;
+  border-radius:8px;color:rgba(255,255,255,.8);font-weight:500;text-align:left;
+  display:flex;align-items:center;gap:10px;transition:background .12s}
+.logout-btn:hover{background:rgba(255,255,255,.18);color:#fff}
+
+/* ── Main ── */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);
+  padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:5}
+.topbar-title{font-size:16px;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.user-badge{font-size:12px;color:var(--ink-2)}
+.content{padding:24px 28px;flex:1}
+
+/* ── Cards / stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:14px;transition:transform .15s}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-badge{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  font-size:20px;flex-shrink:0}
+.stat-num{font-size:24px;font-weight:800;color:var(--ink);line-height:1.1}
+.stat-lbl{font-size:12px;color:var(--ink-3);margin-top:3px;font-weight:600}
+
+/* ── Charts overview ── */
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
+.chart-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.chart-card h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--ink)}
+.chart-card canvas{max-height:220px}
+.donut-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:14px}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* ── Section header ── */
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-hd h2{font-size:16px;font-weight:700}
+
+/* ── Table ── */
+.table-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.gh-table{width:100%;border-collapse:collapse}
+.gh-table th{background:#f8faf9;text-align:left;padding:10px 16px;font-size:11px;
+  font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);
+  border-bottom:1px solid var(--border)}
+.gh-table td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+.gh-table tr:last-child td{border-bottom:none}
+.gh-table tr:hover td{background:#f8faf9}
+.empty{padding:40px;text-align:center;color:var(--ink-3);font-size:13px}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.badge-new{background:#e8f5e9;color:#2e7d32}
+.badge-contacted{background:#fff3e0;color:#e65100}
+.badge-converted{background:#e3f2fd;color:#1565c0}
+.badge-closed{background:#f3e5f5;color:#6a1b9a}
+.badge-lead{background:#e8f5e9;color:#2e7d32}
+.badge-active{background:#e3f2fd;color:#1565c0}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;
+  font-weight:600;border:none;transition:all .15s;font-size:13px}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:var(--green-l)}
+.btn-outline{background:transparent;color:var(--green);border:1.5px solid var(--green)}
+.btn-outline:hover{background:#f0f7f4}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#a93226}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-gold:hover{background:#9a7438}
+
+/* ── Select dropdown ── */
+select.status-sel{padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;
+  font-size:12px;font-weight:600;background:var(--card);cursor:pointer;outline:none}
+select.status-sel:focus{border-color:var(--green)}
+
+/* ── Products grid ── */
+.products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.product-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.product-card h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.product-desc{font-size:12px;color:var(--ink-2);line-height:1.5;margin-bottom:12px}
+.price-edit{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.price-edit label{font-size:11px;font-weight:600;color:var(--ink-3);min-width:90px}
+.price-edit input{flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;outline:none}
+.price-edit input:focus{border-color:var(--green)}
+.save-indicator{font-size:11px;font-weight:600;margin-top:8px;height:16px}
+.save-ok{color:#2e7d32}
+.save-err{color:var(--red)}
+
+/* ── Users ── */
+.users-grid{display:grid;gap:12px}
+.user-row{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.user-info{display:flex;align-items:center;gap:12px}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--green);
+  color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex-shrink:0}
+.user-name{font-weight:600;font-size:13px}
+.user-email{font-size:12px;color:var(--ink-3)}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:grid;place-items:center;padding:20px}
+.modal{background:var(--card);border-radius:14px;padding:28px;width:420px;max-width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:20px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:5px}
+.field input,.field select{width:100%;padding:9px 12px;border:1.5px solid var(--border);
+  border-radius:8px;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:var(--green)}
+.modal.wide{width:640px}
+.modal-scroll{max-height:70vh;overflow-y:auto;margin:0 -28px;padding:0 28px}
+.progress-track{background:var(--border);border-radius:999px;height:8px;overflow:hidden}
+.progress-fill{background:var(--green);height:100%;border-radius:999px;transition:width .3s ease}
+.plan-badge{display:inline-block;padding:3px 9px;border-radius:6px;background:#f0f7f4;color:var(--green);
+  font-size:11px;font-weight:700}
+.plan-badge.none{background:#f4f4f2;color:var(--ink-3)}
+.pay-table{width:100%;font-size:13px;border-collapse:collapse;margin-top:10px}
+.pay-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink-3);padding:6px 8px;border-bottom:1px solid var(--border)}
+.pay-table td{padding:8px;border-bottom:1px solid var(--border)}
+.plan-summary{background:#f8faf9;border-radius:10px;padding:16px;display:grid;
+  grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.plan-summary .lbl{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.plan-summary .val{font-size:17px;font-weight:700;margin-top:2px}
+.detail-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.detail-tabs button{background:none;border:none;padding:8px 4px;margin-right:14px;font-size:13px;
+  font-weight:600;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent}
+.detail-tabs button.on{color:var(--green);border-color:var(--green)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.err-msg{font-size:12px;color:var(--red);margin-top:10px}
+
+/* ── Loading ── */
+.loading{padding:60px;text-align:center;color:var(--ink-3)}
+.spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:#1a2822;color:#fff;
+  padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:200;
+  box-shadow:0 4px 24px rgba(0,0,0,.3);animation:slideup .25s ease}
+@keyframes slideup{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ── Product defaults (matches site.jsx BASE_TIERS) ─────────────────────────
+const PLAN_TERMS = [
+  { key:'cash', label:'Spot Cash', months:0,  surcharge:0 },
+  { key:'1yr',  label:'1-Year Plan', months:12, surcharge:0.10 },
+  { key:'2yr',  label:'2-Year Plan', months:24, surcharge:0.15 },
+  { key:'3yr',  label:'3-Year Plan', months:36, surcharge:0.20 },
+  { key:'5yr',  label:'5-Year Plan', months:60, surcharge:0.30 },
+];
+
+const BASE_TIERS = [
+  { id:'regular',        name:'Regular Plot',            category:'Regular Plots', price:60000,  sortOrder:1,
+    desc:'A standard single-interment lot in our open-lawn sections.',
+    features:['1 interment space','Perpetual care included','Open-lawn setting'] },
+  { id:'premium',        name:'Premium Plot',            category:'Regular Plots', price:85000,  sortOrder:2,
+    desc:'An upgraded standard plot in one of the park\'s preferred sections.',
+    features:['1 interment space','Perpetual care included','Preferred section placement'] },
+  { id:'corner-premium', name:'Corner Premium Plot',     category:'Regular Plots', price:95000,  sortOrder:3,
+    desc:'A corner plot in our most requested standard section.',
+    features:['1 interment space','Perpetual care included','Corner placement'] },
+  { id:'garden-regular', name:'Regular Garden Plot',     category:'Garden Plots',  price:75000,  sortOrder:4,
+    desc:'A single-interment lot within our landscaped garden sections.',
+    features:['1 interment space','Perpetual care included','Garden setting'] },
+  { id:'garden-premium', name:'Premium Garden Plot',     category:'Garden Plots',  price:95000,  sortOrder:5,
+    desc:'An upgraded garden plot in a preferred section of the garden.',
+    features:['1 interment space','Perpetual care included','Preferred garden section'] },
+  { id:'garden-corner',  name:'Corner Prime Garden Plot',category:'Garden Plots',  price:115000, sortOrder:6,
+    desc:'A corner plot in our most requested garden section.',
+    features:['1 interment space','Perpetual care included','Prime corner placement'] },
+  { id:'family-vault',   name:'Family Vault Package',    category:'Family Vault', price:105000, sortOrder:7,
+    desc:'An apartment-style below-ground vault holding 3 coffins in one plot.',
+    features:['3 coffins in one plot','Apartment-style below-ground vault','Payment plans available (surcharge applies)'] },
+];
+
+const fmt = n => '₱' + Math.round(n).toLocaleString('en-PH');
+const initials = name => name ? name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2) : '??';
+const fmtDate = ts => {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
+};
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function Toast({ msg, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, []);
+  return <div className="toast">{msg}</div>;
+}
+
+// ── Login ──────────────────────────────────────────────────────────────────
+function Login({ onLogin }) {
+  const [email, setEmail] = useState('');
+  const [pass, setPass]   = useState('');
+  const [err, setErr]     = useState('');
+  const [busy, setBusy]   = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true); setErr('');
+    try {
+      const cred = await window.auth.signInWithEmailAndPassword(email, pass);
+      onLogin(cred.user);
+    } catch (ex) {
+      console.error('[GH login]', ex.code, ex.message, ex);
+      const map = {
+        'auth/invalid-email': 'That email address looks malformed.',
+        'auth/user-not-found': 'No account found with that email.',
+        'auth/wrong-password': 'Wrong password for that account.',
+        'auth/invalid-credential': 'Email or password is incorrect.',
+        'auth/operation-not-allowed': 'Email/Password sign-in is not enabled for this project yet — enable it in Firebase Console → Authentication → Sign-in method.',
+        'auth/too-many-requests': 'Too many attempts — wait a bit and try again.',
+        'auth/network-request-failed': 'Network error — check your internet connection.'
+      };
+      setErr(map[ex.code] || `${ex.code || 'Error'}: ${ex.message || 'Could not sign in.'}`);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="login-wrap">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="login-mark">G</div>
+          <div>
+            <div className="login-title">Golden Harmonic</div>
+            <div className="login-sub">Memorial Park · Admin Panel</div>
+          </div>
+        </div>
+        <form onSubmit={submit}>
+          <div className="login-field">
+            <label>Email address</label>
+            <input type="email" required placeholder="admin@ghmemorialpark.com"
+              value={email} onChange={e=>setEmail(e.target.value)} />
+          </div>
+          <div className="login-field">
+            <label>Password</label>
+            <input type="password" required placeholder="••••••••"
+              value={pass} onChange={e=>setPass(e.target.value)} />
+          </div>
+          <button className="login-btn" type="submit" disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in →'}
+          </button>
+          {err && <p className="login-err">{err}</p>}
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Inquiries panel ────────────────────────────────────────────────────────
+function Inquiries() {
+  const [rows, setRows] = useState(null);
+  const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    return window.db.collection('inquiries').orderBy('createdAt','desc')
+      .onSnapshot(snap => setRows(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
+  }, []);
+
+  const updateStatus = async (id, status) => {
+    await window.db.collection('inquiries').doc(id).update({ status });
+    setToast('Status updated');
+  };
+
+  const statusClass = s => ({ new:'badge-new', contacted:'badge-contacted', converted:'badge-converted', closed:'badge-closed' }[s] || 'badge-new');
+
+  if (!rows) return <div className="loading"><div className="spinner"/><div>Loading inquiries…</div></div>;
+
+  return (
+    <>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
+      <div className="section-hd">
+        <h2>Inquiries <span style={{color:'var(--ink-3)',fontWeight:400,fontSize:13}}>({rows.length})</span></h2>
+      </div>
+      <div className="table-card">
+        {rows.length === 0 ? (
+          <div className="empty">No inquiries yet. When someone fills out the brochure form on your website, it will appear here.</div>
+        ) : (
+          <table className="gh-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Phone</th>
+                <th>Location</th><th>Interest</th><th>Date</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r._id}>
+                  <td><strong>{r.fullName || `${r.firstName} ${r.lastName}`}</strong></td>
+                  <td><a href={`mailto:${r.email}`} style={{color:'var(--green)'}}>{r.email}</a></td>
+                  <td>{r.phone}</td>
+                  <td>{r.preferredLocation}</td>
+                  <td style={{maxWidth:160,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.interest}</td>
+                  <td style={{color:'var(--ink-3)'}}>{fmtDate(r.createdAt)}</td>
+                  <td>
+                    <select className="status-sel" value={r.status || 'new'}
+                      onChange={e => updateStatus(r._id, e.target.value)}>
+                      <option value="new">New</option>
+                      <option value="contacted">Contacted</option>
+                      <option value="converted">Converted</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── Customers panel ────────────────────────────────────────────────────────
+function planBalance(c) {
+  if (!c.plan) return null;
+  const paid = (c.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const price = Number(c.plan.price) || 0;
+  return { price, paid, balance: Math.max(0, price - paid), pct: price ? Math.min(100, (paid / price) * 100) : 0 };
+}
+
+function totalPaid(c) {
+  return (c.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+}
+
+// ── CRM pipeline stages ──────────────────────────────────────────────────────
+const STAGES = [
+  { id:'new',         label:'New Lead' },
+  { id:'contacted',   label:'Contacted' },
+  { id:'site_visit',  label:'Site Visit' },
+  { id:'negotiating', label:'Negotiating' },
+  { id:'won',         label:'Won' },
+  { id:'lost',        label:'Lost' },
+];
+const STAGE_LABEL = Object.fromEntries(STAGES.map(s => [s.id, s.label]));
+// Old status values from before the pipeline existed — map them forward so
+// nothing "disappears" for customers created before this feature shipped.
+const LEGACY_STATUS_MAP = { lead:'new', active:'contacted', converted:'won', closed:'lost' };
+function normalizeStage(status) {
+  return STAGE_LABEL[status] ? status : (LEGACY_STATUS_MAP[status] || 'new');
+}
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  return new Date(dateStr + 'T23:59:59') < new Date();
+}
+function isDueToday(dateStr) {
+  if (!dateStr) return false;
+  return dateStr === new Date().toISOString().slice(0,10);
+}
+async function changeStage(customerId, newStage, actorEmail) {
+  await window.db.collection('customers').doc(customerId).update({
+    status: newStage,
+    notes: firebase.firestore.FieldValue.arrayUnion({
+      type: 'system',
+      text: `Moved to "${STAGE_LABEL[newStage]}"`,
+      author: actorEmail || 'system',
+      createdAt: Date.now()
+    })
+  });
+}
+
+function Customers({ currentUser }) {
+  const [rows, setRows] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [openId, setOpenId] = useState(null);
+  const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    return window.db.collection('customers').orderBy('createdAt','desc')
+      .onSnapshot(snap => setRows(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
+  }, []);
+
+  const updateStatus = async (id, status) => {
+    await changeStage(id, status, currentUser && currentUser.email);
+    setToast('Customer updated');
+  };
+
+  const deleteCustomer = async (id, name) => {
+    if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+    await window.db.collection('customers').doc(id).delete();
+    setToast('Customer deleted');
+  };
+
+  if (!rows) return <div className="loading"><div className="spinner"/><div>Loading customers…</div></div>;
+  const openCustomer = rows.find(r => r._id === openId) || null;
+
+  return (
+    <>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
+      {showAdd && <AddCustomerModal onClose={()=>setShowAdd(false)} onSaved={()=>{setShowAdd(false);setToast('Customer added');}} />}
+      {openCustomer && <CustomerDetailModal customer={openCustomer} currentUser={currentUser} onClose={()=>setOpenId(null)} onToast={setToast} />}
+      <div className="section-hd">
+        <h2>Customers / Leads <span style={{color:'var(--ink-3)',fontWeight:400,fontSize:13}}>({rows.length})</span></h2>
+        <button className="btn btn-primary btn-sm" onClick={()=>setShowAdd(true)}>+ Add customer</button>
+      </div>
+      <div className="table-card">
+        {rows.length === 0 ? (
+          <div className="empty">No customers yet. Leads from your website form appear here automatically.</div>
+        ) : (
+          <table className="gh-table">
+            <thead>
+              <tr><th>Name</th><th>Contact</th><th>Plan</th><th>Balance</th><th>Revenue</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const bal = planBalance(r);
+                return (
+                <tr key={r._id}>
+                  <td>
+                    <div style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}
+                      onClick={()=>setOpenId(r._id)}>
+                      <div style={{width:30,height:30,borderRadius:'50%',background:'var(--green)',color:'#fff',
+                        display:'grid',placeItems:'center',fontSize:11,fontWeight:700,flexShrink:0}}>
+                        {initials(r.fullName || `${r.firstName||''} ${r.lastName||''}`)}
+                      </div>
+                      <strong>{r.fullName || `${r.firstName} ${r.lastName}`}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div><a href={`mailto:${r.email}`} style={{color:'var(--green)'}}>{r.email}</a></div>
+                    <div style={{color:'var(--ink-3)',fontSize:12}}>{r.phone}</div>
+                  </td>
+                  <td>
+                    {r.plan ?
+                      <span className="plan-badge">{r.plan.tierName}</span> :
+                      <span className="plan-badge none">No plan yet</span>}
+                  </td>
+                  <td>
+                    {bal ? (
+                      <div style={{minWidth:110}}>
+                        <div style={{fontWeight:700,fontSize:13}}>{fmt(bal.balance)}</div>
+                        <div className="progress-track" style={{marginTop:4}}>
+                          <div className="progress-fill" style={{width:`${bal.pct}%`}}/>
+                        </div>
+                      </div>
+                    ) : <span style={{color:'var(--ink-3)'}}>—</span>}
+                  </td>
+                  <td>
+                    {totalPaid(r) > 0 ? (
+                      <div style={{fontWeight:700,fontSize:13,color:'var(--green)'}}>{fmt(totalPaid(r))}</div>
+                    ) : <span style={{color:'var(--ink-3)'}}>—</span>}
+                  </td>
+                  <td>
+                    <select className="status-sel" value={normalizeStage(r.status)}
+                      onChange={e => updateStatus(r._id, e.target.value)}>
+                      {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                  </td>
+                  <td>
+                    <div style={{display:'flex',gap:6}}>
+                      <button className="btn btn-outline btn-sm" onClick={()=>setOpenId(r._id)}>View</button>
+                      <button className="btn btn-danger btn-sm"
+                        onClick={()=>deleteCustomer(r._id, r.fullName)}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              );})}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
+// Shared plan-terms fields, used by both the Add Customer and Edit Plan forms.
+function PlanFields({ plan, onChange }) {
+  const p = plan || { tierId:'', tierName:'', price:0, termKey:'1yr', startDate: new Date().toISOString().slice(0,10) };
+  const set = (patch) => onChange({ ...p, ...patch });
+
+  const pickTier = (tierId) => {
+    const tier = BASE_TIERS.find(t => t.id === tierId);
+    if (!tier) { onChange(null); return; }
+    set({ tierId, tierName: tier.name, price: tier.price, termKey: p.termKey || '1yr' });
+  };
+
+  const term = PLAN_TERMS.find(t => t.key === (p.termKey || '1yr')) || PLAN_TERMS[1];
+  const total = (Number(p.price)||0) * (1 + term.surcharge);
+  const monthly = term.months ? Math.round(total / term.months) : 0;
+
+  return (
+    <>
+      <div className="field">
+        <label>Plot / plan</label>
+        <select value={p.tierId} onChange={e => e.target.value ? pickTier(e.target.value) : onChange(null)}>
+          <option value="">No plan yet — just a lead</option>
+          {BASE_TIERS.map(t => <option key={t.id} value={t.id}>{t.name} — {fmt(t.price)}</option>)}
+        </select>
+      </div>
+      {p.tierId && (
+        <>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div className="field">
+              <label>Spot cash price (₱)</label>
+              <input type="number" value={p.price} onChange={e => set({ price: e.target.value })} />
+            </div>
+            <div className="field">
+              <label>Start date</label>
+              <input type="date" value={p.startDate} onChange={e => set({ startDate: e.target.value })} />
+            </div>
+          </div>
+          <div className="field">
+            <label>Payment term — no down payment on any plan</label>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              {PLAN_TERMS.map(t => (
+                <button key={t.key} type="button"
+                  className={`btn btn-sm ${p.termKey===t.key || (!p.termKey && t.key==='1yr') ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => set({ termKey: t.key })}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div style={{fontSize:12,color:'var(--ink-3)',marginTop:6}}>
+              {term.key === 'cash' ? `Due in full: ${fmt(p.price)}` : `${fmt(monthly)}/mo for ${term.months} months (total ${fmt(total)}, includes ${Math.round(term.surcharge*100)}% surcharge)`}
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function buildPlanPayload(p) {
+  if (!p || !p.tierId) return null;
+  const term = PLAN_TERMS.find(t => t.key === (p.termKey || '1yr')) || PLAN_TERMS[1];
+  const price = Number(p.price) || 0;
+  const total = price * (1 + term.surcharge);
+  const monthlyAmount = term.months ? Math.round(total / term.months) : 0;
+  return {
+    tierId: p.tierId, tierName: p.tierName, price,
+    termKey: term.key, termLabel: term.label, surchargePct: term.surcharge,
+    termMonths: term.months, totalPrice: Math.round(total), monthlyAmount,
+    startDate: p.startDate
+  };
+}
+
+function AddCustomerModal({ onClose, onSaved }) {
+  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', phone:'',
+    preferredLocation:'Either park', interest:'Pre-need (planning ahead)', status:'new' });
+  const [plan, setPlan] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const set = k => e => setForm(f=>({...f,[k]:e.target.value}));
+
+  const save = async (e) => {
+    e.preventDefault();
+    setBusy(true); setErr('');
+    try {
+      const planPayload = buildPlanPayload(plan);
+      await window.db.collection('customers').add({
+        ...form,
+        fullName: `${form.firstName} ${form.lastName}`,
+        source: 'admin',
+        plan: planPayload,
+        payments: [],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      onSaved();
+    } catch(ex){ setErr('Could not save. Try again.'); }
+    finally{ setBusy(false); }
+  };
+
+  return (
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal wide">
+        <h3>Add Customer</h3>
+        <form onSubmit={save}>
+          <div className="modal-scroll">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div className="field"><label>First name</label><input required value={form.firstName} onChange={set('firstName')} placeholder="Maria" /></div>
+              <div className="field"><label>Last name</label><input required value={form.lastName} onChange={set('lastName')} placeholder="Santos" /></div>
+            </div>
+            <div className="field"><label>Email</label><input type="email" required value={form.email} onChange={set('email')} placeholder="maria@example.com" /></div>
+            <div className="field"><label>Phone</label><input value={form.phone} onChange={set('phone')} placeholder="+63 917 ..." /></div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div className="field">
+                <label>Location</label>
+                <select value={form.preferredLocation} onChange={set('preferredLocation')}>
+                  <option>Either park</option><option>Aborlan</option><option>Roxas</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>Status</label>
+                <select value={form.status} onChange={set('status')}>
+                  <option value="lead">Lead</option><option value="active">Active</option>
+                  <option value="converted">Converted</option>
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label>Interest</label>
+              <select value={form.interest} onChange={set('interest')}>
+                <option>Pre-need (planning ahead)</option><option>At-need (immediate)</option>
+                <option>Investment / resale</option><option>Just exploring</option>
+              </select>
+            </div>
+            <hr style={{border:'none',borderTop:'1px solid var(--border)',margin:'18px 0'}}/>
+            <PlanFields plan={plan} onChange={setPlan} />
+          </div>
+          {err && <p className="err-msg">{err}</p>}
+          <div className="modal-actions">
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={busy}>{busy?'Saving…':'Save customer'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Charts (Chart.js) ────────────────────────────────────────────────────
+function useChart(canvasRef, config) {
+  useEffect(() => {
+    if (!canvasRef.current || !window.Chart) return;
+    const chart = new window.Chart(canvasRef.current, config);
+    return () => chart.destroy();
+  }, [JSON.stringify(config)]);
+}
+
+function InquiriesBarChart({ inquiries }) {
+  const ref = useRef(null);
+
+  // Build the last 6 months as labels, counting inquiries created in each.
+  const months = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString('en-PH',{month:'short'}) });
+  }
+  const counts = months.map(m => 0);
+  for (const inq of inquiries) {
+    const t = inq.createdAt && inq.createdAt.toDate ? inq.createdAt.toDate() : (inq.createdAt ? new Date(inq.createdAt) : null);
+    if (!t) continue;
+    const key = `${t.getFullYear()}-${t.getMonth()}`;
+    const idx = months.findIndex(m => m.key === key);
+    if (idx >= 0) counts[idx]++;
+  }
+
+  useChart(ref, {
+    type: 'bar',
+    data: {
+      labels: months.map(m => m.label),
+      datasets: [{ data: counts, backgroundColor: '#5b57d1', borderRadius: 6, maxBarThickness: 36 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f6' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  return <canvas ref={ref}></canvas>;
+}
+
+function PipelineDonutChart({ customers }) {
+  const ref = useRef(null);
+  const colors = ['#5b57d1','#2980b9','#b08544','#2f5d4c','#27ae60','#c0392b'];
+  const counts = STAGES.map(s => customers.filter(c => normalizeStage(c.status) === s.id).length);
+
+  useChart(ref, {
+    type: 'doughnut',
+    data: {
+      labels: STAGES.map(s => s.label),
+      datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  return (
+    <>
+      <canvas ref={ref}></canvas>
+      <div className="donut-legend">
+        {STAGES.map((s,i) => (
+          <div key={s.id} className="donut-legend-item">
+            <span className="donut-dot" style={{background:colors[i]}}></span>
+            {s.label} — {counts[i]}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── Pipeline: drag-and-drop CRM board over the same customers collection ───
+function Pipeline({ currentUser }) {
+  const [rows, setRows] = useState(null);
+  const [inquiries, setInquiries] = useState([]);
+  const [openId, setOpenId] = useState(null);
+  const [toast, setToast] = useState('');
+  const [dragOverStage, setDragOverStage] = useState(null);
+
+  useEffect(() => {
+    return window.db.collection('customers').orderBy('createdAt','desc')
+      .onSnapshot(snap => setRows(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
+  }, []);
+
+  useEffect(() => {
+    return window.db.collection('inquiries').orderBy('createdAt','desc')
+      .onSnapshot(snap => setInquiries(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
+  }, []);
+
+  useEffect(() => { if (toast) { const t = setTimeout(()=>setToast(''), 2200); return ()=>clearTimeout(t); } }, [toast]);
+
+  if (!rows) return <div className="loading"><div className="spinner"/><div>Loading pipeline…</div></div>;
+
+  const byStage = Object.fromEntries(STAGES.map(s => [s.id, []]));
+  for (const r of rows) byStage[normalizeStage(r.status)].push(r);
+
+  const dueList = rows.filter(r => r.followUpAt && (isOverdue(r.followUpAt) || isDueToday(r.followUpAt)));
+  const openCustomer = rows.find(r => r._id === openId);
+
+  const drop = async (stageId, e) => {
+    e.preventDefault();
+    setDragOverStage(null);
+    const id = e.dataTransfer.getData('text/plain');
+    if (!id) return;
+    await changeStage(id, stageId, currentUser && currentUser.email);
+    setToast('Moved to ' + STAGE_LABEL[stageId]);
+  };
+
+  return (
+    <div>
+      <div className="section-hd">
+        <h2>Pipeline <span style={{color:'var(--ink-3)',fontWeight:400,fontSize:13}}>({rows.length})</span></h2>
+      </div>
+
+      <div className="charts-row">
+        <div className="chart-card">
+          <h3>Inquiries — last 6 months</h3>
+          <div style={{height:220}}><InquiriesBarChart inquiries={inquiries}/></div>
+        </div>
+        <div className="chart-card">
+          <h3>Pipeline breakdown</h3>
+          <div style={{height:150}}><PipelineDonutChart customers={rows}/></div>
+        </div>
+      </div>
+
+      {dueList.length > 0 && (
+        <div style={{
+          background:'#fff8e1', border:'1px solid #ffe082', borderRadius:8,
+          padding:'10px 14px', marginBottom:16, fontSize:13
+        }}>
+          <strong>⏰ {dueList.length} follow-up{dueList.length>1?'s':''} due:</strong>{' '}
+          {dueList.map((r,i) => (
+            <span key={r._id}>
+              <a href="#" onClick={e=>{e.preventDefault();setOpenId(r._id);}}
+                style={{color: isOverdue(r.followUpAt) ? '#c0392b' : '#8a6d3b', fontWeight:600}}>
+                {r.fullName || r.firstName}
+              </a>
+              {i < dueList.length-1 ? ', ' : ''}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div style={{display:'flex', gap:12, overflowX:'auto', paddingBottom:8}}>
+        {STAGES.map(stage => (
+          <div key={stage.id}
+            onDragOver={e=>{e.preventDefault(); setDragOverStage(stage.id);}}
+            onDragLeave={()=>setDragOverStage(null)}
+            onDrop={e=>drop(stage.id, e)}
+            style={{
+              flex:'0 0 240px', background: dragOverStage===stage.id ? '#eef6f0' : 'var(--bg-2,#f4f1e8)',
+              borderRadius:10, padding:10, minHeight:400,
+              border: dragOverStage===stage.id ? '2px dashed var(--green,#3f7a5c)' : '2px dashed transparent'
+            }}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,padding:'0 4px'}}>
+              <strong style={{fontSize:13}}>{stage.label}</strong>
+              <span style={{fontSize:11,color:'var(--ink-3)',background:'#fff',borderRadius:10,padding:'1px 8px'}}>
+                {byStage[stage.id].length}
+              </span>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {byStage[stage.id].map(c => (
+                <div key={c._id} draggable
+                  onDragStart={e=>e.dataTransfer.setData('text/plain', c._id)}
+                  onClick={()=>setOpenId(c._id)}
+                  style={{
+                    background:'#fff', borderRadius:8, padding:'10px 12px', cursor:'grab',
+                    boxShadow:'0 1px 2px rgba(0,0,0,.06)', fontSize:13
+                  }}>
+                  <div style={{fontWeight:700, marginBottom:2}}>{c.fullName || `${c.firstName} ${c.lastName}`}</div>
+                  <div style={{color:'var(--ink-3)', fontSize:11.5}}>{c.interest || '—'}</div>
+                  {c.followUpAt && (
+                    <div style={{
+                      marginTop:6, fontSize:11, fontWeight:600,
+                      color: isOverdue(c.followUpAt) ? '#c0392b' : isDueToday(c.followUpAt) ? '#b7791f' : 'var(--ink-3)'
+                    }}>
+                      {isOverdue(c.followUpAt) ? '🔴' : isDueToday(c.followUpAt) ? '🟡' : '📅'} {c.followUpAt}
+                    </div>
+                  )}
+                  {totalPaid(c) > 0 && (
+                    <div style={{marginTop:4, fontSize:11.5, color:'var(--green,#3f7a5c)', fontWeight:700}}>
+                      {fmt(totalPaid(c))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {byStage[stage.id].length === 0 && (
+                <div style={{fontSize:11.5, color:'var(--ink-3)', textAlign:'center', padding:'16px 4px'}}>
+                  Drop a card here
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {openCustomer && <CustomerDetailModal customer={openCustomer} currentUser={currentUser} onClose={()=>setOpenId(null)} onToast={setToast} />}
+      {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+// ── Customer detail: plan summary + payment history + log a payment ────────
+function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
+  const [tab, setTab] = useState('payments');
+  const [editingPlan, setEditingPlan] = useState(false);
+  const [plan, setPlan] = useState(customer.plan);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [pay, setPay] = useState({ date: new Date().toISOString().slice(0,10), amount:'', method:'Cash', note:'' });
+  const [busy, setBusy] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const [followUp, setFollowUp] = useState({
+    date: customer.followUpAt || '', note: customer.followUpNote || ''
+  });
+  const [savingFollowUp, setSavingFollowUp] = useState(false);
+
+  const bal = planBalance(customer);
+  const payments = [...(customer.payments || [])].sort((a,b) => (a.date < b.date ? 1 : -1));
+
+  // Merge manual notes, system stage-change notes, and payments into one
+  // chronological activity feed.
+  const activity = [
+    ...(customer.notes || []).map(n => ({
+      kind: n.type === 'system' ? 'system' : 'note',
+      text: n.text, author: n.author, at: n.createdAt
+    })),
+    ...payments.map(p => ({
+      kind: 'payment',
+      text: `Payment logged: ${fmt(p.amount)} (${p.method})${p.note ? ' — ' + p.note : ''}`,
+      author: null, at: new Date(p.date).getTime()
+    }))
+  ].sort((a,b) => (b.at || 0) - (a.at || 0));
+
+  const addNote = async () => {
+    if (!noteText.trim()) return;
+    setAddingNote(true);
+    try {
+      await window.db.collection('customers').doc(customer._id).update({
+        notes: firebase.firestore.FieldValue.arrayUnion({
+          type: 'manual', text: noteText.trim(),
+          author: (currentUser && currentUser.email) || 'unknown',
+          createdAt: Date.now()
+        })
+      });
+      setNoteText('');
+      onToast('Note added');
+    } finally { setAddingNote(false); }
+  };
+
+  const saveFollowUp = async () => {
+    setSavingFollowUp(true);
+    try {
+      await window.db.collection('customers').doc(customer._id).update({
+        followUpAt: followUp.date || null,
+        followUpNote: followUp.note || ''
+      });
+      onToast('Follow-up saved');
+    } finally { setSavingFollowUp(false); }
+  };
+
+  const savePlan = async () => {
+    setSavingPlan(true);
+    try {
+      await window.db.collection('customers').doc(customer._id).update({ plan: buildPlanPayload(plan) });
+      setEditingPlan(false);
+      onToast('Plan updated');
+    } finally { setSavingPlan(false); }
+  };
+
+  const logPayment = async (e) => {
+    e.preventDefault();
+    if (!pay.amount || Number(pay.amount) <= 0) return;
+    setBusy(true);
+    try {
+      await window.db.collection('customers').doc(customer._id).update({
+        payments: firebase.firestore.FieldValue.arrayUnion({
+          date: pay.date, amount: Number(pay.amount), method: pay.method, note: pay.note
+        })
+      });
+      setPay({ date: new Date().toISOString().slice(0,10), amount:'', method:'Cash', note:'' });
+      onToast('Payment logged');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal wide">
+        <h3>{customer.fullName || `${customer.firstName} ${customer.lastName}`}
+          <span style={{fontWeight:400,fontSize:13,color:'var(--ink-3)',marginLeft:8}}>{customer.email}</span>
+        </h3>
+
+        {customer.plan ? (
+          <div className="plan-summary">
+            <div><div className="lbl">Plan</div><div className="val" style={{fontSize:14}}>{customer.plan.tierName}</div></div>
+            <div><div className="lbl">Monthly</div><div className="val" style={{fontSize:14}}>{fmt(customer.plan.monthlyAmount)}/mo</div></div>
+            <div><div className="lbl">Balance</div><div className="val" style={{fontSize:14}}>{fmt(bal.balance)}</div></div>
+            <div style={{gridColumn:'1 / -1'}}>
+              <div className="progress-track"><div className="progress-fill" style={{width:`${bal.pct}%`}}/></div>
+              <div style={{fontSize:12,color:'var(--ink-3)',marginTop:4}}>
+                {fmt(bal.paid)} paid of {fmt(bal.price)} ({Math.round(bal.pct)}%)
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="plan-summary" style={{gridTemplateColumns:'1fr'}}>
+            <div style={{color:'var(--ink-3)'}}>No plan selected yet for this customer.</div>
+          </div>
+        )}
+
+        <div className="detail-tabs">
+          <button className={tab==='payments'?'on':''} onClick={()=>setTab('payments')}>Payments</button>
+          <button className={tab==='plan'?'on':''} onClick={()=>{setTab('plan');setEditingPlan(true);}}>
+            {customer.plan ? 'Edit plan' : 'Set a plan'}
+          </button>
+          <button className={tab==='activity'?'on':''} onClick={()=>setTab('activity')}>
+            Activity{customer.followUpAt && isOverdue(customer.followUpAt) ? ' 🔴' : ''}
+          </button>
+        </div>
+
+        <div className="modal-scroll">
+          {tab === 'payments' && (
+            <>
+              {customer.plan ? (
+                <form onSubmit={logPayment} style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:8,alignItems:'end',marginBottom:6}}>
+                  <div className="field" style={{margin:0}}><label>Date</label>
+                    <input type="date" value={pay.date} onChange={e=>setPay(p=>({...p,date:e.target.value}))} /></div>
+                  <div className="field" style={{margin:0}}><label>Amount (₱)</label>
+                    <input type="number" required value={pay.amount} onChange={e=>setPay(p=>({...p,amount:e.target.value}))} placeholder="3188" /></div>
+                  <div className="field" style={{margin:0}}><label>Method</label>
+                    <select value={pay.method} onChange={e=>setPay(p=>({...p,method:e.target.value}))}>
+                      <option>Cash</option><option>Bank transfer</option><option>GCash</option><option>Check</option>
+                    </select></div>
+                  <button className="btn btn-primary btn-sm" disabled={busy}>{busy?'Logging…':'+ Log payment'}</button>
+                </form>
+              ) : (
+                <div className="empty">Set a plan first, then payments can be logged against it.</div>
+              )}
+
+              {payments.length > 0 && (
+                <table className="pay-table">
+                  <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Note</th></tr></thead>
+                  <tbody>
+                    {payments.map((p,i) => (
+                      <tr key={i}><td>{p.date}</td><td>{fmt(p.amount)}</td><td>{p.method}</td><td>{p.note}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
+
+          {tab === 'plan' && (
+            <>
+              <PlanFields plan={plan} onChange={setPlan} />
+              <div className="modal-actions">
+                <button className="btn btn-primary btn-sm" disabled={savingPlan} onClick={savePlan}>
+                  {savingPlan ? 'Saving…' : 'Save plan'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {tab === 'activity' && (
+            <>
+              <div style={{
+                display:'grid', gridTemplateColumns:'1fr 2fr auto', gap:8, alignItems:'end',
+                padding:12, background:'var(--card-2, #f7f4ec)', borderRadius:8, marginBottom:16
+              }}>
+                <div className="field" style={{margin:0}}>
+                  <label>Follow-up date</label>
+                  <input type="date" value={followUp.date}
+                    onChange={e=>setFollowUp(f=>({...f,date:e.target.value}))} />
+                </div>
+                <div className="field" style={{margin:0}}>
+                  <label>Reminder note</label>
+                  <input type="text" placeholder="e.g. Call about site visit"
+                    value={followUp.note} onChange={e=>setFollowUp(f=>({...f,note:e.target.value}))} />
+                </div>
+                <button className="btn btn-primary btn-sm" disabled={savingFollowUp} onClick={saveFollowUp}>
+                  {savingFollowUp ? 'Saving…' : 'Save'}
+                </button>
+                {customer.followUpAt && (
+                  <div style={{gridColumn:'1 / -1', fontSize:12,
+                    color: isOverdue(customer.followUpAt) ? '#c0392b' : isDueToday(customer.followUpAt) ? '#b7791f' : 'var(--ink-3)'}}>
+                    {isOverdue(customer.followUpAt) ? '🔴 Overdue' : isDueToday(customer.followUpAt) ? '🟡 Due today' : '📅 Upcoming'}
+                    {' — '}{customer.followUpAt}{customer.followUpNote ? `: ${customer.followUpNote}` : ''}
+                  </div>
+                )}
+              </div>
+
+              <div style={{display:'flex', gap:8, marginBottom:16}}>
+                <input type="text" placeholder="Add a note about this customer…" style={{flex:1}}
+                  value={noteText} onChange={e=>setNoteText(e.target.value)}
+                  onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addNote();}}} />
+                <button className="btn btn-primary btn-sm" disabled={addingNote || !noteText.trim()} onClick={addNote}>
+                  {addingNote ? 'Adding…' : '+ Add note'}
+                </button>
+              </div>
+
+              {activity.length === 0 ? (
+                <div className="empty">No activity yet — notes, stage changes, and payments will show up here.</div>
+              ) : (
+                <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                  {activity.map((a,i) => (
+                    <div key={i} style={{display:'flex', gap:10, fontSize:13, paddingBottom:10,
+                      borderBottom: i<activity.length-1 ? '1px solid var(--border,#eee)' : 'none'}}>
+                      <div style={{flexShrink:0, width:20, textAlign:'center'}}>
+                        {a.kind==='payment' ? '💵' : a.kind==='system' ? '↻' : '📝'}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div>{a.text}</div>
+                        <div style={{color:'var(--ink-3)', fontSize:11, marginTop:2}}>
+                          {a.author ? `${a.author} · ` : ''}{a.at ? new Date(a.at).toLocaleString('en-PH') : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="modal-actions">
+          <button type="button" className="btn btn-outline" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Products panel ─────────────────────────────────────────────────────────
+function Products() {
+  const [products, setProducts] = useState(null);
+  const [toast, setToast] = useState('');
+  const [saving, setSaving] = useState({});
+  const [saved, setSaved]   = useState({});
+  const [local, setLocal]   = useState({});  // unsaved edits
+
+  useEffect(() => {
+    return window.db.collection('products').orderBy('sortOrder')
+      .onSnapshot(snap => {
+        if (snap.empty) { setProducts([]); return; }
+        const rows = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        setProducts(rows);
+        const init = {};
+        rows.forEach(r => { init[r._id] = { price: r.price }; });
+        setLocal(init);
+      });
+  }, []);
+
+  const seedProducts = async () => {
+    if (!confirm('This will push the default 7 plot types to Firestore, replacing anything currently live. Continue?')) return;
+    const batch = window.db.batch();
+    BASE_TIERS.forEach(tier => {
+      const ref = window.db.collection('products').doc(tier.id);
+      batch.set(ref, tier);
+    });
+    await batch.commit();
+    setToast('Products seeded from defaults ✓');
+  };
+
+  const saveProduct = async (prod) => {
+    const edits = local[prod._id];
+    if (!edits) return;
+    setSaving(s => ({ ...s, [prod._id]: true }));
+    try {
+      await window.db.collection('products').doc(prod._id).update({
+        price: Number(edits.price)
+      });
+      setSaved(s => ({ ...s, [prod._id]: true }));
+      setTimeout(() => setSaved(s => ({ ...s, [prod._id]: false })), 2000);
+    } catch(ex){ setToast('Save failed — check console.'); }
+    finally { setSaving(s => ({ ...s, [prod._id]: false })); }
+  };
+
+  const setVal = (id, k, v) => setLocal(l => ({ ...l, [id]: { ...l[id], [k]: v } }));
+
+  if (!products) return <div className="loading"><div className="spinner"/><div>Loading products…</div></div>;
+
+  return (
+    <>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
+      <div className="section-hd">
+        <h2>Products & Pricing</h2>
+        <button className="btn btn-outline btn-sm" onClick={seedProducts}>
+          {products.length === 0 ? '⬆ Seed default products' : '↺ Reset to defaults'}
+        </button>
+      </div>
+      {products.length === 0 ? (
+        <div className="table-card"><div className="empty">
+          No products in database yet.<br/>Click "Seed default products" to push your 7 standard plot types to Firestore.<br/>
+          After seeding, price changes here will reflect live on your website.
+        </div></div>
+      ) : (
+        <div className="products-grid">
+          {products.map(p => {
+            const ed = local[p._id] || { price: p.price };
+            const price = Number(ed.price) || 0;
+            return (
+              <div key={p._id} className="product-card">
+                <div style={{fontSize:11,color:'var(--ink-3)',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:2}}>
+                  {p.category}
+                </div>
+                <h3>{p.name}</h3>
+                <p className="product-desc">{p.desc}</p>
+                <div className="price-edit">
+                  <label>Spot cash price (₱)</label>
+                  <input type="number" value={ed.price}
+                    onChange={e => setVal(p._id,'price',e.target.value)} />
+                </div>
+                <div style={{fontSize:12,color:'var(--ink-3)',margin:'10px 0',lineHeight:1.6}}>
+                  No down payment — surcharge + term applies:<br/>
+                  {PLAN_TERMS.slice(1).map(t => (
+                    <span key={t.key} style={{display:'inline-block',marginRight:12}}>
+                      {t.label.replace(' Plan','')}: {fmt(Math.round(price*(1+t.surcharge)/t.months))}/mo
+                    </span>
+                  ))}
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginTop:12}}>
+                  <button className="btn btn-primary btn-sm" disabled={saving[p._id]}
+                    onClick={()=>saveProduct(p)}>
+                    {saving[p._id] ? 'Saving…' : 'Save'}
+                  </button>
+                  <span className="save-indicator">
+                    {saved[p._id] && <span className="save-ok">✓ Saved</span>}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Users panel ────────────────────────────────────────────────────────────
+function Users({ currentUser }) {
+  const [users, setUsers] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    return window.db.collection('users').orderBy('createdAt','desc')
+      .onSnapshot(snap => setUsers(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
+  }, []);
+
+  const removeUser = async (id, email) => {
+    if (email === currentUser.email) { alert("You can't remove yourself."); return; }
+    if (!confirm(`Remove ${email} from the admin list?`)) return;
+    await window.db.collection('users').doc(id).delete();
+    setToast('User removed from records');
+  };
+
+  return (
+    <>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
+      {showAdd && <AddUserModal onClose={()=>setShowAdd(false)} onSaved={()=>{setShowAdd(false);setToast('User record added');}} />}
+      <div className="section-hd">
+        <h2>Admin Users</h2>
+        <button className="btn btn-primary btn-sm" onClick={()=>setShowAdd(true)}>+ Add user</button>
+      </div>
+      <div style={{background:'#fff8e1',border:'1px solid #ffe082',borderRadius:8,padding:'12px 16px',fontSize:13,color:'#795548',marginBottom:16}}>
+        💡 This panel tracks admin accounts in Firestore. To create a real login account, go to your
+        <strong> Firebase Console → Authentication → Add user</strong>, then record them here.
+      </div>
+      <div className="users-grid">
+        {users.length === 0 && (
+          <div className="table-card"><div className="empty">No users recorded yet. Add your admin accounts above.</div></div>
+        )}
+        {users.map(u => (
+          <div key={u._id} className="user-row">
+            <div className="user-info">
+              <div className="user-avatar">{initials(u.name || u.email)}</div>
+              <div>
+                <div className="user-name">{u.name || '(no name)'}</div>
+                <div className="user-email">{u.email} · <em>{u.role || 'admin'}</em></div>
+              </div>
+            </div>
+            <button className="btn btn-danger btn-sm" onClick={()=>removeUser(u._id, u.email)}>
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function AddUserModal({ onClose, onSaved }) {
+  const [form, setForm] = useState({ name:'', email:'', role:'admin' });
+  const [busy, setBusy] = useState(false);
+  const set = k => e => setForm(f=>({...f,[k]:e.target.value}));
+
+  const save = async (e) => {
+    e.preventDefault(); setBusy(true);
+    try {
+      await window.db.collection('users').add({
+        ...form,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      onSaved();
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <h3>Add Admin User</h3>
+        <form onSubmit={save}>
+          <div className="field"><label>Full name</label><input required value={form.name} onChange={set('name')} placeholder="Juan dela Cruz" /></div>
+          <div className="field"><label>Email</label><input type="email" required value={form.email} onChange={set('email')} placeholder="juan@ghmemorialpark.com" /></div>
+          <div className="field">
+            <label>Role</label>
+            <select value={form.role} onChange={set('role')}>
+              <option value="superadmin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={busy}>{busy?'Saving…':'Add user'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+const TABS = [
+  { id:'pipeline',  label:'Pipeline',   ico:'🧭', badge:1 },
+  { id:'inquiries', label:'Inquiries',  ico:'📥', badge:5 },
+  { id:'customers', label:'Customers',  ico:'👥', badge:2 },
+  { id:'products',  label:'Products',   ico:'🪦', badge:3 },
+  { id:'users',     label:'Users',      ico:'🔐', badge:4 },
+];
+
+function Dashboard({ user, onLogout }) {
+  const [tab, setTab] = useState('pipeline');
+  const [counts, setCounts] = useState({ inquiries:0, customers:0, products:0, users:0 });
+
+  useEffect(() => {
+    const unsubs = ['inquiries','customers','products','users'].map(col =>
+      window.db.collection(col).onSnapshot(s => setCounts(c => ({ ...c, [col]: s.size })))
+    );
+    return () => unsubs.forEach(u => u());
+  }, []);
+
+  return (
+    <div className="layout">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="sidebar-mark">G</div>
+          <div>
+            <div className="sidebar-name">Golden Harmonic</div>
+            <div className="sidebar-sub">Admin Panel</div>
+          </div>
+        </div>
+        <div className="sidebar-divider"/>
+        <div className="sidebar-section">Management</div>
+        <nav className="sidebar-nav">
+          {TABS.map(t => (
+            <div key={t.id} className={`nav-item ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
+              <span className="ico">{t.ico}</span>
+              <span>{t.label}</span>
+              {counts[t.id] > 0 && (
+                <span style={{marginLeft:'auto',background:'rgba(255,255,255,.2)',
+                  fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10}}>
+                  {counts[t.id]}
+                </span>
+              )}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <button className="logout-btn" onClick={onLogout}>
+            <span style={{fontSize:16}}>🚪</span> Sign out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="main">
+        <div className="topbar">
+          <div className="topbar-title">{TABS.find(t=>t.id===tab)?.label}</div>
+          <div className="topbar-right">
+            <span className="user-badge">Signed in as <strong>{user.email}</strong></span>
+          </div>
+        </div>
+        <div className="content">
+          {/* Stats row */}
+          <div className="stats-row">
+            {TABS.filter(t => t.id !== 'pipeline').map(t => (
+              <div key={t.id} className="stat-card" style={{cursor:'pointer'}} onClick={()=>setTab(t.id)}>
+                <div className="stat-badge" style={{background:`var(--badge-${t.badge})`,color:`var(--badge-${t.badge}-ic)`}}>
+                  {t.ico}
+                </div>
+                <div>
+                  <div className="stat-num">{counts[t.id]}</div>
+                  <div className="stat-lbl">{t.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Tab content */}
+          {tab==='pipeline'  && <Pipeline currentUser={user}/>}
+          {tab==='inquiries' && <Inquiries/>}
+          {tab==='customers' && <Customers currentUser={user}/>}
+          {tab==='products'  && <Products/>}
+          {tab==='users'     && <Users currentUser={user}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Root ───────────────────────────────────────────────────────────────────
+function Root() {
+  const [user, setUser] = useState(undefined); // undefined = checking
+
+  useEffect(() => {
+    return window.auth.onAuthStateChanged(u => setUser(u || null));
+  }, []);
+
+  const logout = () => window.auth.signOut();
+
+  if (user === undefined) return (
+    <div className="loading" style={{minHeight:'100vh',display:'grid',placeItems:'center'}}>
+      <div><div className="spinner"/><div>Checking login…</div></div>
+    </div>
+  );
+
+  if (!user) return <Login onLogin={setUser} />;
+  return <Dashboard user={user} onLogout={logout} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+</script>
+</body>
+</html>
