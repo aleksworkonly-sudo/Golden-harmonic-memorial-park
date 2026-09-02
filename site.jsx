@@ -1222,6 +1222,20 @@ function Brochure() {
           inquiryIds: [inquiryRef.id]
         });
       }
+
+      // 3. Send the customer a confirmation email (best-effort — if EmailJS
+      // isn't configured yet, this just quietly does nothing so the form
+      // still works while you're setting it up).
+      if (window.emailjs && window.EMAILJS_CONFIG && window.EMAILJS_CONFIG.PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
+        emailjs.send(window.EMAILJS_CONFIG.SERVICE_ID, window.EMAILJS_CONFIG.TEMPLATE_ID, {
+          to_email:   form.email,
+          first_name: form.firstName,
+          last_name:  form.lastName,
+          interest:   form.interest,
+          phone:      form.phone
+        }).catch(err => console.error('[GH] Email send error:', err));
+      }
+
       setSent(true);
     } catch (err) {
       console.error('[GH] Save error:', err);
