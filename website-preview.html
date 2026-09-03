@@ -1780,7 +1780,16 @@ const SCENE_CONFIG = {
   family: { sky: ['#f5efdc', '#e0d2a4'], sun: [60, 48, 'var(--gold)'], seed: 12, water: false, trees: [{ x: 340, y: 228, scale: 1 }], markers: 4 },
   niche: { sky: ['#f7f0dd', '#e5d6a8'], sun: [90, 42, 'var(--gold)'], seed: 13, water: false, trees: [], chapel: { x: 200, scale: 0.9 } },
   'premium-niche': { sky: ['#f7f0dd', '#ecd68f'], sun: [90, 46, 'var(--gold)'], seed: 14, water: false, trees: [], chapel: { x: 200, scale: 1.05 } },
-  mausoleum: { sky: ['#f2ead2', '#dcc079'], sun: [70, 50, 'var(--gold)'], seed: 15, water: false, trees: [{ x: 60, y: 228, scale: 0.9 }], chapel: { x: 220, scale: 1.15 }, monuments: [90] }
+  mausoleum: { sky: ['#f2ead2', '#dcc079'], sun: [70, 50, 'var(--gold)'], seed: 15, water: false, trees: [{ x: 60, y: 228, scale: 0.9 }], chapel: { x: 220, scale: 1.15 }, monuments: [90] },
+  // Per-plot images for the price-list form's order summary + confirmation email —
+  // one unique scene per real plot, richer as the price tier goes up.
+  'regular':        { sky: ['#f6efdd', '#e3d6ac'], sun: [70, 46, 'var(--gold)'], seed: 10, water: false, trees: [{ x: 320, y: 230, scale: 1 }], markers: 3 },
+  'premium':        { sky: ['#f2ecd8', '#ddd0a0'], sun: [100, 44, '#c9a355'], seed: 16, water: false, trees: [{ x: 60, y: 226, scale: 1.1 }, { x: 330, y: 228, scale: 0.9 }], markers: 3 },
+  'corner-premium': { sky: ['#eef1de', '#d9d3a0'], sun: [300, 42, '#c9a355'], seed: 18, water: false, trees: [{ x: 50, y: 224, scale: 1 }, { x: 340, y: 230, scale: 1.1 }], monuments: [200], markers: 2 },
+  'garden-regular': { sky: ['#eef4e5', '#d7e4c4'], sun: [80, 44, 'var(--gold)'], seed: 20, water: false, trees: [{ x: 70, y: 222, scale: 1.2 }, { x: 150, y: 230, scale: 0.9 }, { x: 330, y: 224, scale: 1.1 }], markers: 3 },
+  'garden-premium': { sky: ['#eaf2e2', '#cfe0bd'], sun: [310, 44, '#fff2cf'], seed: 22, water: true, trees: [{ x: 50, y: 222, scale: 1.2 }, { x: 130, y: 232, scale: 0.9 }, { x: 320, y: 224, scale: 1.1 }], markers: 2 },
+  'garden-corner':  { sky: ['#e7f1de', '#c9ddb5'], sun: [320, 42, '#fff2cf'], seed: 24, water: true, trees: [{ x: 40, y: 220, scale: 1.3 }, { x: 100, y: 230, scale: 1 }, { x: 300, y: 222, scale: 1.2 }, { x: 360, y: 232, scale: 0.9 }], monuments: [200], markers: 2 },
+  'family-vault':   { sky: ['#f5efdc', '#e0d2a4'], sun: [60, 48, 'var(--gold)'], seed: 12, water: false, trees: [{ x: 340, y: 228, scale: 1 }], chapel: { x: 190, scale: 0.7 }, markers: 4 }
 };
 
 function Scene({ variant }) {
@@ -1904,7 +1913,7 @@ function App() {
           <CliffDivider flip />
           <About />
           <FAQ />
-          <Brochure />
+          <Brochure tiers={tiers} />
         </main>
         <Footer />
         <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
@@ -2612,17 +2621,18 @@ function FAQ() {
 }
 
 /* ---------- Brochure / contact form ---------- */
-function Brochure() {
+function Brochure({ tiers = [] }) {
   const [sent, setSent]     = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
   const [form, setForm]     = useState({
     firstName: '', lastName: '', email: '', phone: '',
-    interest: 'Pre-need (planning ahead)'
+    interest: 'Pre-need (planning ahead)', planId: ''
   });
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-
+  const chosenPlan = tiers.find(t => t.id === form.planId);
+  const planImageFile = (planId) => `plot-${planId}.png`;
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -2638,7 +2648,8 @@ function Brochure() {
           phone:             form.phone,
           interest:          form.interest,
           source:            'website',
-          createdAt:         ts
+          createdAt:         ts,
+          ...(chosenPlan ? { planId: chosenPlan.id, planName: chosenPlan.name, planPrice: chosenPlan.price } : {})
         };
         // 1. Save inquiry
         const inquiryRef = await window.db.collection('inquiries').add({
@@ -2650,9 +2661,27 @@ function Brochure() {
         await window.db.collection('customers').add({
           ...base,
           status:     'lead',
-          inquiryIds: [inquiryRef.id]
+          inquiryIds: [inquiryRef.id],
+          ...(chosenPlan ? { plan: { name: chosenPlan.name, price: chosenPlan.price } } : {})
         });
       }
+
+      // 3. Send the customer a confirmation email (best-effort — if EmailJS
+      // isn't configured yet, this just quietly does nothing so the form
+      // still works while you're setting it up).
+      if (window.emailjs && window.EMAILJS_CONFIG && window.EMAILJS_CONFIG.PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
+        emailjs.send(window.EMAILJS_CONFIG.SERVICE_ID, window.EMAILJS_CONFIG.TEMPLATE_ID, {
+          to_email:   form.email,
+          first_name: form.firstName,
+          last_name:  form.lastName,
+          interest:   form.interest,
+          phone:      form.phone,
+          plan_name:  chosenPlan ? chosenPlan.name : 'Not chosen yet',
+          plan_price: chosenPlan ? fmt(chosenPlan.price) : '—',
+          plan_image: chosenPlan ? `${window.location.origin}/${planImageFile(chosenPlan.id)}` : ''
+        }).catch(err => console.error('[GH] Email send error:', err));
+      }
+
       setSent(true);
     } catch (err) {
       console.error('[GH] Save error:', err);
@@ -2680,16 +2709,60 @@ function Brochure() {
         </div>
         <form className="form-card fade-up" onSubmit={submit}>
           {sent ? (
-            <div style={{ padding: '40px 0', textAlign: 'center' }}>
+            <div style={{ padding: '32px 0', textAlign: 'center' }}>
               <div style={{
                 width: 64, height: 64, borderRadius: '50%', background: 'var(--accent)',
                 color: 'var(--accent-ink)', margin: '0 auto 20px',
                 display: 'grid', placeItems: 'center', fontSize: 30
               }}>✓</div>
               <h3 style={{ marginBottom: 8 }}>Brochure on its way.</h3>
-              <p style={{ color: 'var(--ink-2)', fontSize: 14 }}>
+              <p style={{ color: 'var(--ink-2)', fontSize: 14, marginBottom: 24 }}>
                 Check your inbox in the next 5 minutes. We've also reserved a 7-day hold on any plot you're interested in — just reply to the email to claim it.
               </p>
+
+              <div style={{
+                textAlign: 'left', border: '1px solid var(--line)', borderRadius: 12,
+                overflow: 'hidden', background: 'var(--card)'
+              }}>
+                {chosenPlan && (
+                  <div className="ph" style={{ aspectRatio: '16/7', margin: 0, borderRadius: 0 }}>
+                    <Scene variant={chosenPlan.id} />
+                  </div>
+                )}
+                <div style={{ padding: 18 }}>
+                  <div className="label" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--ink-3)', marginBottom: 10 }}>
+                    Your summary
+                  </div>
+                  <div style={{ display: 'grid', gap: 8, fontSize: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--ink-2)' }}>Plot</span>
+                      <strong>{chosenPlan ? chosenPlan.name : 'Not chosen yet'}</strong>
+                    </div>
+                    {chosenPlan && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--ink-2)' }}>Spot cash price</span>
+                        <strong>{fmt(chosenPlan.price)}</strong>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--ink-2)' }}>Interested in</span>
+                      <strong>{form.interest}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--ink-2)' }}>Name</span>
+                      <strong>{form.firstName} {form.lastName}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--ink-2)' }}>Email</span>
+                      <strong>{form.email}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--ink-2)' }}>Mobile</span>
+                      <strong>{form.phone}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -2717,14 +2790,25 @@ function Brochure() {
                 <input type="tel" required placeholder="+63 917 ..."
                   value={form.phone} onChange={set('phone')} />
               </div>
-              <div className="field">
-                <label>I'm interested in</label>
-                <select value={form.interest} onChange={set('interest')}>
-                  <option>Pre-need (planning ahead)</option>
-                  <option>At-need (immediate)</option>
-                  <option>Investment / resale</option>
-                  <option>Just exploring</option>
-                </select>
+              <div className="field-row">
+                <div className="field">
+                  <label>Which plot interests you?</label>
+                  <select value={form.planId} onChange={set('planId')}>
+                    <option value="">Not sure yet — send general info</option>
+                    {tiers.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} — {fmt(t.price)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>I'm interested in</label>
+                  <select value={form.interest} onChange={set('interest')}>
+                    <option>Pre-need (planning ahead)</option>
+                    <option>At-need (immediate)</option>
+                    <option>Investment / resale</option>
+                    <option>Just exploring</option>
+                  </select>
+                </div>
               </div>
               {error && (
                 <p style={{ color: 'var(--terracotta)', fontSize: 13, marginBottom: 8, fontWeight: 500 }}>
