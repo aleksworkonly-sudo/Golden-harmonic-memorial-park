@@ -4,6 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>GH Admin · Golden Harmonic Memorial Park</title>
+<link rel="manifest" href="admin-manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2f5d4c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Admin">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <!-- Firebase -->
@@ -505,7 +512,11 @@ function Customers({ currentUser }) {
                   <td>
                     {r.plan ?
                       <span className="plan-badge">{r.plan.tierName}</span> :
-                      <span className="plan-badge none">No plan yet</span>}
+                      r.interestedPlanName ?
+                        <span className="plan-badge none" title="Expressed interest on the website — not a formal plan yet">
+                          Interested: {r.interestedPlanName}
+                        </span> :
+                        <span className="plan-badge none">No plan yet</span>}
                   </td>
                   <td>
                     {bal ? (
@@ -904,7 +915,13 @@ function Pipeline({ currentUser }) {
 function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
   const [tab, setTab] = useState('payments');
   const [editingPlan, setEditingPlan] = useState(false);
-  const [plan, setPlan] = useState(customer.plan);
+  const [plan, setPlan] = useState(customer.plan || (customer.interestedPlanId ? {
+    tierId: customer.interestedPlanId,
+    tierName: customer.interestedPlanName,
+    price: customer.interestedPlanPrice,
+    termKey: '1yr',
+    startDate: new Date().toISOString().slice(0,10)
+  } : null));
   const [savingPlan, setSavingPlan] = useState(false);
   const [pay, setPay] = useState({ date: new Date().toISOString().slice(0,10), amount:'', method:'Cash', note:'' });
   const [busy, setBusy] = useState(false);
@@ -1440,6 +1457,14 @@ function Root() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('admin-sw.js').catch(err =>
+        console.warn('[GH] Service worker registration failed:', err));
+    });
+  }
 </script>
 </body>
 </html>

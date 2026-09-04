@@ -1231,7 +1231,11 @@ function Brochure({ tiers = [] }) {
           ...base,
           status:     'lead',
           inquiryIds: [inquiryRef.id],
-          ...(chosenPlan ? { plan: { name: chosenPlan.name, price: chosenPlan.price } } : {})
+          ...(chosenPlan ? {
+            interestedPlanId:    chosenPlan.id,
+            interestedPlanName:  chosenPlan.name,
+            interestedPlanPrice: chosenPlan.price
+          } : {})
         });
       }
 
