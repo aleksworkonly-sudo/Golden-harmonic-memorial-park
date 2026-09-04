@@ -87,7 +87,9 @@ a{text-decoration:none;color:inherit}
 .logout-btn:hover{background:rgba(255,255,255,.18);color:#fff}
 
 /* ── Main ── */
-.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh;min-width:0}
+.content, .main{max-width:100%;overflow-x:hidden}
+canvas{max-width:100%}
 .topbar{background:var(--card);border-bottom:1px solid var(--border);
   padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:5}
@@ -99,7 +101,7 @@ a{text-decoration:none;color:inherit}
 /* ── Cards / stats ── */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
 .stat-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);
-  display:flex;align-items:center;gap:14px;transition:transform .15s}
+  display:flex;align-items:center;gap:14px;transition:transform .15s;min-width:0}
 .stat-card:hover{transform:translateY(-2px)}
 .stat-badge{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
   font-size:20px;flex-shrink:0}
@@ -108,7 +110,7 @@ a{text-decoration:none;color:inherit}
 
 /* ── Charts overview ── */
 .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
-.chart-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.chart-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);min-width:0}
 .chart-card h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--ink)}
 .chart-card canvas{max-height:220px}
 .donut-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:14px}
@@ -159,7 +161,7 @@ select.status-sel:focus{border-color:var(--green)}
 
 /* ── Products grid ── */
 .products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.product-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.product-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;min-width:0}
 .product-card h3{font-size:14px;font-weight:700;margin-bottom:4px}
 .product-desc{font-size:12px;color:var(--ink-2);line-height:1.5;margin-bottom:12px}
 .price-edit{display:flex;align-items:center;gap:8px;margin-bottom:8px}
