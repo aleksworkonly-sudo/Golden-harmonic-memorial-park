@@ -359,6 +359,8 @@ function Login({ onLogin }) {
 function Inquiries() {
   const [rows, setRows] = useState(null);
   const [toast, setToast] = useState('');
+  const [selected, setSelected] = useState({});
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     return window.db.collection('inquiries').orderBy('createdAt','desc')
@@ -370,6 +372,33 @@ function Inquiries() {
     setToast('Status updated');
   };
 
+  const deleteOne = async (id, name) => {
+    if (!confirm(`Delete inquiry from ${name || 'this contact'}? This cannot be undone.`)) return;
+    await window.db.collection('inquiries').doc(id).delete();
+    setSelected(s => { const n = {...s}; delete n[id]; return n; });
+    setToast('Inquiry deleted');
+  };
+
+  const selectedIds = Object.keys(selected).filter(id => selected[id]);
+  const toggleOne = id => setSelected(s => ({ ...s, [id]: !s[id] }));
+  const toggleAll = () => {
+    if (rows && selectedIds.length === rows.length) setSelected({});
+    else setSelected(Object.fromEntries((rows||[]).map(r => [r._id, true])));
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Delete ${selectedIds.length} selected inquir${selectedIds.length===1?'y':'ies'}? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      const batch = window.db.batch();
+      selectedIds.forEach(id => batch.delete(window.db.collection('inquiries').doc(id)));
+      await batch.commit();
+      setSelected({});
+      setToast(`${selectedIds.length} inquiries deleted`);
+    } finally { setDeleting(false); }
+  };
+
   const statusClass = s => ({ new:'badge-new', contacted:'badge-contacted', converted:'badge-converted', closed:'badge-closed' }[s] || 'badge-new');
 
   if (!rows) return <div className="loading"><div className="spinner"/><div>Loading inquiries…</div></div>;
@@ -379,6 +408,11 @@ function Inquiries() {
       {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
       <div className="section-hd">
         <h2>Inquiries <span style={{color:'var(--ink-3)',fontWeight:400,fontSize:13}}>({rows.length})</span></h2>
+        {selectedIds.length > 0 && (
+          <button className="btn btn-danger btn-sm" disabled={deleting} onClick={deleteSelected}>
+            {deleting ? 'Deleting…' : `🗑 Delete selected (${selectedIds.length})`}
+          </button>
+        )}
       </div>
       <div className="table-card">
         {rows.length === 0 ? (
@@ -387,13 +421,17 @@ function Inquiries() {
           <table className="gh-table">
             <thead>
               <tr>
+                <th style={{width:30}}>
+                  <input type="checkbox" checked={rows.length>0 && selectedIds.length===rows.length} onChange={toggleAll} />
+                </th>
                 <th>Name</th><th>Email</th><th>Phone</th>
-                <th>Location</th><th>Interest</th><th>Date</th><th>Status</th>
+                <th>Location</th><th>Interest</th><th>Date</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody>
               {rows.map(r => (
                 <tr key={r._id}>
+                  <td><input type="checkbox" checked={!!selected[r._id]} onChange={()=>toggleOne(r._id)} /></td>
                   <td><strong>{r.fullName || `${r.firstName} ${r.lastName}`}</strong></td>
                   <td><a href={`mailto:${r.email}`} style={{color:'var(--green)'}}>{r.email}</a></td>
                   <td>{r.phone}</td>
@@ -408,6 +446,10 @@ function Inquiries() {
                       <option value="converted">Converted</option>
                       <option value="closed">Closed</option>
                     </select>
+                  </td>
+                  <td>
+                    <button className="btn btn-danger btn-sm"
+                      onClick={()=>deleteOne(r._id, r.fullName || `${r.firstName} ${r.lastName}`)}>Delete</button>
                   </td>
                 </tr>
               ))}
