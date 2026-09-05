@@ -106,9 +106,7 @@ a{text-decoration:none;color:inherit}
 .logout-btn:hover{background:rgba(255,255,255,.18);color:#fff}
 
 /* ── Main ── */
-.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh;min-width:0}
-.content, .main{max-width:100%;overflow-x:hidden}
-canvas{max-width:100%}
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
 .topbar{background:var(--card);border-bottom:1px solid var(--border);
   padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:5}
@@ -120,7 +118,7 @@ canvas{max-width:100%}
 /* ── Cards / stats ── */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
 .stat-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);
-  display:flex;align-items:center;gap:14px;transition:transform .15s;min-width:0}
+  display:flex;align-items:center;gap:14px;transition:transform .15s}
 .stat-card:hover{transform:translateY(-2px)}
 .stat-badge{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
   font-size:20px;flex-shrink:0}
@@ -129,7 +127,7 @@ canvas{max-width:100%}
 
 /* ── Charts overview ── */
 .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
-.chart-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);min-width:0}
+.chart-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
 .chart-card h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--ink)}
 .chart-card canvas{max-height:220px}
 .donut-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:14px}
@@ -180,7 +178,7 @@ select.status-sel:focus{border-color:var(--green)}
 
 /* ── Products grid ── */
 .products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.product-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;min-width:0}
+.product-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
 .product-card h3{font-size:14px;font-weight:700;margin-bottom:4px}
 .product-desc{font-size:12px;color:var(--ink-2);line-height:1.5;margin-bottom:12px}
 .price-edit{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -357,8 +355,23 @@ function Login({ onLogin }) {
   );
 }
 
+// ── Trash / Recently Deleted helpers ────────────────────────────────────────
+// Soft-delete: move the doc's data into a `trash` collection (keyed so re-deleting
+// the same doc just overwrites its trash entry) before removing the original,
+// so staff have a backup/recovery point in the admin panel.
+async function moveToTrash(collectionName, id, data, actorEmail) {
+  await window.db.collection('trash').doc(`${collectionName}_${id}`).set({
+    collection: collectionName,
+    originalId: id,
+    data,
+    deletedAt: Date.now(),
+    deletedBy: actorEmail || 'unknown'
+  });
+  await window.db.collection(collectionName).doc(id).delete();
+}
+
 // ── Inquiries panel ────────────────────────────────────────────────────────
-function Inquiries() {
+function Inquiries({ currentUser }) {
   const [rows, setRows] = useState(null);
   const [toast, setToast] = useState('');
   const [selected, setSelected] = useState({});
@@ -375,10 +388,12 @@ function Inquiries() {
   };
 
   const deleteOne = async (id, name) => {
-    if (!confirm(`Delete inquiry from ${name || 'this contact'}? This cannot be undone.`)) return;
-    await window.db.collection('inquiries').doc(id).delete();
+    if (!confirm(`Delete inquiry from ${name || 'this contact'}? It will be moved to Recently Deleted.`)) return;
+    const doc = rows.find(r => r._id === id);
+    const { _id, ...data } = doc || {};
+    await moveToTrash('inquiries', id, data, currentUser && currentUser.email);
     setSelected(s => { const n = {...s}; delete n[id]; return n; });
-    setToast('Inquiry deleted');
+    setToast('Inquiry moved to Recently Deleted');
   };
 
   const selectedIds = Object.keys(selected).filter(id => selected[id]);
@@ -390,14 +405,16 @@ function Inquiries() {
 
   const deleteSelected = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Delete ${selectedIds.length} selected inquir${selectedIds.length===1?'y':'ies'}? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${selectedIds.length} selected inquir${selectedIds.length===1?'y':'ies'}? They'll be moved to Recently Deleted.`)) return;
     setDeleting(true);
     try {
-      const batch = window.db.batch();
-      selectedIds.forEach(id => batch.delete(window.db.collection('inquiries').doc(id)));
-      await batch.commit();
+      for (const id of selectedIds) {
+        const doc = rows.find(r => r._id === id);
+        const { _id, ...data } = doc || {};
+        await moveToTrash('inquiries', id, data, currentUser && currentUser.email);
+      }
       setSelected({});
-      setToast(`${selectedIds.length} inquiries deleted`);
+      setToast(`${selectedIds.length} inquiries moved to Recently Deleted`);
     } finally { setDeleting(false); }
   };
 
@@ -528,9 +545,11 @@ function Customers({ currentUser }) {
   };
 
   const deleteCustomer = async (id, name) => {
-    if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
-    await window.db.collection('customers').doc(id).delete();
-    setToast('Customer deleted');
+    if (!confirm(`Delete ${name}? They'll be moved to Recently Deleted.`)) return;
+    const doc = rows.find(r => r._id === id);
+    const { _id, ...data } = doc || {};
+    await moveToTrash('customers', id, data, currentUser && currentUser.email);
+    setToast('Customer moved to Recently Deleted');
   };
 
   if (!rows) return <div className="loading"><div className="spinner"/><div>Loading customers…</div></div>;
@@ -1521,6 +1540,82 @@ function AddUserModal({ onClose, onSaved }) {
   );
 }
 
+// ── Recently Deleted panel ───────────────────────────────────────────────────
+function RecentlyDeleted({ currentUser }) {
+  const [rows, setRows] = useState(null);
+  const [toast, setToast] = useState('');
+  const [busyId, setBusyId] = useState(null);
+
+  useEffect(() => {
+    return window.db.collection('trash').orderBy('deletedAt','desc')
+      .onSnapshot(snap => setRows(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
+  }, []);
+
+  const nameOf = (r) => r.data && (r.data.fullName || `${r.data.firstName||''} ${r.data.lastName||''}`.trim() || r.data.email) || '(no name)';
+  const typeLabel = c => c === 'inquiries' ? 'Inquiry' : c === 'customers' ? 'Customer' : c;
+
+  const restore = async (r) => {
+    setBusyId(r._id);
+    try {
+      await window.db.collection(r.collection).doc(r.originalId).set(r.data);
+      await window.db.collection('trash').doc(r._id).delete();
+      setToast(`${typeLabel(r.collection)} restored`);
+    } finally { setBusyId(null); }
+  };
+
+  const purge = async (r) => {
+    if (!confirm(`Permanently delete this ${typeLabel(r.collection).toLowerCase()} record? This cannot be undone.`)) return;
+    setBusyId(r._id);
+    try {
+      await window.db.collection('trash').doc(r._id).delete();
+      setToast('Permanently deleted');
+    } finally { setBusyId(null); }
+  };
+
+  if (!rows) return <div className="loading"><div className="spinner"/><div>Loading Recently Deleted…</div></div>;
+
+  return (
+    <>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
+      <div className="section-hd">
+        <h2>Recently Deleted <span style={{color:'var(--ink-3)',fontWeight:400,fontSize:13}}>({rows.length})</span></h2>
+      </div>
+      <div className="table-card">
+        {rows.length === 0 ? (
+          <div className="empty">Nothing here. Deleted inquiries and customers show up in this list before they're gone for good.</div>
+        ) : (
+          <table className="gh-table">
+            <thead>
+              <tr><th>Type</th><th>Name</th><th>Email</th><th>Deleted</th><th>Deleted by</th><th></th></tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r._id}>
+                  <td><span className="plan-badge">{typeLabel(r.collection)}</span></td>
+                  <td><strong>{nameOf(r)}</strong></td>
+                  <td>{(r.data && r.data.email) || '—'}</td>
+                  <td style={{color:'var(--ink-3)'}}>{r.deletedAt ? new Date(r.deletedAt).toLocaleString('en-PH') : '—'}</td>
+                  <td style={{color:'var(--ink-3)'}}>{r.deletedBy || '—'}</td>
+                  <td>
+                    <div style={{display:'flex',gap:6}}>
+                      <button className="btn btn-outline btn-sm" disabled={busyId===r._id} onClick={()=>restore(r)}>
+                        {busyId===r._id ? '…' : '↩ Restore'}
+                      </button>
+                      <button className="btn btn-danger btn-sm" disabled={busyId===r._id} onClick={()=>purge(r)}>
+                        Delete forever
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ── Dashboard ──────────────────────────────────────────────────────────────
 const TABS = [
   { id:'pipeline',  label:'Pipeline',   ico:'🧭', badge:1 },
@@ -1528,14 +1623,15 @@ const TABS = [
   { id:'customers', label:'Customers',  ico:'👥', badge:2 },
   { id:'products',  label:'Products',   ico:'🪦', badge:3 },
   { id:'users',     label:'Users',      ico:'🔐', badge:4 },
+  { id:'trash',     label:'Recently Deleted', ico:'🗑️', badge:1 },
 ];
 
 function Dashboard({ user, onLogout }) {
   const [tab, setTab] = useState('pipeline');
-  const [counts, setCounts] = useState({ inquiries:0, customers:0, products:0, users:0 });
+  const [counts, setCounts] = useState({ inquiries:0, customers:0, products:0, users:0, trash:0 });
 
   useEffect(() => {
-    const unsubs = ['inquiries','customers','products','users'].map(col =>
+    const unsubs = ['inquiries','customers','products','users','trash'].map(col =>
       window.db.collection(col).onSnapshot(s => setCounts(c => ({ ...c, [col]: s.size })))
     );
     return () => unsubs.forEach(u => u());
@@ -1586,7 +1682,7 @@ function Dashboard({ user, onLogout }) {
         <div className="content">
           {/* Stats row */}
           <div className="stats-row">
-            {TABS.filter(t => t.id !== 'pipeline').map(t => (
+            {TABS.filter(t => t.id !== 'pipeline' && t.id !== 'trash').map(t => (
               <div key={t.id} className="stat-card" style={{cursor:'pointer'}} onClick={()=>setTab(t.id)}>
                 <div className="stat-badge" style={{background:`var(--badge-${t.badge})`,color:`var(--badge-${t.badge}-ic)`}}>
                   {t.ico}
@@ -1600,10 +1696,11 @@ function Dashboard({ user, onLogout }) {
           </div>
           {/* Tab content */}
           {tab==='pipeline'  && <Pipeline currentUser={user}/>}
-          {tab==='inquiries' && <Inquiries/>}
+          {tab==='inquiries' && <Inquiries currentUser={user}/>}
           {tab==='customers' && <Customers currentUser={user}/>}
           {tab==='products'  && <Products/>}
           {tab==='users'     && <Users currentUser={user}/>}
+          {tab==='trash'     && <RecentlyDeleted currentUser={user}/>}
         </div>
       </div>
     </div>
