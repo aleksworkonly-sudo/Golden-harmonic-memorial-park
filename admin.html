@@ -40,6 +40,25 @@
   --radius:14px; --shadow:0 1px 2px rgba(20,20,60,.04),0 8px 24px rgba(20,20,60,.06);
 }
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;min-height:100vh}
+
+/* ── Print: customer records ── */
+.print-sheet{display:none}
+@media print{
+  body *{visibility:hidden}
+  .print-sheet, .print-sheet *{visibility:visible}
+  .print-sheet{display:block !important;position:absolute;top:0;left:0;width:100%;padding:0;background:#fff;color:#000}
+  .print-sheet .letterhead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #2f5d4c;padding-bottom:10px;margin-bottom:16px}
+  .print-sheet .brand{font-size:19px;font-weight:700;color:#2f5d4c}
+  .print-sheet .sub{font-size:11px;color:#555}
+  .print-sheet h2{font-size:13px;margin:16px 0 8px;border-bottom:1px solid #000;padding-bottom:3px;text-transform:uppercase;letter-spacing:.03em}
+  .print-sheet .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;font-size:12px}
+  .print-sheet .meta-grid span{color:#555}
+  .print-sheet table{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px}
+  .print-sheet th,.print-sheet td{border:1px solid #999;padding:5px 7px;text-align:left}
+  .print-sheet .activity-item{font-size:11px;padding:5px 0;border-bottom:1px solid #ddd}
+  .print-sheet .footer-note{margin-top:20px;font-size:10px;color:#777;border-top:1px solid #999;padding-top:6px}
+  @page{margin:14mm}
+}
 button{cursor:pointer;font-family:inherit;font-size:13px}
 input,select,textarea{font-family:inherit;font-size:13px}
 a{text-decoration:none;color:inherit}
@@ -480,7 +499,10 @@ function Customers({ currentUser }) {
       {openCustomer && <CustomerDetailModal customer={openCustomer} currentUser={currentUser} onClose={()=>setOpenId(null)} onToast={setToast} />}
       <div className="section-hd">
         <h2>Customers / Leads <span style={{color:'var(--ink-3)',fontWeight:400,fontSize:13}}>({rows.length})</span></h2>
-        <button className="btn btn-primary btn-sm" onClick={()=>setShowAdd(true)}>+ Add customer</button>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-outline btn-sm" onClick={()=>window.print()}>🖨 Print all</button>
+          <button className="btn btn-primary btn-sm" onClick={()=>setShowAdd(true)}>+ Add customer</button>
+        </div>
       </div>
       <div className="table-card">
         {rows.length === 0 ? (
@@ -551,6 +573,38 @@ function Customers({ currentUser }) {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="print-sheet">
+        <div className="letterhead">
+          <div>
+            <div className="brand">Golden Harmonic Memorial Park</div>
+            <div className="sub">Customer / Leads Summary — Internal Records</div>
+          </div>
+          <div className="sub">Printed: {new Date().toLocaleString('en-PH')}</div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Email</th><th>Phone</th><th>Plan</th><th>Balance</th><th>Status</th><th>Follow-up</th></tr>
+          </thead>
+          <tbody>
+            {rows.map(r => {
+              const bal = planBalance(r);
+              return (
+                <tr key={r._id}>
+                  <td>{r.fullName || `${r.firstName} ${r.lastName}`}</td>
+                  <td>{r.email || '—'}</td>
+                  <td>{r.phone || '—'}</td>
+                  <td>{r.plan ? r.plan.tierName : (r.interestedPlanName || '—')}</td>
+                  <td>{bal ? fmt(bal.balance) : '—'}</td>
+                  <td>{STAGE_LABEL[normalizeStage(r.status)]}</td>
+                  <td>{r.followUpAt || '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="footer-note">Total customers/leads on record: {rows.length}</div>
       </div>
     </>
   );
@@ -1140,7 +1194,83 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
         </div>
 
         <div className="modal-actions">
+          <button type="button" className="btn btn-outline" onClick={()=>window.print()}>🖨 Print record</button>
           <button type="button" className="btn btn-outline" onClick={onClose}>Close</button>
+        </div>
+      </div>
+
+      <div className="print-sheet">
+        <div className="letterhead">
+          <div>
+            <div className="brand">Golden Harmonic Memorial Park</div>
+            <div className="sub">Customer Record — Internal Records</div>
+          </div>
+          <div className="sub">Printed: {new Date().toLocaleString('en-PH')}</div>
+        </div>
+
+        <h2>Customer Information</h2>
+        <div className="meta-grid">
+          <div><span>Name: </span><strong>{customer.fullName || `${customer.firstName} ${customer.lastName}`}</strong></div>
+          <div><span>Pipeline stage: </span><strong>{STAGE_LABEL[normalizeStage(customer.status)]}</strong></div>
+          <div><span>Email: </span>{customer.email || '—'}</div>
+          <div><span>Phone: </span>{customer.phone || '—'}</div>
+          <div><span>Preferred location: </span>{customer.preferredLocation || '—'}</div>
+          <div><span>Interest: </span>{customer.interest || '—'}</div>
+          <div><span>Lead source: </span>{customer.source || '—'}</div>
+          <div><span>Date added: </span>{customer.createdAt && customer.createdAt.toDate ? customer.createdAt.toDate().toLocaleDateString('en-PH') : (customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('en-PH') : '—')}</div>
+        </div>
+
+        {customer.plan && (
+          <>
+            <h2>Plan Details</h2>
+            <div className="meta-grid">
+              <div><span>Plan: </span><strong>{customer.plan.tierName}</strong></div>
+              <div><span>Term: </span>{customer.plan.termLabel || '—'}</div>
+              <div><span>Plan price: </span>{fmt(customer.plan.price)}</div>
+              <div><span>Monthly amount: </span>{fmt(customer.plan.monthlyAmount)}/mo</div>
+              <div><span>Total paid to date: </span>{fmt(bal.paid)}</div>
+              <div><span>Remaining balance: </span>{fmt(bal.balance)}</div>
+            </div>
+          </>
+        )}
+
+        {payments.length > 0 && (
+          <>
+            <h2>Payment History</h2>
+            <table>
+              <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Note</th></tr></thead>
+              <tbody>
+                {payments.map((p,i) => (
+                  <tr key={i}><td>{p.date}</td><td>{fmt(p.amount)}</td><td>{p.method}</td><td>{p.note || '—'}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {customer.followUpAt && (
+          <>
+            <h2>Follow-up</h2>
+            <div className="meta-grid">
+              <div><span>Date: </span>{customer.followUpAt}</div>
+              <div><span>Note: </span>{customer.followUpNote || '—'}</div>
+            </div>
+          </>
+        )}
+
+        <h2>Activity &amp; Notes</h2>
+        {activity.length === 0 ? (
+          <div className="activity-item">No activity recorded.</div>
+        ) : (
+          activity.map((a,i) => (
+            <div className="activity-item" key={i}>
+              <strong>{a.at ? new Date(a.at).toLocaleString('en-PH') : '—'}</strong> — {a.text}{a.author ? ` (${a.author})` : ''}
+            </div>
+          ))
+        )}
+
+        <div className="footer-note">
+          This record was generated from the Golden Harmonic Memorial Park CRM for internal filing purposes.
         </div>
       </div>
     </div>
