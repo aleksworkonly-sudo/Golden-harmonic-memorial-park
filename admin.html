@@ -453,7 +453,7 @@ function Inquiries({ currentUser }) {
                   <input type="checkbox" checked={rows.length>0 && selectedIds.length===rows.length} onChange={toggleAll} />
                 </th>
                 <th>Name</th><th>Email</th><th>Phone</th>
-                <th>Location</th><th>Interest</th><th>Date</th><th>Status</th><th></th>
+                <th>Interest</th><th>Date</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -463,7 +463,6 @@ function Inquiries({ currentUser }) {
                   <td><strong>{r.fullName || `${r.firstName} ${r.lastName}`}</strong></td>
                   <td><a href={`mailto:${r.email}`} style={{color:'var(--green)'}}>{r.email}</a></td>
                   <td>{r.phone}</td>
-                  <td>{r.preferredLocation}</td>
                   <td style={{maxWidth:160,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.interest}</td>
                   <td style={{color:'var(--ink-3)'}}>{fmtDate(r.createdAt)}</td>
                   <td>
@@ -1483,8 +1482,9 @@ function Users({ currentUser }) {
         <button className="btn btn-primary btn-sm" onClick={()=>setShowAdd(true)}>+ Add user</button>
       </div>
       <div style={{background:'#fff8e1',border:'1px solid #ffe082',borderRadius:8,padding:'12px 16px',fontSize:13,color:'#795548',marginBottom:16}}>
-        💡 This panel tracks admin accounts in Firestore. To create a real login account, go to your
-        <strong> Firebase Console → Authentication → Add user</strong>, then record them here.
+        💡 First create the real login in <strong>Firebase Console → Authentication → Add user</strong>,
+        then copy that user's <strong>UID</strong> and paste it below. The role only takes effect —
+        both here and in Firestore security rules — when this record's ID matches their Auth UID.
       </div>
       <div className="users-grid">
         {users.length === 0 && (
@@ -1510,15 +1510,17 @@ function Users({ currentUser }) {
 }
 
 function AddUserModal({ onClose, onSaved }) {
-  const [form, setForm] = useState({ name:'', email:'', role:'admin' });
+  const [form, setForm] = useState({ uid:'', name:'', email:'', role:'staff' });
   const [busy, setBusy] = useState(false);
   const set = k => e => setForm(f=>({...f,[k]:e.target.value}));
 
   const save = async (e) => {
     e.preventDefault(); setBusy(true);
     try {
-      await window.db.collection('users').add({
-        ...form,
+      const uid = form.uid.trim();
+      const { uid: _drop, ...data } = form;
+      await window.db.collection('users').doc(uid).set({
+        ...data,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       onSaved();
@@ -1530,6 +1532,8 @@ function AddUserModal({ onClose, onSaved }) {
       <div className="modal">
         <h3>Add Admin User</h3>
         <form onSubmit={save}>
+          <div className="field"><label>Firebase Auth UID</label>
+            <input required value={form.uid} onChange={set('uid')} placeholder="Copy from Firebase Console → Authentication" /></div>
           <div className="field"><label>Full name</label><input required value={form.name} onChange={set('name')} placeholder="Juan dela Cruz" /></div>
           <div className="field"><label>Email</label><input type="email" required value={form.email} onChange={set('email')} placeholder="juan@ghmemorialpark.com" /></div>
           <div className="field">
@@ -1551,7 +1555,7 @@ function AddUserModal({ onClose, onSaved }) {
 }
 
 // ── Recently Deleted panel ───────────────────────────────────────────────────
-function RecentlyDeleted({ currentUser }) {
+function RecentlyDeleted({ currentUser, canPurge }) {
   const [rows, setRows] = useState(null);
   const [toast, setToast] = useState('');
   const [busyId, setBusyId] = useState(null);
@@ -1611,9 +1615,11 @@ function RecentlyDeleted({ currentUser }) {
                       <button className="btn btn-outline btn-sm" disabled={busyId===r._id} onClick={()=>restore(r)}>
                         {busyId===r._id ? '…' : '↩ Restore'}
                       </button>
-                      <button className="btn btn-danger btn-sm" disabled={busyId===r._id} onClick={()=>purge(r)}>
-                        Delete forever
-                      </button>
+                      {canPurge && (
+                        <button className="btn btn-danger btn-sm" disabled={busyId===r._id} onClick={()=>purge(r)}>
+                          Delete forever
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1639,6 +1645,20 @@ const TABS = [
 function Dashboard({ user, onLogout }) {
   const [tab, setTab] = useState('pipeline');
   const [counts, setCounts] = useState({ inquiries:0, customers:0, products:0, users:0, trash:0 });
+  // myRole is looked up from users/{uid} — the doc ID MUST equal the Firebase Auth UID
+  // for this (and the Firestore security rules) to work. 'unlinked' means this login
+  // has no matching users/{uid} record yet — see the banner on the Users tab.
+  const [myRole, setMyRole] = useState(null);
+
+  useEffect(() => {
+    return window.db.collection('users').doc(user.uid).onSnapshot(doc => {
+      setMyRole(doc.exists ? (doc.data().role || 'staff') : 'unlinked');
+    });
+  }, [user.uid]);
+
+  const isSuperAdmin = myRole === 'superadmin';
+  const isAdminOrHigher = myRole === 'admin' || myRole === 'superadmin';
+  const visibleTabs = TABS.filter(t => t.id !== 'users' || isSuperAdmin);
 
   useEffect(() => {
     const unsubs = ['inquiries','customers','products','users','trash'].map(col =>
@@ -1661,7 +1681,7 @@ function Dashboard({ user, onLogout }) {
         <div className="sidebar-divider"/>
         <div className="sidebar-section">Management</div>
         <nav className="sidebar-nav">
-          {TABS.map(t => (
+          {visibleTabs.map(t => (
             <div key={t.id} className={`nav-item ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
               <span className="ico">{t.ico}</span>
               <span>{t.label}</span>
@@ -1686,13 +1706,13 @@ function Dashboard({ user, onLogout }) {
         <div className="topbar">
           <div className="topbar-title">{TABS.find(t=>t.id===tab)?.label}</div>
           <div className="topbar-right">
-            <span className="user-badge">Signed in as <strong>{user.email}</strong></span>
+            <span className="user-badge">Signed in as <strong>{user.email}</strong>{myRole && myRole!=='unlinked' ? ` · ${myRole}` : ''}</span>
           </div>
         </div>
         <div className="content">
           {/* Stats row */}
           <div className="stats-row">
-            {TABS.filter(t => t.id !== 'pipeline' && t.id !== 'trash').map(t => (
+            {visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash').map(t => (
               <div key={t.id} className="stat-card" style={{cursor:'pointer'}} onClick={()=>setTab(t.id)}>
                 <div className="stat-badge" style={{background:`var(--badge-${t.badge})`,color:`var(--badge-${t.badge}-ic)`}}>
                   {t.ico}
@@ -1709,8 +1729,8 @@ function Dashboard({ user, onLogout }) {
           {tab==='inquiries' && <Inquiries currentUser={user}/>}
           {tab==='customers' && <Customers currentUser={user}/>}
           {tab==='products'  && <Products/>}
-          {tab==='users'     && <Users currentUser={user}/>}
-          {tab==='trash'     && <RecentlyDeleted currentUser={user}/>}
+          {tab==='users'     && isSuperAdmin && <Users currentUser={user}/>}
+          {tab==='trash'     && <RecentlyDeleted currentUser={user} canPurge={isAdminOrHigher}/>}
         </div>
       </div>
     </div>
