@@ -476,7 +476,7 @@ function App() {
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
       <LightboxRoot>
-        <Utility />
+     
         <Header />
         <main>
           <Hero />
@@ -498,50 +498,57 @@ function App() {
     </PlanSelectionContext.Provider>);
 
 }
-
-/* ---------- Utility bar ---------- */
-function Utility() {
-  return (
-    <div className="utility">
-      <div className="wrap row">
-        <div className="links">
-          <a href="#brochure">📍 Palawan, Philippines</a>
-        </div>
-        <div className="links">
-          <a href="tel:+639171234567">+63 917 123 4567</a>
-          <a href="#brochure" className="pill">Free price list →</a>
-        </div>
-      </div>
-    </div>);
-
-}
-
 /* ---------- Header ---------- */
 function Header() {
+  const navItems = [
+    { href: '#tiers', label: 'Plots & Pricing', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    ) },
+    { href: '#plans', label: 'Payment Plans', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
+    ) },
+    { href: '#mausoleum', label: 'Mausoleum', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 21V9l8-5 8 5v12"/><line x1="9" y1="21" x2="9" y2="13"/><line x1="15" y1="21" x2="15" y2="13"/><line x1="2" y1="21" x2="22" y2="21"/></svg>
+    ) },
+    { href: '#invest', label: 'Investment', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg>
+    ) },
+    { href: '#faq', label: 'FAQ', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.8-2.4 2-2.4 3.6"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+    ) }
+  ];
+
   return (
-    <header className="site">
-      <div className="wrap row">
-        <a href="#" className="brand">
-          <div className="brand-mark">G</div>
-          <div className="brand-text">
-            <div className="name">Golden Harmonic</div>
-            <div className="sub">Memorial Park · Palawan</div>
-          </div>
-        </a>
-        <nav className="primary">
-          <a href="#tiers">Plots & Pricing</a>
-          <a href="#plans">Payment Plans</a>
-          <a href="#mausoleum">Mausoleum</a>
-          <a href="#invest">Investment</a>
-          <a href="#faq">FAQ</a>
+    <header className="site" style={{ padding: '14px 0' }}>
+      <style>{`
+        .nav-link-icon { transition: background .15s ease, color .15s ease; }
+        .nav-link-icon:hover { background: var(--bg-2); color: var(--accent) !important; }
+        .nav-link-icon:hover svg { stroke: var(--accent); }
+      `}</style>
+      <div className="wrap">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+          <a href="#" className="brand" style={{ textDecoration: 'none' }}>
+            <div className="brand-mark">G</div>
+            <div className="brand-text">
+              <div className="name">Golden Harmonic</div>
+              <div className="sub">Memorial Park · Palawan · 📍 Palawan, Philippines</div>
+            </div>
+          </a>
+          <a href="#brochure" className="btn btn-primary" style={{ borderRadius: 999, whiteSpace: 'nowrap' }}>Free price list</a>
+        </div>
+        <nav className="primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginTop: 10 }}>
+          {navItems.map(item => (
+            <a key={item.href} href={item.href} className="nav-link-icon"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, textDecoration: 'none', color: 'var(--ink-2)' }}>
+              <span style={{ display: 'inline-flex' }}>{item.icon}</span>
+              {item.label}
+            </a>
+          ))}
         </nav>
-        <a href="#brochure" className="btn btn-primary" style={{ gap: "1.5px" }}>Get the Price List</a>
       </div>
     </header>);
-
 }
 
-/* ---------- Hero ---------- */
 function Hero() {
   return (
     <section className="hero">
