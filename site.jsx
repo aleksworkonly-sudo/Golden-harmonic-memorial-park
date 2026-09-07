@@ -83,7 +83,15 @@ const BASE_TIERS = [
   desc: 'An apartment-style below-ground vault holding 3 coffins in one plot.',
   features: ['3 coffins in one plot', 'Apartment-style below-ground vault', 'Payment plans available (surcharge applies)'],
   label: 'family vault — apartment-style'
-}];
+}];const PLOT_MESSAGES = {
+  'regular': 'A peaceful, standard resting place in our open-lawn section — a simple and dignified choice for your loved one.',
+  'premium': 'A preferred-section resting place offering a quieter, more intimate setting within the park.',
+  'corner-premium': 'A corner placement in our most requested section — extra space and a distinguished location.',
+  'garden-regular': 'A resting place surrounded by landscaped gardens, offering a serene and naturally beautiful setting.',
+  'garden-premium': 'An upgraded garden placement in one of our most sought-after sections, combining beauty and tranquility.',
+  'garden-corner': 'Our most exclusive garden placement — a prime corner spot in the most requested section of the park.',
+  'family-vault': 'A shared resting place for up to three loved ones in one apartment-style vault — ideal for keeping family together.'
+}
 
 
 // Mausoleum: land and construction are priced as ranges (they depend on the
