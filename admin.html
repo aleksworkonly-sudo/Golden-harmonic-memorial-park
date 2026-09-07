@@ -686,10 +686,22 @@ function PlanFields({ plan, onChange }) {
   const p = plan || { tierId:'', tierName:'', price:0, termKey:'1yr', startDate: new Date().toISOString().slice(0,10) };
   const set = (patch) => onChange({ ...p, ...patch });
 
+  // Live plot photos, keyed by product id, so whatever image staff set in
+  // Products & Pricing is what gets attached when a plan is chosen here.
+  const [productImages, setProductImages] = useState({});
+  useEffect(() => {
+    return window.db.collection('products').onSnapshot(snap => {
+      const map = {};
+      snap.docs.forEach(d => { if (d.data().imageUrl) map[d.id] = d.data().imageUrl; });
+      setProductImages(map);
+    });
+  }, []);
+
   const pickTier = (tierId) => {
     const tier = BASE_TIERS.find(t => t.id === tierId);
     if (!tier) { onChange(null); return; }
-    set({ tierId, tierName: tier.name, price: tier.price, termKey: p.termKey || '1yr' });
+    set({ tierId, tierName: tier.name, price: tier.price, termKey: p.termKey || '1yr',
+      imageUrl: productImages[tierId] || tier.imageUrl || '' });
   };
 
   const term = PLAN_TERMS.find(t => t.key === (p.termKey || '1yr')) || PLAN_TERMS[1];
@@ -707,6 +719,12 @@ function PlanFields({ plan, onChange }) {
       </div>
       {p.tierId && (
         <>
+          {p.imageUrl && (
+            <div style={{marginBottom:12}}>
+              <img src={p.imageUrl} alt={p.tierName}
+                style={{width:'100%',maxHeight:160,objectFit:'cover',borderRadius:8}} />
+            </div>
+          )}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
             <div className="field">
               <label>Spot cash price (₱)</label>
@@ -748,7 +766,7 @@ function buildPlanPayload(p) {
     tierId: p.tierId, tierName: p.tierName, price,
     termKey: term.key, termLabel: term.label, surchargePct: term.surcharge,
     termMonths: term.months, totalPrice: Math.round(total), monthlyAmount,
-    startDate: p.startDate
+    startDate: p.startDate, imageUrl: p.imageUrl || ''
   };
 }
 
@@ -1134,11 +1152,17 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
         </h3>
 
         {customer.plan ? (
-          <div className="plan-summary">
+          <div className="plan-summary" style={customer.plan.imageUrl ? {gridTemplateColumns:'96px 1fr 1fr 1fr'} : undefined}>
+            {customer.plan.imageUrl && (
+              <div style={{gridRow:'1 / 3'}}>
+                <img src={customer.plan.imageUrl} alt={customer.plan.tierName}
+                  style={{width:96,height:96,objectFit:'cover',borderRadius:8}} />
+              </div>
+            )}
             <div><div className="lbl">Plan</div><div className="val" style={{fontSize:14}}>{customer.plan.tierName}</div></div>
             <div><div className="lbl">Monthly</div><div className="val" style={{fontSize:14}}>{fmt(customer.plan.monthlyAmount)}/mo</div></div>
             <div><div className="lbl">Balance</div><div className="val" style={{fontSize:14}}>{fmt(bal.balance)}</div></div>
-            <div style={{gridColumn:'1 / -1'}}>
+            <div style={{gridColumn: customer.plan.imageUrl ? '2 / -1' : '1 / -1'}}>
               <div className="progress-track"><div className="progress-fill" style={{width:`${bal.pct}%`}}/></div>
               <div style={{fontSize:12,color:'var(--ink-3)',marginTop:4}}>
                 {fmt(bal.paid)} paid of {fmt(bal.price)} ({Math.round(bal.pct)}%)
@@ -1295,6 +1319,10 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
         {customer.plan && (
           <>
             <h2>Plan Details</h2>
+            {customer.plan.imageUrl && (
+              <img src={customer.plan.imageUrl} alt={customer.plan.tierName}
+                style={{width:'100%',maxHeight:220,objectFit:'cover',borderRadius:6,marginBottom:10}} />
+            )}
             <div className="meta-grid">
               <div><span>Plan: </span><strong>{customer.plan.tierName}</strong></div>
               <div><span>Term: </span>{customer.plan.termLabel || '—'}</div>
@@ -1364,7 +1392,7 @@ function Products() {
         const rows = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
         setProducts(rows);
         const init = {};
-        rows.forEach(r => { init[r._id] = { price: r.price }; });
+        rows.forEach(r => { init[r._id] = { price: r.price, imageUrl: r.imageUrl || '' }; });
         setLocal(init);
       });
   }, []);
@@ -1386,7 +1414,8 @@ function Products() {
     setSaving(s => ({ ...s, [prod._id]: true }));
     try {
       await window.db.collection('products').doc(prod._id).update({
-        price: Number(edits.price)
+        price: Number(edits.price),
+        imageUrl: edits.imageUrl || ''
       });
       setSaved(s => ({ ...s, [prod._id]: true }));
       setTimeout(() => setSaved(s => ({ ...s, [prod._id]: false })), 2000);
@@ -1424,6 +1453,16 @@ function Products() {
                 </div>
                 <h3>{p.name}</h3>
                 <p className="product-desc">{p.desc}</p>
+                {ed.imageUrl && (
+                  <img src={ed.imageUrl} alt={p.name}
+                    style={{width:'100%',height:120,objectFit:'cover',borderRadius:8,marginBottom:10}}
+                    onError={e => e.target.style.display='none'} />
+                )}
+                <div className="price-edit">
+                  <label>Photo URL</label>
+                  <input type="text" value={ed.imageUrl || ''} placeholder="https://…"
+                    onChange={e => setVal(p._id,'imageUrl',e.target.value)} />
+                </div>
                 <div className="price-edit">
                   <label>Spot cash price (₱)</label>
                   <input type="number" value={ed.price}
