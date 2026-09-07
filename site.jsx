@@ -1259,7 +1259,8 @@ function Brochure({ tiers = [] }) {
           phone:      form.phone,
           plan_name:  chosenPlan ? chosenPlan.name : 'Not chosen yet',
           plan_price: chosenPlan ? fmt(chosenPlan.price) : '—',
-          plan_image: chosenPlan ? `${window.location.origin}/${planImageFile(chosenPlan.id)}` : ''
+          plan_image: chosenPlan ? `${window.location.origin}/${planImageFile(chosenPlan.id)}` : '',
+          plot_message: chosenPlan ? (PLOT_MESSAGES[chosenPlan.id] || '') : ''
         }).catch(err => console.error('[GH] Email send error:', err));
       }
 
