@@ -519,11 +519,10 @@ function Header() {
   ];
 
   return (
-    <header className="site" style={{ padding: '14px 0' }}>
+    <header className="site" style={{ padding: '10px 0' }}>
       <style>{`
-        .nav-link-icon { transition: background .15s ease, color .15s ease; }
-        .nav-link-icon:hover { background: var(--bg-2); color: var(--accent) !important; }
-        .nav-link-icon:hover svg { stroke: var(--accent); }
+        .nav-link-icon { transition: background .15s ease, border-color .15s ease; }
+        .nav-link-icon:hover { background: var(--card); border-color: var(--accent) !important; }
       `}</style>
       <div className="wrap">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
@@ -536,10 +535,10 @@ function Header() {
           </a>
           <a href="#brochure" className="btn btn-primary" style={{ borderRadius: 999, whiteSpace: 'nowrap' }}>Free price list</a>
         </div>
-        <nav className="primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginTop: 10 }}>
+        <nav className="primary" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
           {navItems.map(item => (
             <a key={item.href} href={item.href} className="nav-link-icon"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, textDecoration: 'none', color: 'var(--ink-2)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)', background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)' }}>
               <span style={{ display: 'inline-flex' }}>{item.icon}</span>
               {item.label}
             </a>
@@ -547,6 +546,7 @@ function Header() {
         </nav>
       </div>
     </header>);
+}
 }
 
 function Hero() {
