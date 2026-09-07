@@ -477,29 +477,21 @@ function App() {
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
       <LightboxRoot>
      
-        <Header />
-        <main>
-          <Hero />
-          <Tiers tiers={tiers} />
-          <PaymentPlans tiers={tiers} />
-          <Mausoleum />
-          {t.showInvestment && <Investment />}
-          {t.showInvestment && <CliffDivider dark flip />}
-          <PrePostNeed />
-          <Gallery />
-          <CliffDivider flip />
-          <About />
-          <FAQ />
-          <Brochure tiers={tiers} />
-        </main>
-        <Footer />
-        <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
-      </LightboxRoot>
-    </PlanSelectionContext.Provider>);
-
-}
-/* ---------- Header ---------- */
+    /* ---------- Header ---------- */
 function Header() {
+  const [scrolled, setScrolled] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      // fades from fully opaque at the top down to ~80% opaque over the first 160px of scroll
+      const p = Math.min(1, window.scrollY / 160);
+      setScrolled(p);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  const headerBgOpacity = 1 - scrolled * 0.2; // never drops below 80% opaque, so text stays readable
+
   const navItems = [
     { href: '#tiers', label: 'Plots & Pricing', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -519,7 +511,14 @@ function Header() {
   ];
 
   return (
-    <header className="site" style={{ padding: '10px 0' }}>
+    <header className="site" style={{
+      padding: '10px 0',
+      position: 'sticky', top: 0, zIndex: 50,
+      backgroundColor: `rgba(var(--bg-rgb, 246,241,232), ${headerBgOpacity})`,
+      backdropFilter: scrolled > 0.05 ? 'blur(8px)' : 'none',
+      transition: 'background-color .2s ease, backdrop-filter .2s ease',
+      boxShadow: scrolled > 0.1 ? '0 2px 12px rgba(0,0,0,.06)' : 'none'
+    }}>
       <style>{`
         .nav-link-icon { transition: background .15s ease, border-color .15s ease; }
         .nav-link-icon:hover { background: var(--card); border-color: var(--accent) !important; }
@@ -546,7 +545,7 @@ function Header() {
         </nav>
       </div>
     </header>);
-}
+}  
 }
 
 function Hero() {
