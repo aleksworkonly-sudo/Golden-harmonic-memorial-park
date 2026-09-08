@@ -511,6 +511,7 @@ function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   const headerBgOpacity = 1 - scrolled * 0.2; // never drops below 80% opaque, so text stays readable
+  const compact = scrolled > 0.2; // once you're ~30px into scrolling, header collapses to one row
 
   const navItems = [
     { href: '#tiers', label: 'Plots & Pricing', icon: (
@@ -565,21 +566,43 @@ function Header() {
           opacity: 0; pointer-events: none;
         }
         .liquid-metal-btn:hover .lm-sweep { opacity: 1; animation: metalSweep 1.1s ease-in-out; }
+        .header-row { transition: gap .3s ease; }
+        .nav-wrap { transition: opacity .25s ease, transform .25s ease, flex-basis .3s ease, margin-top .3s ease; }
       `}</style>
       <div className="wrap">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-          <a href="#" className="brand" style={{ textDecoration: 'none' }}>
+        <div className="header-row" style={{
+            display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+            justifyContent: 'space-between', gap: compact ? 16 : 20
+          }}>
+          <a href="#" className="brand" style={{ textDecoration: 'none', order: 0, flexShrink: 0 }}>
             <div className="brand-mark">G</div>
             <div className="brand-text">
               <div className="name">Golden Harmonic</div>
               <div className="sub">Memorial Park · Palawan · 📍 Palawan, Philippines</div>
             </div>
           </a>
+
+          <nav className="primary nav-wrap" style={{
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              order: compact ? 1 : 3,
+              flexBasis: compact ? 'auto' : '100%',
+              marginTop: compact ? 0 : 10,
+              opacity: 1
+            }}>
+            {navItems.map(item => (
+              <a key={item.href} href={item.href} className="nav-link-icon"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)', background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)' }}>
+                <span style={{ display: 'inline-flex' }}>{item.icon}</span>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
           <a href="#brochure" className="liquid-metal-btn" style={{
               position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', borderRadius: 999, padding: '10px 28px',
+              overflow: 'hidden', borderRadius: 999, padding: '10px 28px', order: compact ? 2 : 1,
               color: '#fffaf0', fontWeight: 700, fontSize: 13, textDecoration: 'none',
-              whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif',
+              whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', flexShrink: 0,
               boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3)',
               textShadow: '0 1px 2px rgba(0,0,0,.35)'
             }}>
@@ -587,15 +610,6 @@ function Header() {
             <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
           </a>
         </div>
-        <nav className="primary" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
-          {navItems.map(item => (
-            <a key={item.href} href={item.href} className="nav-link-icon"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)', background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)' }}>
-              <span style={{ display: 'inline-flex' }}>{item.icon}</span>
-              {item.label}
-            </a>
-          ))}
-        </nav>
       </div>
     </header>);
 }  
