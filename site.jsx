@@ -571,8 +571,8 @@ function Header() {
       `}</style>
       <div className="wrap">
         <div className="header-row" style={{
-            display: 'flex', alignItems: 'center', flexWrap: 'wrap',
-            justifyContent: 'space-between', gap: compact ? 16 : 20
+            display: 'flex', alignItems: 'center', flexWrap: compact ? 'nowrap' : 'wrap',
+            justifyContent: 'space-between', gap: compact ? 12 : 20
           }}>
           <a href="#" className="brand" style={{ textDecoration: 'none', order: 0, flexShrink: 0 }}>
             <div className="brand-mark">G</div>
@@ -583,15 +583,20 @@ function Header() {
           </a>
 
           <nav className="primary nav-wrap" style={{
-              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              display: 'flex', alignItems: 'center', gap: compact ? 6 : 10, flexWrap: compact ? 'nowrap' : 'wrap',
               order: compact ? 1 : 3,
               flexBasis: compact ? 'auto' : '100%',
               marginTop: compact ? 0 : 10,
+              overflow: compact ? 'hidden' : 'visible',
+              minWidth: 0,
               opacity: 1
             }}>
             {navItems.map(item => (
               <a key={item.href} href={item.href} className="nav-link-icon"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)', background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+                  padding: compact ? '6px 10px' : '7px 14px', fontSize: compact ? 12.5 : 14,
+                  borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
+                  background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)' }}>
                 <span style={{ display: 'inline-flex' }}>{item.icon}</span>
                 {item.label}
               </a>
@@ -600,7 +605,8 @@ function Header() {
 
           <a href="#brochure" className="liquid-metal-btn" style={{
               position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', borderRadius: 999, padding: '10px 28px', order: compact ? 2 : 1,
+              overflow: 'hidden', borderRadius: 999, padding: compact ? '9px 20px' : '10px 28px',
+              order: compact ? 2 : 1,
               color: '#fffaf0', fontWeight: 700, fontSize: 13, textDecoration: 'none',
               whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', flexShrink: 0,
               boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3)',
