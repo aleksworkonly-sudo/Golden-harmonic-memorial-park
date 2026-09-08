@@ -546,7 +546,6 @@ function Header() {
       </div>
     </header>);
 }  
-}
 
 function Hero() {
   return (
