@@ -592,9 +592,24 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="hero">
-      <div className="hero-atmosphere"></div>
-      <div className="wrap hero-grid">
+    <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes heroGradientMove {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .hero-atmosphere-animated {
+          position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          background: linear-gradient(120deg,
+            var(--bg) 0%, var(--bg-2) 25%, rgba(176,133,68,.08) 50%,
+            rgba(47,93,76,.06) 75%, var(--bg) 100%);
+          background-size: 300% 300%;
+          animation: heroGradientMove 22s ease-in-out infinite;
+        }
+      `}</style>
+      <div className="hero-atmosphere-animated"></div>
+      <div className="wrap hero-grid" style={{ position: 'relative', zIndex: 1 }}>
         <div className="fade-up in">
           <span className="eyebrow mono">9°29′N 118°30′E · Palawan, Philippines</span>
           <h1>A sanctuary of peace,<br />heritage, and <em>remembrance</em>.</h1>
