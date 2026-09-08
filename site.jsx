@@ -513,6 +513,15 @@ function Header() {
   const headerBgOpacity = 1 - scrolled * 0.2; // never drops below 80% opaque, so text stays readable
   const compact = scrolled > 0.2; // once you're ~30px into scrolling, header collapses to one row
 
+  // Continuous values (not just on/off) so sizes ease smoothly with scroll instead of snapping
+  const navPadY = 7 - scrolled * 1;
+  const navPadX = 14 - scrolled * 4;
+  const navFontSize = 14 - scrolled * 1.5;
+  const navGap = 10 - scrolled * 4;
+  const rowGap = 20 - scrolled * 8;
+  const btnPadY = 10 - scrolled * 1;
+  const btnPadX = 28 - scrolled * 8;
+
   const navItems = [
     { href: '#tiers', label: 'Plots & Pricing', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -572,7 +581,8 @@ function Header() {
       <div className="wrap">
         <div className="header-row" style={{
             display: 'flex', alignItems: 'center', flexWrap: compact ? 'nowrap' : 'wrap',
-            justifyContent: 'space-between', gap: compact ? 12 : 20
+            justifyContent: 'space-between', gap: rowGap,
+            transition: 'gap .35s cubic-bezier(.25,.1,.25,1)'
           }}>
           <a href="#" className="brand" style={{ textDecoration: 'none', order: 0, flexShrink: 0 }}>
             <div className="brand-mark">G</div>
@@ -583,20 +593,22 @@ function Header() {
           </a>
 
           <nav className="primary nav-wrap" style={{
-              display: 'flex', alignItems: 'center', gap: compact ? 6 : 10, flexWrap: compact ? 'nowrap' : 'wrap',
+              display: 'flex', alignItems: 'center', gap: navGap, flexWrap: compact ? 'nowrap' : 'wrap',
               order: compact ? 1 : 3,
               flexBasis: compact ? 'auto' : '100%',
               marginTop: compact ? 0 : 10,
               overflow: compact ? 'hidden' : 'visible',
               minWidth: 0,
-              opacity: 1
+              opacity: 1,
+              transition: 'gap .35s cubic-bezier(.25,.1,.25,1), margin-top .35s cubic-bezier(.25,.1,.25,1)'
             }}>
             {navItems.map(item => (
               <a key={item.href} href={item.href} className="nav-link-icon"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
-                  padding: compact ? '6px 10px' : '7px 14px', fontSize: compact ? 12.5 : 14,
+                  padding: `${navPadY}px ${navPadX}px`, fontSize: navFontSize,
                   borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
-                  background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)' }}>
+                  background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)',
+                  transition: 'padding .35s cubic-bezier(.25,.1,.25,1), font-size .35s cubic-bezier(.25,.1,.25,1), background .15s ease, border-color .15s ease' }}>
                 <span style={{ display: 'inline-flex' }}>{item.icon}</span>
                 {item.label}
               </a>
@@ -605,12 +617,13 @@ function Header() {
 
           <a href="#brochure" className="liquid-metal-btn" style={{
               position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', borderRadius: 999, padding: compact ? '9px 20px' : '10px 28px',
+              overflow: 'hidden', borderRadius: 999, padding: `${btnPadY}px ${btnPadX}px`,
               order: compact ? 2 : 1,
               color: '#fffaf0', fontWeight: 700, fontSize: 13, textDecoration: 'none',
               whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', flexShrink: 0,
               boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3)',
-              textShadow: '0 1px 2px rgba(0,0,0,.35)'
+              textShadow: '0 1px 2px rgba(0,0,0,.35)',
+              transition: 'padding .35s cubic-bezier(.25,.1,.25,1)'
             }}>
             <span className="lm-sweep"></span>
             <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
