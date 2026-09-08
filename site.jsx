@@ -542,6 +542,9 @@ function Header() {
       <style>{`
         .nav-link-icon { transition: background .15s ease, border-color .15s ease; }
         .nav-link-icon:hover { background: var(--card); border-color: var(--accent) !important; }
+        .hover-cta:hover .hct-text { transform: translateX(14px); opacity: 0; }
+        .hover-cta:hover .hct-text2 { opacity: 1; transform: translateX(0); }
+        .hover-cta:hover .hct-dot { left: 0; top: 0; width: 100%; height: 100%; border-radius: 999px; opacity: 1; }
       `}</style>
       <div className="wrap">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
@@ -552,7 +555,27 @@ function Header() {
               <div className="sub">Memorial Park · Palawan · 📍 Palawan, Philippines</div>
             </div>
           </a>
-          <a href="#brochure" className="btn btn-primary" style={{ borderRadius: 999, whiteSpace: 'nowrap' }}>Free price list</a>
+          <a href="#brochure" className="hover-cta" style={{
+              position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', borderRadius: 999, padding: '10px 26px', background: 'var(--accent)',
+              color: 'var(--accent-ink)', fontWeight: 600, fontSize: 13, textDecoration: 'none',
+              whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif'
+            }}>
+            <span className="hct-dot" style={{
+              position: 'absolute', left: '20%', top: '40%', width: 8, height: 8, borderRadius: 999,
+              background: 'var(--accent-ink)', opacity: 0.15, transition: 'all .35s ease'
+            }}></span>
+            <span className="hct-text" style={{ position: 'relative', zIndex: 1, transition: 'all .3s ease' }}>
+              Free price list
+            </span>
+            <span className="hct-text2" style={{
+              position: 'absolute', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 6,
+              opacity: 0, transform: 'translateX(14px)', transition: 'all .3s ease'
+            }}>
+              Free price list
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
+          </a>
         </div>
         <nav className="primary" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
           {navItems.map(item => (
