@@ -476,8 +476,28 @@ function App() {
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
       <LightboxRoot>
-     
-    /* ---------- Header ---------- */
+        <Header />
+        <main>
+          <Hero />
+          <Tiers tiers={tiers} />
+          <PaymentPlans tiers={tiers} />
+          <Mausoleum />
+          {t.showInvestment && <Investment />}
+          {t.showInvestment && <CliffDivider dark flip />}
+          <PrePostNeed />
+          <Gallery />
+          <CliffDivider flip />
+          <About />
+          <FAQ />
+          <Brochure tiers={tiers} />
+        </main>
+        <Footer />
+        <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
+      </LightboxRoot>
+    </PlanSelectionContext.Provider>);
+}
+
+/* ---------- Header ---------- */
 function Header() {
   const [scrolled, setScrolled] = useState(0);
   useEffect(() => {
