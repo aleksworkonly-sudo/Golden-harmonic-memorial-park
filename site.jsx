@@ -542,9 +542,29 @@ function Header() {
       <style>{`
         .nav-link-icon { transition: background .15s ease, border-color .15s ease; }
         .nav-link-icon:hover { background: var(--card); border-color: var(--accent) !important; }
-        .hover-cta:hover .hct-text { transform: translateX(14px); opacity: 0; }
-        .hover-cta:hover .hct-text2 { opacity: 1; transform: translateX(0); }
-        .hover-cta:hover .hct-dot { left: 0; top: 0; width: 100%; height: 100%; border-radius: 999px; opacity: 1; }
+        @keyframes metalShimmer {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes metalSweep {
+          0%   { transform: translateX(-130%) skewX(-20deg); }
+          100% { transform: translateX(230%) skewX(-20deg); }
+        }
+        .liquid-metal-btn {
+          background: linear-gradient(100deg,
+            #8a6a2f 0%, #d9b563 18%, #f4e2a8 32%, #b08544 48%,
+            #3f6e58 62%, #4f8a6e 74%, #2f5d4c 88%, #8a6a2f 100%);
+          background-size: 260% 100%;
+          animation: metalShimmer 6s ease-in-out infinite;
+        }
+        .liquid-metal-btn:hover { animation-duration: 2.2s; }
+        .lm-sweep {
+          position: absolute; top: -40%; left: 0; width: 26%; height: 180%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+          opacity: 0; pointer-events: none;
+        }
+        .liquid-metal-btn:hover .lm-sweep { opacity: 1; animation: metalSweep 1.1s ease-in-out; }
       `}</style>
       <div className="wrap">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
@@ -555,26 +575,16 @@ function Header() {
               <div className="sub">Memorial Park · Palawan · 📍 Palawan, Philippines</div>
             </div>
           </a>
-          <a href="#brochure" className="hover-cta" style={{
+          <a href="#brochure" className="liquid-metal-btn" style={{
               position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', borderRadius: 999, padding: '10px 26px', background: 'var(--accent)',
-              color: 'var(--accent-ink)', fontWeight: 600, fontSize: 13, textDecoration: 'none',
-              whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif'
+              overflow: 'hidden', borderRadius: 999, padding: '10px 28px',
+              color: '#fffaf0', fontWeight: 700, fontSize: 13, textDecoration: 'none',
+              whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif',
+              boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3)',
+              textShadow: '0 1px 2px rgba(0,0,0,.35)'
             }}>
-            <span className="hct-dot" style={{
-              position: 'absolute', left: '20%', top: '40%', width: 8, height: 8, borderRadius: 999,
-              background: 'var(--accent-ink)', opacity: 0.15, transition: 'all .35s ease'
-            }}></span>
-            <span className="hct-text" style={{ position: 'relative', zIndex: 1, transition: 'all .3s ease' }}>
-              Free price list
-            </span>
-            <span className="hct-text2" style={{
-              position: 'absolute', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 6,
-              opacity: 0, transform: 'translateX(14px)', transition: 'all .3s ease'
-            }}>
-              Free price list
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </span>
+            <span className="lm-sweep"></span>
+            <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
           </a>
         </div>
         <nav className="primary" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
