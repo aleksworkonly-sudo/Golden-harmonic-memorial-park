@@ -888,7 +888,31 @@ function Tier({ tier, i = 0, allTiers = [] }) {
       className={`tier fade-up ${isSelected ? 'selected' : ''}`}
       style={{ '--stagger': i % 6 }}>
 
-      <Photo label={tier.label} scene={sceneKey} items={group} index={idx < 0 ? 0 : idx} />
+      <div className="cine-frame">
+        <style>{`
+          .cine-frame { position: relative; overflow: hidden; border-radius: inherit; }
+          .cine-reveal {
+            filter: blur(10px) brightness(.88); opacity: 0;
+            transition: filter 1.5s cubic-bezier(.16,1,.3,1), opacity 1.1s ease;
+          }
+          .tier.in .cine-frame .cine-reveal { filter: blur(0) brightness(1); opacity: 1; }
+          .cine-zoom { animation: kenBurns 28s ease-in-out infinite alternate; }
+          @keyframes kenBurns {
+            0%   { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.09) translate(-1.5%, -1.5%); }
+          }
+          .cine-vignette {
+            position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 42%, rgba(20,18,12,.32) 100%);
+          }
+        `}</style>
+        <div className="cine-reveal" style={{ transitionDelay: `${(i % 6) * 0.12}s` }}>
+          <div className="cine-zoom" style={{ animationDelay: `${(i % 6) * 1.4}s` }}>
+            <Photo label={tier.label} scene={sceneKey} items={group} index={idx < 0 ? 0 : idx} />
+          </div>
+        </div>
+        <div className="cine-vignette"></div>
+      </div>
       <div>
         <h3>{tier.name}</h3>
         <div className="desc">{tier.desc}</div>
