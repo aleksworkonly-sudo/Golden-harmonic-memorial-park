@@ -585,7 +585,7 @@ function Header() {
             justifyContent: 'space-between', gap: rowGap,
             transition: 'gap .35s cubic-bezier(.25,.1,.25,1)'
           }}>
-          <a href="#" className="brand" style={{ textDecoration: 'none', order: 0, flexShrink: 0 }}>
+          <a href="#" className="brand" style={{ textDecoration: 'none', order: 0, flexShrink: 1, minWidth: 0 }}>
             <div className="brand-mark">G</div>
             <div className="brand-text">
               <div className="name">Golden Harmonic</div>
