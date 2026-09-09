@@ -1152,18 +1152,26 @@ function Mausoleum() {
         <div className="tiers">
           {MAUSOLEUM_PLOTS.map((m, i) =>
           <div className="tier fade-up" key={m.size} style={{ '--stagger': i }}>
-              <Photo label={`${m.size} — land only`} scene="mausoleum" items={[{ label: m.size, caption: m.size }]} />
-              <div>
-                <h3>{m.size}</h3>
-                <div className="desc">{m.desc}</div>
-              </div>
-              <div className="price-row">
-                <div>
-                  <div className="from">{m.area}</div>
-                  <div className="price" style={{ fontSize: 26 }}>{fmtRange(m.low, m.high)}</div>
+              <div className="tier-cine-card">
+                <div className="cine-frame">
+                  <div className="cine-zoom">
+                    <Photo label={`${m.size} — land only`} scene="mausoleum" items={[{ label: m.size, caption: m.size }]} />
+                  </div>
+                  <div className="cine-vignette"></div>
+                  <div className="cine-glow"></div>
                 </div>
+                <div>
+                  <h3>{m.size}</h3>
+                  <div className="desc">{m.desc}</div>
+                </div>
+                <div className="price-row">
+                  <div>
+                    <div className="from">{m.area}</div>
+                    <div className="price" style={{ fontSize: 26 }}>{fmtRange(m.low, m.high)}</div>
+                  </div>
+                </div>
+                <a href="#brochure" className="btn btn-primary">Request a quote →</a>
               </div>
-              <a href="#brochure" className="btn btn-primary">Request a quote →</a>
             </div>
           )}
         </div>
@@ -1172,18 +1180,26 @@ function Mausoleum() {
         <div className="tiers">
           {MAUSOLEUM_PACKAGES.map((m, i) =>
           <div className="tier fade-up" key={m.size} style={{ '--stagger': i }}>
-              <Photo label={m.size} scene="mausoleum-row" items={[{ label: m.size, caption: m.size }]} />
-              <div>
-                <h3>{m.size}</h3>
-                <div className="desc">{m.desc}</div>
-              </div>
-              <div className="price-row">
-                <div>
-                  <div className="from">{m.area}</div>
-                  <div className="price" style={{ fontSize: 26 }}>{fmtRange(m.low, m.high)}</div>
+              <div className="tier-cine-card">
+                <div className="cine-frame">
+                  <div className="cine-zoom">
+                    <Photo label={m.size} scene="mausoleum-row" items={[{ label: m.size, caption: m.size }]} />
+                  </div>
+                  <div className="cine-vignette"></div>
+                  <div className="cine-glow"></div>
                 </div>
+                <div>
+                  <h3>{m.size}</h3>
+                  <div className="desc">{m.desc}</div>
+                </div>
+                <div className="price-row">
+                  <div>
+                    <div className="from">{m.area}</div>
+                    <div className="price" style={{ fontSize: 26 }}>{fmtRange(m.low, m.high)}</div>
+                  </div>
+                </div>
+                <a href="#brochure" className="btn btn-primary">Request a quote →</a>
               </div>
-              <a href="#brochure" className="btn btn-primary">Request a quote →</a>
             </div>
           )}
         </div>
