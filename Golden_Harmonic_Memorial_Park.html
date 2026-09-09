@@ -100,9 +100,12 @@
     display: grid; place-items: center;
     font-family: 'Newsreader', serif; font-size: 22px; font-style: italic;
   }
-  .brand-text { line-height: 1.1; }
+  .brand-text { line-height: 1.1; min-width: 0; }
   .brand-text .name { font-family: 'Newsreader', serif; font-size: 20px; color: var(--ink); }
   .brand-text .sub { font-size: 11px; color: var(--ink-2); letter-spacing: .14em; text-transform: uppercase; }
+  @media (max-width: 480px) {
+    .brand-text .sub { font-size: 9.5px; letter-spacing: .08em; }
+  }
   nav.primary { display: flex; gap: 28px; }
   nav.primary a { text-decoration: none; color: var(--ink-2); font-size: 14px; font-weight: 500; }
   nav.primary a:hover { color: var(--ink); }
