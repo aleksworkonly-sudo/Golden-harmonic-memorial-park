@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=1280, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Golden Harmonic Memorial Park — A place of peace in Palawan</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -106,12 +106,48 @@
   nav.primary { display: flex; gap: 28px; }
   nav.primary a { text-decoration: none; color: var(--ink-2); font-size: 14px; font-weight: 500; }
   nav.primary a:hover { color: var(--ink); }
-  @media (max-width: 860px) { nav.primary { display: none; } }
+  @media (max-width: 860px) { nav.primary { display: none !important; } }
+
+  /* ---------- Mobile navigation (hamburger + slide-down panel) ---------- */
+  .mobile-menu-btn {
+    display: none;
+    width: 44px; height: 44px;
+    align-items: center; justify-content: center;
+    background: transparent; border: 1px solid var(--line); border-radius: 10px;
+    cursor: pointer; flex-shrink: 0;
+  }
+  @media (max-width: 860px) { .mobile-menu-btn { display: inline-flex; } }
+  .mobile-menu-btn span { display: block; width: 20px; height: 2px; background: var(--ink); position: relative; }
+  .mobile-menu-btn span::before, .mobile-menu-btn span::after {
+    content: ''; position: absolute; left: 0; width: 20px; height: 2px; background: var(--ink);
+    transition: transform .2s ease, opacity .2s ease;
+  }
+  .mobile-menu-btn span::before { top: -6px; }
+  .mobile-menu-btn span::after { top: 6px; }
+  .mobile-menu-btn.open span { background: transparent; }
+  .mobile-menu-btn.open span::before { transform: translateY(6px) rotate(45deg); }
+  .mobile-menu-btn.open span::after { transform: translateY(-6px) rotate(-45deg); }
+
+  .mobile-nav-panel {
+    display: none;
+    max-height: 0; overflow: hidden;
+    transition: max-height .3s ease;
+    border-top: 1px solid var(--line);
+  }
+  @media (max-width: 860px) { .mobile-nav-panel { display: block; } }
+  .mobile-nav-panel.open { max-height: 480px; }
+  .mobile-nav-panel .inner { padding: 18px 0; display: flex; flex-direction: column; gap: 4px; }
+  .mobile-nav-panel a {
+    text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 500;
+    padding: 14px 4px; border-radius: 8px; min-height: 44px; display: flex; align-items: center;
+  }
+  .mobile-nav-panel a:active, .mobile-nav-panel a:hover { background: var(--bg-2); }
+  .mobile-nav-panel .btn { margin-top: 8px; width: 100%; justify-content: center; }
 
   /* Buttons */
   .btn {
     display: inline-flex; align-items: center; gap: 10px;
-    padding: 13px 22px; border-radius: 999px;
+    padding: 13px 22px; border-radius: 999px; min-height: 44px;
     font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
     border: 1px solid transparent; cursor: pointer; text-decoration: none;
     transition: transform .15s ease, background .2s ease;
@@ -205,6 +241,7 @@
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px;
   }
   @media (max-width: 800px) { .trust .row { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 420px) { .trust .row { grid-template-columns: 1fr; gap: 18px; } }
   .trust .item { display: flex; flex-direction: column; gap: 4px; }
   .trust .item .big { font-family: 'Newsreader', serif; font-size: 28px; color: var(--accent); }
   .trust .item .lbl { font-size: 13px; color: var(--ink-2); }
@@ -296,8 +333,11 @@
   @media (max-width: 900px) { .plans-grid { grid-template-columns: 1fr; gap: 40px; } }
   .plan-table {
     width: 100%; border-collapse: collapse;
-    background: var(--card); border-radius: 12px; overflow: hidden;
+    background: var(--card); border-radius: 12px;
     border: 1px solid var(--line);
+  }
+  @media (max-width: 700px) {
+    .plan-table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
   }
   .plan-table th, .plan-table td {
     padding: 18px 20px; text-align: left; border-bottom: 1px solid var(--line);
@@ -323,6 +363,7 @@
   .invest-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
   @media (max-width: 900px) { .invest-grid { grid-template-columns: 1fr; } }
   .invest-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 32px; }
+  @media (max-width: 420px) { .invest-stats { grid-template-columns: 1fr; } }
   .invest-stat {
     background: rgba(255,255,255,.04);
     border: 1px solid rgba(255,255,255,.1);
@@ -468,7 +509,7 @@
   .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
   .field label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
   .field input, .field select {
-    padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; min-height: 44px;
     background: var(--bg); font-family: 'Inter', sans-serif; font-size: 14px;
     color: var(--ink); outline: none; transition: border-color .15s;
   }
@@ -629,7 +670,8 @@
   }
   .calc-toggle-row { display: flex; gap: 10px; }
   .calc-chip {
-    flex: 1; text-align: center; padding: 10px 8px; border-radius: 8px;
+    flex: 1; text-align: center; padding: 10px 8px; border-radius: 8px; min-height: 44px;
+    display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--line); background: var(--bg); font-size: 13px; font-weight: 600;
     cursor: pointer; transition: all .15s ease; color: var(--ink-2);
   }
@@ -638,6 +680,7 @@
     display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
     margin-top: 8px; padding-top: 24px; border-top: 1px solid var(--line);
   }
+  @media (max-width: 420px) { .calc-output { grid-template-columns: 1fr; } }
   .calc-output .box {
     background: var(--bg-2); border-radius: 10px; padding: 16px;
   }
