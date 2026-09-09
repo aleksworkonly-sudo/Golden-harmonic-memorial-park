@@ -500,6 +500,7 @@ function App() {
 /* ---------- Header ---------- */
 function Header() {
   const [scrolled, setScrolled] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
     const onScroll = () => {
       // fades from fully opaque at the top down to ~80% opaque over the first 160px of scroll
@@ -628,6 +629,29 @@ function Header() {
             <span className="lm-sweep"></span>
             <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
           </a>
+
+          <button
+            className={`mobile-menu-btn${mobileOpen ? ' open' : ''}`}
+            onClick={() => setMobileOpen(o => !o)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            style={{ order: 4 }}>
+            <span></span>
+          </button>
+        </div>
+
+        <div className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`}>
+          <div className="inner">
+            {navItems.map(item => (
+              <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+                <span style={{ display: 'inline-flex', marginRight: 10 }}>{item.icon}</span>
+                {item.label}
+              </a>
+            ))}
+            <a href="#brochure" className="btn btn-primary" onClick={() => setMobileOpen(false)}>
+              Free price list
+            </a>
+          </div>
         </div>
       </div>
     </header>);
