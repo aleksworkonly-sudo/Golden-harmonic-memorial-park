@@ -841,6 +841,56 @@ function Tiers({ tiers }) {
   const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
   return (
     <section className="block" id="tiers">
+      <style>{`
+        /* ── Cinematic plot card animations ──────────────────────────────
+           Entrance: fade + rise + subtle scale, staggered left-to-right.
+           Hover: image Ken Burns zoom, gradient/glow, whole-card lift.
+           Selected: soft scale + glow highlight.
+           All additive — none of this touches existing layout, colors,
+           typography, pricing, or card structure. */
+        .tier-cine-card {
+          opacity: 0;
+          transform: translateY(22px) scale(.965);
+          transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1);
+          transition-delay: calc(var(--stagger, 0) * 90ms);
+        }
+        .tier.in .tier-cine-card { opacity: 1; transform: translateY(0) scale(1); }
+
+        .tier:hover .tier-cine-card {
+          transform: translateY(-5px) scale(1);
+          box-shadow: 0 18px 34px rgba(20,18,12,.14);
+        }
+        .tier.in:hover .tier-cine-card { transition-delay: 0s; }
+
+        .tier.selected .tier-cine-card {
+          transform: translateY(-2px) scale(1.015);
+          box-shadow: 0 0 0 2px var(--accent), 0 20px 40px rgba(47,93,76,.2);
+        }
+
+        .cine-frame { position: relative; overflow: hidden; border-radius: inherit; }
+        .cine-zoom { transition: transform .7s cubic-bezier(.16,1,.3,1); transform-origin: center; will-change: transform; }
+        .tier:hover .cine-zoom { transform: scale(1.07); }
+
+        .cine-vignette {
+          position: absolute; inset: 0; pointer-events: none;
+          background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(20,18,12,.24) 100%);
+          opacity: .75; transition: opacity .6s ease;
+        }
+        .tier:hover .cine-vignette { opacity: 1; }
+
+        .cine-glow {
+          position: absolute; inset: 0; pointer-events: none; opacity: 0;
+          background: radial-gradient(circle at 50% 30%, rgba(255,244,214,.22), transparent 62%);
+          transition: opacity .6s ease;
+        }
+        .tier:hover .cine-glow { opacity: 1; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .tier-cine-card, .cine-zoom, .cine-vignette, .cine-glow {
+            transition: none !important; animation: none !important;
+          }
+        }
+      `}</style>
       <div className="wrap">
         <div className="section-head fade-up">
           <div>
@@ -888,55 +938,39 @@ function Tier({ tier, i = 0, allTiers = [] }) {
       className={`tier fade-up ${isSelected ? 'selected' : ''}`}
       style={{ '--stagger': i % 6 }}>
 
-      <div className="cine-frame">
-        <style>{`
-          .cine-frame { position: relative; overflow: hidden; border-radius: inherit; }
-          .cine-reveal {
-            filter: blur(10px) brightness(.88); opacity: 0;
-            transition: filter 1.5s cubic-bezier(.16,1,.3,1), opacity 1.1s ease;
-          }
-          .tier.in .cine-frame .cine-reveal { filter: blur(0) brightness(1); opacity: 1; }
-          .cine-zoom { animation: kenBurns 28s ease-in-out infinite alternate; }
-          @keyframes kenBurns {
-            0%   { transform: scale(1) translate(0, 0); }
-            100% { transform: scale(1.09) translate(-1.5%, -1.5%); }
-          }
-          .cine-vignette {
-            position: absolute; inset: 0; pointer-events: none;
-            background: radial-gradient(ellipse at center, transparent 42%, rgba(20,18,12,.32) 100%);
-          }
-        `}</style>
-        <div className="cine-reveal" style={{ transitionDelay: `${(i % 6) * 0.12}s` }}>
-          <div className="cine-zoom" style={{ animationDelay: `${(i % 6) * 1.4}s` }}>
+      <div className="tier-cine-card">
+        <div className="cine-frame">
+          <div className="cine-zoom">
             <Photo label={tier.label} scene={sceneKey} items={group} index={idx < 0 ? 0 : idx} />
           </div>
+          <div className="cine-vignette"></div>
+          <div className="cine-glow"></div>
         </div>
-        <div className="cine-vignette"></div>
-      </div>
-      <div>
-        <h3>{tier.name}</h3>
-        <div className="desc">{tier.desc}</div>
-      </div>
-      <div className="price-row">
         <div>
-          <div className="from">Spot cash</div>
-          <div className="price"><span className="currency">₱</span>{Math.round(tier.price).toLocaleString('en-PH')}</div>
+          <h3>{tier.name}</h3>
+          <div className="desc">{tier.desc}</div>
         </div>
-      </div>
-      <div className="monthly">
-        <span>or pay as low as</span>
-        <strong>{fmt(monthly)}/mo</strong>
-      </div>
-      <ul className="feature-list">
-        {tier.features.map((f) => <li key={f}>{f}</li>)}
-      </ul>
-      <a
-        href="#plans"
-        className="btn btn-primary"
-        onClick={() => selectTier(tier.id)}>
+        <div className="price-row">
+          <div>
+            <div className="from">Spot cash</div>
+            <div className="price"><span className="currency">₱</span>{Math.round(tier.price).toLocaleString('en-PH')}</div>
+          </div>
+        </div>
+        <div className="monthly">
+          <span>or pay as low as</span>
+          <strong>{fmt(monthly)}/mo</strong>
+        </div>
+        <ul className="feature-list">
+          {tier.features.map((f) => <li key={f}>{f}</li>)}
+        </ul>
+        <a
+          href="#plans"
+          className="btn btn-primary"
+          onClick={() => selectTier(tier.id)}>
 
-        {isSelected ? '✓ Selected — see your plan below' : 'Choose this plan →'}
-      </a>
+          {isSelected ? '✓ Selected — see your plan below' : 'Choose this plan →'}
+        </a>
+      </div>
     </div>);
 
 }
