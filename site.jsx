@@ -121,48 +121,6 @@ const fmt = (n) => '₱' + Math.round(n).toLocaleString('en-PH');
 const PlanSelectionContext = React.createContext({ selectedTierId: null, selectTier: () => {} });
 function usePlanSelection() { return React.useContext(PlanSelectionContext); }
 
-/* ---------- Quick Actions (mobile-app-style shortcut row) ---------- */
-function QuickActions() {
-  const items = [
-    { href: '#tiers', label: 'Plots', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    ) },
-    { href: '#plans', label: 'Payment Plans', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-    ) },
-    { href: '#gallery', label: 'Location', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-    ) },
-    { href: '#brochure', label: 'Contact', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-    ) }
-  ];
-  return (
-    <section style={{ padding: '28px 0' }}>
-      <div className="wrap fade-up">
-        <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
-            background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: 16
-          }}>
-          {items.map(item => (
-            <a key={item.href} href={item.href} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                textDecoration: 'none', color: 'var(--ink)', textAlign: 'center'
-              }}>
-              <div style={{
-                  width: 48, height: 48, borderRadius: '50%', background: 'var(--bg-2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)'
-                }}>
-                {item.icon}
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.25 }}>{item.label}</span>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>);
-}
-
 /* ---------- Lightbox (shared across Gallery, Tiers) ---------- */
 const LightboxContext = React.createContext(() => {});
 function useLightbox() { return React.useContext(LightboxContext); }
@@ -521,7 +479,6 @@ function App() {
         <Header />
         <main>
           <Hero />
-          <QuickActions />
           <Tiers tiers={tiers} />
           <Gallery />
           <PaymentPlans tiers={tiers} />
