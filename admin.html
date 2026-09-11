@@ -337,7 +337,8 @@ function Login({ onLogin }) {
     <div className="login-wrap">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-mark">G</div>
+          <img src="/logo-header.png" alt="Golden Harmonic logo"
+            style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
           <div>
             <div className="login-title">Golden Harmonic</div>
             <div className="login-sub">Memorial Park · Admin Panel</div>
@@ -1398,14 +1399,14 @@ function Products() {
   }, []);
 
   const seedProducts = async () => {
-    if (!confirm('This will push the default 7 plot types to Firestore, replacing anything currently live. Continue?')) return;
+    if (!confirm('This will reset prices/descriptions to the default 7 plot types. Photo URLs you\'ve already set will be kept. Continue?')) return;
     const batch = window.db.batch();
     BASE_TIERS.forEach(tier => {
       const ref = window.db.collection('products').doc(tier.id);
-      batch.set(ref, tier);
+      batch.set(ref, tier, { merge: true }); // merge: true keeps fields like imageUrl that aren't in BASE_TIERS
     });
     await batch.commit();
-    setToast('Products seeded from defaults ✓');
+    setToast('Products reset — photos kept ✓');
   };
 
   const saveProduct = async (prod) => {
@@ -1711,7 +1712,8 @@ function Dashboard({ user, onLogout }) {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="sidebar-mark">G</div>
+          <img src="/logo-header.png" alt="Golden Harmonic logo"
+            style={{ width: 34, height: 34, objectFit: 'contain', flexShrink: 0 }} />
           <div>
             <div className="sidebar-name">Golden Harmonic</div>
             <div className="sidebar-sub">Admin Panel</div>
