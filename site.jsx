@@ -862,6 +862,97 @@ function Trust() {
 }
 
 /* ---------- Pricing tiers ---------- */
+/* ---------- Featured carousel (drag/swipe card stack) ---------- */
+function CarouselSlider({ slides = [] }) {
+  const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [dragX, setDragX] = useState(0);
+  const dragging = React.useRef(false);
+  const startX = React.useRef(0);
+
+  const paginate = (dir) => {
+    setDirection(dir);
+    setIndex((p) => (p + dir + slides.length) % slides.length);
+  };
+
+  const onPointerDown = (e) => {
+    dragging.current = true;
+    startX.current = (e.touches ? e.touches[0].clientX : e.clientX);
+  };
+  const onPointerMove = (e) => {
+    if (!dragging.current) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    setDragX(x - startX.current);
+  };
+  const endDrag = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    if (dragX < -80) paginate(1);
+    else if (dragX > 80) paginate(-1);
+    setDragX(0);
+  };
+
+  if (!slides.length) return null;
+  const slide = slides[index];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <style>{`
+        .cs-stack { position: relative; width: 260px; aspect-ratio: 1; transform: rotate(-6deg); }
+        .cs-bg { position: absolute; inset: 4%; background: var(--card); border-radius: 40px; border: 6px solid var(--card); transform: scale(.95); opacity: .5; }
+        .cs-card {
+          position: absolute; inset: 0; background: var(--card); border-radius: 40px; padding: 8px;
+          box-shadow: 0 8px 24px rgba(20,18,12,.14); border: 1.2px solid var(--line);
+          overflow: hidden; cursor: grab; touch-action: pan-y;
+          transition: transform .45s cubic-bezier(.16,1,.3,1), opacity .35s ease, filter .35s ease;
+        }
+        .cs-card:active { cursor: grabbing; }
+        .cs-inner { width: 100%; height: 100%; border-radius: 32px; overflow: hidden; position: relative; background: var(--bg-2); }
+        .cs-heart {
+          position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 999px;
+          background: rgba(255,255,255,.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.4);
+          display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.12);
+        }
+        .cs-label {
+          position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px;
+          background: linear-gradient(180deg, transparent, rgba(20,18,12,.55));
+          color: #fff; font-family: 'Newsreader', serif;
+        }
+        .cs-dots { display: flex; gap: 10px; margin-top: 28px; transform: rotate(-6deg); }
+        .cs-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--gold); cursor: pointer; transition: all .25s ease; }
+      `}</style>
+
+      <div className="cs-stack">
+        <div className="cs-bg"></div>
+        <div
+          className="cs-card"
+          onMouseDown={onPointerDown} onMouseMove={onPointerMove} onMouseUp={endDrag} onMouseLeave={endDrag}
+          onTouchStart={onPointerDown} onTouchMove={onPointerMove} onTouchEnd={endDrag}
+          style={{ transform: `translateX(${dragX}px) rotate(${dragX / 15}deg)` }}>
+          <div className="cs-inner">
+            <Scene variant={slide.scene} />
+            <div className="cs-label">
+              <div style={{ fontSize: 18 }}>{slide.name}</div>
+              <div style={{ fontSize: 12, opacity: .85 }}>{fmt(slide.price)}</div>
+            </div>
+            <div className="cs-heart" title="Shortlist this plot">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f5d4c" strokeWidth="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="cs-dots">
+        {slides.map((_, i) => (
+          <div key={i} className="cs-dot"
+            style={{ opacity: i === index ? 1 : .35, transform: i === index ? 'scale(1.2)' : 'scale(1)' }}
+            onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); }}>
+          </div>
+        ))}
+      </div>
+    </div>);
+}
+
 function Tiers({ tiers }) {
   const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
   return (
@@ -932,6 +1023,14 @@ function Tiers({ tiers }) {
           return (
             <div key={cat} style={{ marginBottom: 12 }}>
               <h3 className="cat-head fade-up">{cat}</h3>
+              {cat === 'Regular Plots' && (
+                <div className="fade-up" style={{ marginBottom: 32 }}>
+                  <CarouselSlider slides={group.map((t) => ({
+                    name: t.name, price: t.price,
+                    scene: t.id === 'regular' ? 'lawn' : 'premium-lawn'
+                  }))} />
+                </div>
+              )}
               <div className={`tiers ${group.length === 1 ? 'single' : ''}`}>
                 {group.map((tier, i) => <Tier key={tier.id} tier={tier} i={i} allTiers={tiers} />)}
               </div>
