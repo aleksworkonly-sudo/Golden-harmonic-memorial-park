@@ -586,7 +586,8 @@ function Header() {
             transition: 'gap .35s cubic-bezier(.25,.1,.25,1)'
           }}>
           <a href="#" className="brand" style={{ textDecoration: 'none', order: 0, flexShrink: 1, minWidth: 0 }}>
-            <div className="brand-mark">G</div>
+            <img src="/logo-header.png" alt="Golden Harmonic Memorial Park logo"
+              style={{ width: 44, height: 44, flexShrink: 0, objectFit: 'contain' }} />
             <div className="brand-text">
               <div className="name">Golden Harmonic</div>
               <div className="sub">Memorial Park · Palawan · 📍 Palawan, Philippines</div>
@@ -1751,7 +1752,8 @@ function Footer() {
         <div className="grid">
           <div>
             <div className="brand" style={{ marginBottom: 18 }}>
-              <div className="brand-mark" style={{ background: 'var(--gold)', color: '#1f1607' }}>G</div>
+              <img src="/logo-header.png" alt="Golden Harmonic Memorial Park logo"
+                style={{ width: 44, height: 44, objectFit: 'contain' }} />
               <div className="brand-text">
                 <div className="name">Golden Harmonic</div>
                 <div className="sub">Memorial Park · Palawan</div>
