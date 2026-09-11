@@ -862,6 +862,18 @@ function Trust() {
 }
 
 /* ---------- Pricing tiers ---------- */
+/* ---------- Detect if running as an installed PWA (not a regular browser tab) ---------- */
+function useIsPWA() {
+  const [isPWA, setIsPWA] = useState(false);
+  useEffect(() => {
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true; // iOS Safari
+    setIsPWA(standalone);
+  }, []);
+  return isPWA;
+}
+
 /* ---------- Featured carousel (drag/swipe card stack) ---------- */
 function CarouselSlider({ slides = [] }) {
   const [index, setIndex] = useState(0);
@@ -954,6 +966,7 @@ function CarouselSlider({ slides = [] }) {
 }
 
 function Tiers({ tiers }) {
+  const isPWA = useIsPWA();
   const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
   return (
     <section className="block" id="tiers">
@@ -1023,7 +1036,7 @@ function Tiers({ tiers }) {
           return (
             <div key={cat} style={{ marginBottom: 12 }}>
               <h3 className="cat-head fade-up">{cat}</h3>
-              {cat === 'Regular Plots' && (
+              {cat === 'Regular Plots' && isPWA && (
                 <div className="fade-up" style={{ marginBottom: 32 }}>
                   <CarouselSlider slides={group.map((t) => ({
                     name: t.name, price: t.price,
