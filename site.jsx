@@ -43,38 +43,38 @@ const PLAN_TERMS = [
 
 const BASE_TIERS = [
 {
-  id: 'regular', name: 'Regular Plot', category: 'Regular Plots', price: 60000,
-  desc: 'A standard single-interment lot in our open-lawn sections.',
+  id: 'regular', name: 'Regular Plot', category: 'Regular Plots', price: 30000,
+  desc: 'A standard single-interment lot in our open-lawn sections. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Open-lawn setting'],
   label: 'regular plot — open lawn'
 },
 {
-  id: 'premium', name: 'Premium Plot', category: 'Regular Plots', price: 85000,
-  desc: 'An upgraded standard plot in one of the park\'s preferred sections.',
+  id: 'premium', name: 'Premium Plot', category: 'Regular Plots', price: 42500,
+  desc: 'An upgraded standard plot in one of the park\'s preferred sections. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Preferred section placement'],
   label: 'premium plot — preferred section'
 },
 {
-  id: 'corner-premium', name: 'Corner Premium Plot', category: 'Regular Plots', price: 95000,
-  desc: 'A corner plot in our most requested standard section.',
+  id: 'corner-premium', name: 'Corner Premium Plot', category: 'Regular Plots', price: 47500,
+  desc: 'A corner plot in our most requested standard section. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Corner placement'],
   label: 'corner premium plot'
 },
 {
-  id: 'garden-regular', name: 'Regular Garden Plot', category: 'Garden Plots', price: 75000,
-  desc: 'A single-interment lot within our landscaped garden sections.',
+  id: 'garden-regular', name: 'Regular Garden Plot', category: 'Garden Plots', price: 37500,
+  desc: 'A single-interment lot within our landscaped garden sections. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Garden setting'],
   label: 'regular garden plot'
 },
 {
-  id: 'garden-premium', name: 'Premium Garden Plot', category: 'Garden Plots', price: 95000,
-  desc: 'An upgraded garden plot in a preferred section of the garden.',
+  id: 'garden-premium', name: 'Premium Garden Plot', category: 'Garden Plots', price: 47500,
+  desc: 'An upgraded garden plot in a preferred section of the garden. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Preferred garden section'],
   label: 'premium garden plot'
 },
 {
-  id: 'garden-corner', name: 'Corner Prime Garden Plot', category: 'Garden Plots', price: 115000,
-  desc: 'A corner plot in our most requested garden section.',
+  id: 'garden-corner', name: 'Corner Prime Garden Plot', category: 'Garden Plots', price: 57500,
+  desc: 'A corner plot in our most requested garden section. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Prime corner placement'],
   label: 'corner prime garden plot'
 },
@@ -1024,7 +1024,7 @@ function Tiers({ tiers }) {
         <div className="section-head fade-up">
           <div>
             <span className="eyebrow">Plots & Pricing</span>
-            <h2 style={{ marginTop: 18 }}>Seven ways to plan ahead — from ₱60,000.</h2>
+            <h2 style={{ marginTop: 18 }}>Seven ways to plan ahead — from ₱30,000.</h2>
           </div>
           <div className="side">
             Every plot includes perpetual care and all-faiths welcome. No down payment on any installment plan — pay spot cash, or spread the (surcharged) total over 1, 2, 3, or 5 years.
@@ -1214,35 +1214,35 @@ function PaymentPlans({ tiers }) {
                 <td>—</td>
                 <td>None</td>
                 <td>—</td>
-                <td>₱60,000</td>
+                <td>₱30,000</td>
               </tr>
               <tr>
                 <td><strong>1-Year Plan</strong></td>
                 <td>12 mo</td>
                 <td>10%</td>
-                <td>₱5,500</td>
-                <td>₱66,000</td>
+                <td>₱2,750</td>
+                <td>₱33,000</td>
               </tr>
               <tr>
                 <td><strong>2-Year Plan</strong></td>
                 <td>24 mo</td>
                 <td>15%</td>
-                <td>₱2,875</td>
-                <td>₱69,000</td>
+                <td>₱1,438</td>
+                <td>₱34,500</td>
               </tr>
               <tr>
                 <td><strong>3-Year Plan</strong></td>
                 <td>36 mo</td>
                 <td>20%</td>
-                <td>₱2,000</td>
-                <td>₱72,000</td>
+                <td>₱1,000</td>
+                <td>₱36,000</td>
               </tr>
               <tr>
                 <td><strong>5-Year Plan</strong></td>
                 <td>60 mo</td>
                 <td>30%</td>
-                <td>₱1,300</td>
-                <td>₱78,000</td>
+                <td>₱650</td>
+                <td>₱39,000</td>
               </tr>
             </tbody>
           </table>
@@ -1251,14 +1251,14 @@ function PaymentPlans({ tiers }) {
         <div className="fade-up" style={{ marginTop: 44, maxWidth: 640 }}>
           <h3 className="display" style={{ fontSize: 24, marginBottom: 12 }}>What "pre-need" really saves you.</h3>
           <p style={{ color: 'var(--ink-2)', marginBottom: 18 }}>
-            The average burial lot in Palawan has appreciated 8–12% per year for the past decade. A ₱60,000 lot bought today will likely cost significantly more in ten years. Lock the price now, and your family pays nothing later.
+            The average burial lot in Palawan has appreciated 8–12% per year for the past decade. A ₱30,000 lot bought today will likely cost significantly more in ten years. Lock the price now, and your family pays nothing later.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <a href="#brochure" className="btn btn-primary">Get a custom quote</a>
             <a href="tel:+639171234567" className="btn btn-ghost">Talk to a counselor</a>
           </div>
           <p className="small" style={{ marginTop: 18 }}>
-            *Table figures shown for a Regular Plot (₱60,000 spot cash). Use the calculator above for any plot type. No down payment on any plan; a 2% monthly penalty applies to late payments.
+            *Table figures shown for a Regular Plot (₱30,000 spot cash). Use the calculator above for any plot type. No down payment on any plan; a 2% monthly penalty applies to late payments.
           </p>
         </div>
       </div>
@@ -1490,9 +1490,9 @@ function PrePostNeed() {
           <div className="compare-card recommended fade-up">
             <div className="tag">Recommended · Plan ahead</div>
             <h3>Pre-Need Plan</h3>
-            <div className="save">Save up to 58%</div>
+            <div className="save">Save up to 57%</div>
             <div className="price" style={{ fontFamily: 'Newsreader, serif', fontSize: 44 }}>
-              ₱85,000<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /lot</span>
+              ₱30,000<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /lot</span>
             </div>
             <ul>
               <li><span className="check">✓</span> Lock today's price — protected from yearly increases</li>
@@ -1507,7 +1507,7 @@ function PrePostNeed() {
             <h3>At-Need Pricing</h3>
             <div style={{ height: 28 }}></div>
             <div className="price" style={{ fontFamily: 'Newsreader, serif', fontSize: 44 }}>
-              ₱195,000<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /lot, est. 2030</span>
+              ₱70,000<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /lot, est. 2030</span>
             </div>
             <ul>
               <li>Same lot, future market price</li>
@@ -1932,9 +1932,9 @@ function Tweaks({ t, setTweak, priceMult }) {
           unit="%" />
 
         <div style={{ fontSize: 11, color: 'rgba(41,38,27,.55)', marginTop: 4, padding: '0 4px', lineHeight: 1.6, fontFamily: 'JetBrains Mono, monospace' }}>
-          Regular Plot · {fmt(60000 * priceMult)}<br />
+          Regular Plot · {fmt(30000 * priceMult)}<br />
           Family Vault · {fmt(105000 * priceMult)}<br />
-          Corner Prime Garden · {fmt(115000 * priceMult)}
+          Corner Prime Garden · {fmt(57500 * priceMult)}
         </div>
       </TweakSection>
       <TweakSection label="Sections">
