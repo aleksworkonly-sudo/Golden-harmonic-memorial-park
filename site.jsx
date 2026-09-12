@@ -437,6 +437,7 @@ function App() {
   const [baseTiers, setBaseTiers] = useState(BASE_TIERS);
   const [selectedTierId, setSelectedTierId] = useState(null);
   const [portalOpen, setPortalOpen] = useState(false);
+  const [heroPrefillEmail, setHeroPrefillEmail] = useState('');
 
   // Load products from Firestore (falls back to hardcoded BASE_TIERS if DB is empty)
   useEffect(() => {
@@ -479,7 +480,7 @@ function App() {
       <LightboxRoot>
         <Header onOpenPortal={() => setPortalOpen(true)} />
         <main>
-          <Hero onOpenPortal={() => setPortalOpen(true)} />
+          <Hero onOpenPortal={() => setPortalOpen(true)} onRequestPriceList={setHeroPrefillEmail} />
           <Tiers tiers={tiers} />
           <Gallery />
           <PaymentPlans tiers={tiers} />
@@ -490,7 +491,7 @@ function App() {
           <CliffDivider flip />
           <About />
           <FAQ />
-          <Brochure tiers={tiers} />
+          <Brochure tiers={tiers} prefillEmail={heroPrefillEmail} />
         </main>
         <Footer />
         <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
@@ -825,9 +826,22 @@ function Velaris({ bg = '#f6f1e8', colors = ['#e6d9b8', '#d9c48f', '#8fae9c', '#
   );
 }
 
-function Hero({ onOpenPortal }) {
+function Hero({ onOpenPortal, onRequestPriceList }) {
+  const [heroEmail, setHeroEmail] = useState('');
+
+  const goToBrochure = (e) => {
+    e.preventDefault();
+    onRequestPriceList(heroEmail);
+    document.getElementById('brochure')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
+      <style>{`
+        .hero-account-link:hover{ color: var(--accent); text-decoration: underline; }
+        .hero-capture-row input::placeholder{ color: var(--ink-2); opacity:.7; }
+        .hero-capture-row input:focus{ outline: 2px solid var(--accent); outline-offset: 1px; }
+      `}</style>
       <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12} />
       <div className="wrap hero-grid" style={{ position: 'relative', zIndex: 1 }}>
         <div className="fade-up in">
@@ -836,11 +850,32 @@ function Hero({ onOpenPortal }) {
           <p className="lede">
             Your legacy, our sacred care. Twenty-five hectares of garden, riverside groves, and family estates cut into Palawan's own limestone coastline — designed for its families to remember well, for generations.
           </p>
-          <div className="cta-row">
-            <a href="#brochure" className="btn btn-primary">Request the full price list</a>
-            <a href="#tiers" className="btn btn-ghost">View plots & pricing →</a>
-            <button onClick={onOpenPortal} className="btn btn-ghost" style={{ fontFamily: 'inherit' }}>My Account</button>
+
+          <form onSubmit={goToBrochure} className="hero-capture-row"
+            style={{ display: 'flex', gap: 10, maxWidth: 460, marginBottom: 14, flexWrap: 'wrap' }}>
+            <input type="email" value={heroEmail} onChange={e => setHeroEmail(e.target.value)}
+              placeholder="Your email address"
+              style={{ flex: '1 1 220px', padding: '15px 16px', borderRadius: 8, border: '1.5px solid var(--line)',
+                background: 'var(--card)', fontSize: 14, fontFamily: 'inherit', color: 'var(--ink)' }} />
+            <button type="submit" className="btn btn-primary" style={{ whiteSpace: 'nowrap', fontFamily: 'inherit', border: 'none', cursor: 'pointer' }}>
+              Get the price list
+            </button>
+          </form>
+
+          <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 22 }}>
+            Prefer to browse first? <a href="#tiers" style={{ color: 'var(--ink)', textDecoration: 'underline', fontWeight: 600 }}>View plots &amp; pricing →</a>
           </div>
+
+          <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--ink-2)', maxWidth: 460 }}>
+            Already reserved a plot with us?
+            <button onClick={onOpenPortal} className="hero-account-link"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', padding: 0, marginLeft: 6, verticalAlign: 'middle' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              My Account
+            </button>
+          </div>
+
           <div className="meta">
             <div>
               <div className="label">Family-owned since</div>
@@ -1692,7 +1727,7 @@ function FAQ() {
 }
 
 /* ---------- Brochure / contact form ---------- */
-function Brochure({ tiers = [] }) {
+function Brochure({ tiers = [], prefillEmail = '' }) {
   const [sent, setSent]     = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
@@ -1700,6 +1735,10 @@ function Brochure({ tiers = [] }) {
     firstName: '', lastName: '', email: '', phone: '',
     interest: 'Pre-need (planning ahead)', planId: ''
   });
+
+  useEffect(() => {
+    if (prefillEmail) setForm(f => ({ ...f, email: prefillEmail }));
+  }, [prefillEmail]);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const chosenPlan = tiers.find(t => t.id === form.planId);
