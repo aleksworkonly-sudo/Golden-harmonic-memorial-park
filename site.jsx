@@ -436,6 +436,7 @@ function App() {
   const [t, setTweak] = useTweaks(window.TWEAK_DEFAULTS);
   const [baseTiers, setBaseTiers] = useState(BASE_TIERS);
   const [selectedTierId, setSelectedTierId] = useState(null);
+  const [portalOpen, setPortalOpen] = useState(false);
 
   // Load products from Firestore (falls back to hardcoded BASE_TIERS if DB is empty)
   useEffect(() => {
@@ -476,9 +477,9 @@ function App() {
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
       <LightboxRoot>
-        <Header />
+        <Header onOpenPortal={() => setPortalOpen(true)} />
         <main>
-          <Hero />
+          <Hero onOpenPortal={() => setPortalOpen(true)} />
           <Tiers tiers={tiers} />
           <Gallery />
           <PaymentPlans tiers={tiers} />
@@ -492,13 +493,14 @@ function App() {
           <Brochure tiers={tiers} />
         </main>
         <Footer />
+        <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
         <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
       </LightboxRoot>
     </PlanSelectionContext.Provider>);
 }
 
 /* ---------- Header ---------- */
-function Header() {
+function Header({ onOpenPortal }) {
   const [scrolled, setScrolled] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
@@ -617,6 +619,21 @@ function Header() {
             ))}
           </nav>
 
+          <button
+            onClick={onOpenPortal}
+            className="nav-link-icon"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+              padding: `${navPadY}px ${navPadX}px`, fontSize: navFontSize,
+              borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
+              background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)',
+              fontFamily: 'inherit', cursor: 'pointer', order: compact ? 1 : 2,
+              transition: 'padding .35s cubic-bezier(.25,.1,.25,1), font-size .35s cubic-bezier(.25,.1,.25,1)' }}>
+            <span style={{ display: 'inline-flex' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </span>
+            My Account
+          </button>
+
           <a href="#brochure" className="liquid-metal-btn" style={{
               position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden', borderRadius: 999, padding: `${btnPadY}px ${btnPadX}px`,
@@ -649,6 +666,14 @@ function Header() {
                 {item.label}
               </a>
             ))}
+            <button onClick={() => { setMobileOpen(false); onOpenPortal(); }}
+              style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
+                background: 'none', border: 'none', font: 'inherit', color: 'inherit', padding: '10px 0', cursor: 'pointer' }}>
+              <span style={{ display: 'inline-flex', marginRight: 10 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              </span>
+              My Account
+            </button>
             <a href="#brochure" className="btn btn-primary" onClick={() => setMobileOpen(false)}>
               Free price list
             </a>
@@ -800,7 +825,7 @@ function Velaris({ bg = '#f6f1e8', colors = ['#e6d9b8', '#d9c48f', '#8fae9c', '#
   );
 }
 
-function Hero() {
+function Hero({ onOpenPortal }) {
   return (
     <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
       <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12} />
@@ -814,6 +839,7 @@ function Hero() {
           <div className="cta-row">
             <a href="#brochure" className="btn btn-primary">Request the full price list</a>
             <a href="#tiers" className="btn btn-ghost">View plots & pricing →</a>
+            <button onClick={onOpenPortal} className="btn btn-ghost" style={{ fontFamily: 'inherit' }}>My Account</button>
           </div>
           <div className="meta">
             <div>
@@ -1881,6 +1907,307 @@ function Brochure({ tiers = [] }) {
 }
 
 /* ---------- Footer ---------- */
+/* ---------- Customer Portal (balance / payment history / submit reference) ----------
+   Accounts are created by staff in admin.html (Customer detail → "Create portal login"),
+   which sets customer.authUid to the Firebase Auth UID. We look up the matching
+   customer doc by that field — there is no self-signup here. */
+function customerPlanBalance(c) {
+  if (!c || !c.plan) return null;
+  const paid = (c.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const price = Number(c.plan.price) || 0;
+  return { price, paid, balance: Math.max(0, price - paid), pct: price ? Math.min(100, (paid / price) * 100) : 0 };
+}
+
+function PortalLogin({ onForgot }) {
+  const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true); setErr('');
+    try {
+      await window.auth.signInWithEmailAndPassword(email.trim(), pass);
+    } catch (ex) {
+      console.error('[GH portal login]', ex.code, ex.message, ex);
+      const map = {
+        'auth/invalid-email': 'That email address doesn\u2019t look right.',
+        'auth/user-not-found': 'We couldn\u2019t find a portal login for that email. Ask our staff to set one up for you.',
+        'auth/wrong-password': 'That password isn\u2019t right \u2014 try again or reset it below.',
+        'auth/invalid-credential': 'Email or password isn\u2019t right \u2014 try again or reset it below.',
+        'auth/too-many-requests': 'Too many attempts \u2014 please wait a bit and try again.'
+      };
+      setErr(map[ex.code] || ex.message || 'Could not log in.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <form onSubmit={submit} className="gh-portal-form">
+      <label>Email address</label>
+      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
+      <label>Password</label>
+      <input type="password" required value={pass} onChange={e => setPass(e.target.value)} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" />
+      {err && <div className="gh-portal-err">{err}</div>}
+      <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Logging in\u2026' : 'Log in'}</button>
+      <button type="button" className="gh-portal-link-btn" onClick={() => onForgot(email)}>Forgot your password?</button>
+      <p className="gh-portal-foot">Don\u2019t have portal access yet? Ask our staff to set it up \u2014 they\u2019ll email you a link to create your password.</p>
+    </form>
+  );
+}
+
+function PortalForgot({ initialEmail, onBack }) {
+  const [email, setEmail] = useState(initialEmail || '');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [err, setErr] = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true); setErr('');
+    try {
+      await window.auth.sendPasswordResetEmail(email.trim());
+      setSent(true);
+    } catch (ex) {
+      setErr(ex.message || 'Could not send the reset email.');
+    } finally { setBusy(false); }
+  };
+
+  if (sent) {
+    return (
+      <div className="gh-portal-form">
+        <p>Check your inbox \u2014 we sent a password reset link to <strong>{email}</strong>.</p>
+        <button type="button" className="gh-portal-link-btn" onClick={onBack}>Back to login</button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="gh-portal-form">
+      <label>Email address</label>
+      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+      {err && <div className="gh-portal-err">{err}</div>}
+      <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Sending\u2026' : 'Send reset link'}</button>
+      <button type="button" className="gh-portal-link-btn" onClick={onBack}>Back to login</button>
+    </form>
+  );
+}
+
+function PortalDashboard({ customer, onLogout }) {
+  const bal = customerPlanBalance(customer);
+  const confirmedRows = (customer.payments || []).map(p => ({ ...p, _kind: 'confirmed' }));
+  const pendingRows = (customer.paymentSubmissions || []).map(p => ({ ...p, _kind: 'submission' }));
+  const history = [...confirmedRows, ...pendingRows].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  const [form, setForm] = useState({ referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const submitReference = async (e) => {
+    e.preventDefault();
+    if (!form.referenceNumber.trim() || !form.amount || Number(form.amount) <= 0) return;
+    setBusy(true);
+    try {
+      await window.db.collection('customers').doc(customer._id).update({
+        paymentSubmissions: firebase.firestore.FieldValue.arrayUnion({
+          referenceNumber: form.referenceNumber.trim(),
+          amount: Number(form.amount),
+          date: form.date,
+          method: 'GCash',
+          mobileNumber: form.mobileNumber.trim(),
+          note: form.note.trim(),
+          status: 'pending',
+          submittedAt: Date.now()
+        })
+      });
+      setForm({ referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
+      setToast('Submitted \u2014 our staff will confirm this against the transaction.');
+      setTimeout(() => setToast(''), 6000);
+    } catch (ex) {
+      setToast(ex.message || 'Could not submit \u2014 please try again.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div>
+      <div className="gh-portal-topbar">
+        <span>Hello, {customer.firstName || customer.fullName || 'there'}</span>
+        <button className="gh-portal-link-btn" style={{ marginTop: 0 }} onClick={onLogout}>Log out</button>
+      </div>
+
+      {!customer.plan ? (
+        <div className="gh-portal-empty">No payment plan has been set up on your account yet. Please contact our staff.</div>
+      ) : (
+        <React.Fragment>
+          <div className="gh-portal-hero">
+            <div className="gh-portal-hero-label">Remaining balance</div>
+            <div className="gh-portal-hero-amount">{fmt(bal.balance)}</div>
+            <div className="gh-portal-hero-meta">{customer.plan.tierName}{customer.plan.termKey ? ' \u00b7 ' + customer.plan.termKey : ''}</div>
+          </div>
+
+          <div className="gh-portal-stats">
+            <div><div className="k">Total plan price</div><div className="v">{fmt(bal.price)}</div></div>
+            <div><div className="k">Amount paid</div><div className="v">{fmt(bal.paid)}</div></div>
+            <div><div className="k">Monthly due</div><div className="v">{fmt(customer.plan.monthlyAmount)}</div></div>
+            <div><div className="k">Progress</div><div className="v">{Math.round(bal.pct)}%</div></div>
+          </div>
+        </React.Fragment>
+      )}
+
+      <div className="gh-portal-section">
+        <h4>Payment history</h4>
+        {history.length === 0 ? (
+          <div className="gh-portal-empty">No payments recorded yet.</div>
+        ) : (
+          <table className="gh-portal-table">
+            <thead><tr><th>Date</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              {history.map((p, i) => (
+                <tr key={i}>
+                  <td>{p.date}</td>
+                  <td>{p.referenceNumber || '\u2014'}</td>
+                  <td>{fmt(p.amount)}</td>
+                  <td>
+                    {p._kind === 'confirmed'
+                      ? <span className="gh-pill confirmed">Confirmed</span>
+                      : <span className={`gh-pill ${p.status === 'rejected' ? 'rejected' : p.status === 'confirmed' ? 'confirmed' : 'pending'}`}>
+                          {p.status === 'rejected' ? 'Needs attention' : p.status === 'confirmed' ? 'Confirmed' : 'Awaiting confirmation'}
+                        </span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="gh-portal-section">
+        <h4>Submit a payment reference</h4>
+        <p className="gh-portal-help">Pay via our GCash for Business QR code, then send us the reference number. Our staff will confirm it against the transaction and update your balance.</p>
+        <form onSubmit={submitReference} className="gh-portal-form-grid">
+          <div>
+            <label>GCash reference number</label>
+            <input type="text" required value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder="e.g. GC-99214870" />
+          </div>
+          <div>
+            <label>Amount paid</label>
+            <input type="number" required min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+          </div>
+          <div>
+            <label>Date of payment</label>
+            <input type="date" required value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+          </div>
+          <div>
+            <label>Your GCash mobile no. (optional)</label>
+            <input type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))} placeholder="09XX XXX XXXX" />
+          </div>
+          <div className="full">
+            <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting\u2026' : 'Submit for confirmation'}</button>
+          </div>
+        </form>
+        {toast && <div className="gh-portal-toast">{toast}</div>}
+      </div>
+    </div>
+  );
+}
+
+function CustomerPortal({ open, onClose }) {
+  const [authUser, setAuthUser] = useState(undefined); // undefined = checking, null = logged out
+  const [customer, setCustomer] = useState(undefined); // undefined = loading, null = no match found
+  const [mode, setMode] = useState('login'); // 'login' | 'forgot'
+  const [forgotEmail, setForgotEmail] = useState('');
+
+  useEffect(() => {
+    if (!open || !window.auth) return;
+    return window.auth.onAuthStateChanged(u => setAuthUser(u || null));
+  }, [open]);
+
+  useEffect(() => {
+    if (!authUser || !window.db) { setCustomer(undefined); return; }
+    return window.db.collection('customers').where('authUid', '==', authUser.uid).limit(1)
+      .onSnapshot(
+        snap => setCustomer(snap.empty ? null : { _id: snap.docs[0].id, ...snap.docs[0].data() }),
+        err => { console.error('[GH portal] customer lookup failed:', err); setCustomer(null); }
+      );
+  }, [authUser]);
+
+  if (!open) return null;
+
+  const logout = () => window.auth.signOut();
+
+  return (
+    <div className="gh-portal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <style>{`
+        .gh-portal-overlay{ position:fixed; inset:0; background:rgba(20,20,18,.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .gh-portal-card{ background:var(--bg); border-radius:8px; max-width:540px; width:100%; max-height:88vh; overflow-y:auto; padding:32px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+        .gh-portal-close{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--ink-2); line-height:1; }
+        .gh-portal-brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+        .gh-portal-brand img{ width:36px; height:36px; object-fit:contain; flex-shrink:0; }
+        .gh-portal-brand span{ font-size:13px; color:var(--ink-2); }
+        .gh-portal-form label, .gh-portal-form-grid label{ display:block; font-size:12.5px; color:var(--ink-2); margin-bottom:5px; margin-top:14px; }
+        .gh-portal-form input, .gh-portal-form-grid input{ width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:4px; font-size:14px; font-family:inherit; background:var(--card); color:var(--ink); }
+        .gh-portal-btn-primary{ width:100%; margin-top:20px; background:var(--accent); color:var(--accent-ink); border:none; padding:11px; border-radius:4px; font-weight:700; font-size:14px; cursor:pointer; }
+        .gh-portal-btn-gold{ background:var(--gold); color:#fff; border:none; padding:10px 20px; border-radius:4px; font-weight:700; font-size:13.5px; cursor:pointer; }
+        .gh-portal-link-btn{ background:none; border:none; color:var(--accent); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:12px; padding:0; display:block; }
+        .gh-portal-err{ color:var(--terracotta); font-size:13px; margin-top:10px; }
+        .gh-portal-foot{ font-size:12.5px; color:var(--ink-2); margin-top:18px; line-height:1.5; }
+        .gh-portal-topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; font-size:14px; color:var(--ink-2); }
+        .gh-portal-hero{ background:var(--accent); color:var(--accent-ink); border-radius:6px; padding:22px 24px; margin-bottom:16px; }
+        .gh-portal-hero-label{ font-size:12.5px; opacity:.8; margin-bottom:4px; }
+        .gh-portal-hero-amount{ font-size:32px; font-weight:700; }
+        .gh-portal-hero-meta{ font-size:12.5px; opacity:.85; margin-top:6px; }
+        .gh-portal-stats{ display:flex; flex-wrap:wrap; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:28px; }
+        .gh-portal-stats > div{ flex:1; min-width:110px; background:var(--card); padding:12px 14px; }
+        .gh-portal-stats .k{ font-size:11.5px; color:var(--ink-2); margin-bottom:4px; }
+        .gh-portal-stats .v{ font-size:15px; font-weight:700; color:var(--ink); }
+        .gh-portal-section{ margin-bottom:28px; }
+        .gh-portal-section h4{ font-size:15px; margin:0 0 10px; color:var(--ink); border-bottom:1px solid var(--line); padding-bottom:8px; }
+        .gh-portal-table{ width:100%; border-collapse:collapse; font-size:13px; }
+        .gh-portal-table th{ text-align:left; font-size:11px; color:var(--ink-2); padding:6px 8px; border-bottom:1px solid var(--line); }
+        .gh-portal-table td{ padding:9px 8px; border-bottom:1px solid var(--line); }
+        .gh-pill{ font-size:11px; padding:3px 9px; border-radius:20px; }
+        .gh-pill.confirmed{ background:#e4ede6; color:#2f5d4c; }
+        .gh-pill.pending{ background:#f3e9d8; color:#8a6a2e; }
+        .gh-pill.rejected{ background:#f5e3df; color:#a85c4b; }
+        .gh-portal-help{ font-size:13px; color:var(--ink-2); margin:0 0 14px; }
+        .gh-portal-form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+        .gh-portal-form-grid .full{ grid-column:1/-1; margin-top:16px; }
+        .gh-portal-toast{ margin-top:14px; font-size:13px; color:var(--accent); background:var(--card); border:1px solid var(--line); padding:10px 12px; border-radius:4px; }
+        .gh-portal-empty{ font-size:13.5px; color:var(--ink-2); padding:14px 0; }
+        @media (max-width:520px){ .gh-portal-form-grid{ grid-template-columns:1fr; } }
+      `}</style>
+      <div className="gh-portal-card">
+        <button className="gh-portal-close" onClick={onClose} aria-label="Close">\u2715</button>
+
+        {authUser === undefined ? (
+          <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink-2)' }}>Checking login\u2026</div>
+        ) : !authUser ? (
+          <React.Fragment>
+            <div className="gh-portal-brand">
+              <img src="/logo-header.png" alt="Golden Harmonic Memorial Park logo" />
+              <span>Customer Portal</span>
+            </div>
+            {mode === 'login'
+              ? <PortalLogin onForgot={(email) => { setForgotEmail(email); setMode('forgot'); }} />
+              : <PortalForgot initialEmail={forgotEmail} onBack={() => setMode('login')} />}
+          </React.Fragment>
+        ) : customer === undefined ? (
+          <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink-2)' }}>Loading your account\u2026</div>
+        ) : customer === null ? (
+          <div>
+            <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>
+              We couldn\u2019t find a customer record linked to this login. Please contact our staff so they can connect your account.
+            </p>
+            <button className="gh-portal-link-btn" onClick={logout}>Log out</button>
+          </div>
+        ) : (
+          <PortalDashboard customer={customer} onLogout={logout} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Footer() {
   return (
     <footer>
