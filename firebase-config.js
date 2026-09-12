@@ -19,6 +19,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 window.db = firebase.firestore();
 window.auth = firebase.auth();
+window.firebaseConfig = firebaseConfig; // used by admin.html to spin up a secondary app instance for creating customer logins without signing the admin out
 
 // Keep the admin signed in across app restarts (installed PWA / browser reopen),
 // so you don't have to log in every time. LOCAL persistence survives closing
