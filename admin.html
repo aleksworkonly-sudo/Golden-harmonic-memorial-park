@@ -1496,18 +1496,20 @@ function Products() {
 }
 
 // ── Users panel ────────────────────────────────────────────────────────────
-function Users({ currentUser }) {
+function Users({ currentUser, currentRole }) {
   const [users, setUsers] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [toast, setToast] = useState('');
+  const isSuperAdmin = currentRole === 'superadmin';
 
   useEffect(() => {
     return window.db.collection('users').orderBy('createdAt','desc')
       .onSnapshot(snap => setUsers(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
   }, []);
 
-  const removeUser = async (id, email) => {
+  const removeUser = async (id, email, role) => {
     if (email === currentUser.email) { alert("You can't remove yourself."); return; }
+    if (role === 'superadmin' && !isSuperAdmin) { alert("Only a Super Admin can remove a Super Admin account."); return; }
     if (!confirm(`Remove ${email} from the admin list?`)) return;
     await window.db.collection('users').doc(id).delete();
     setToast('User removed from records');
@@ -1516,7 +1518,7 @@ function Users({ currentUser }) {
   return (
     <>
       {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
-      {showAdd && <AddUserModal onClose={()=>setShowAdd(false)} onSaved={()=>{setShowAdd(false);setToast('User record added');}} />}
+      {showAdd && <AddUserModal currentRole={currentRole} onClose={()=>setShowAdd(false)} onSaved={()=>{setShowAdd(false);setToast('User record added');}} />}
       <div className="section-hd">
         <h2>Admin Users</h2>
         <button className="btn btn-primary btn-sm" onClick={()=>setShowAdd(true)}>+ Add user</button>
@@ -1525,34 +1527,39 @@ function Users({ currentUser }) {
         💡 First create the real login in <strong>Firebase Console → Authentication → Add user</strong>,
         then copy that user's <strong>UID</strong> and paste it below. The role only takes effect —
         both here and in Firestore security rules — when this record's ID matches their Auth UID.
+        {!isSuperAdmin && <><br/>🔒 As an Admin, you can manage Staff and Admin accounts. Super Admin accounts are visible but locked to you.</>}
       </div>
       <div className="users-grid">
         {users.length === 0 && (
           <div className="table-card"><div className="empty">No users recorded yet. Add your admin accounts above.</div></div>
         )}
-        {users.map(u => (
-          <div key={u._id} className="user-row">
-            <div className="user-info">
-              <div className="user-avatar">{initials(u.name || u.email)}</div>
-              <div>
-                <div className="user-name">{u.name || '(no name)'}</div>
-                <div className="user-email">{u.email} · <em>{u.role || 'admin'}</em></div>
+        {users.map(u => {
+          const locked = u.role === 'superadmin' && !isSuperAdmin;
+          return (
+            <div key={u._id} className="user-row">
+              <div className="user-info">
+                <div className="user-avatar">{initials(u.name || u.email)}</div>
+                <div>
+                  <div className="user-name">{u.name || '(no name)'}</div>
+                  <div className="user-email">{u.email} · <em>{u.role || 'admin'}</em></div>
+                </div>
               </div>
+              <button className="btn btn-danger btn-sm" disabled={locked} title={locked ? 'Only a Super Admin can remove this account' : ''} onClick={()=>removeUser(u._id, u.email, u.role)}>
+                Remove
+              </button>
             </div>
-            <button className="btn btn-danger btn-sm" onClick={()=>removeUser(u._id, u.email)}>
-              Remove
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
 }
 
-function AddUserModal({ onClose, onSaved }) {
+function AddUserModal({ onClose, onSaved, currentRole }) {
   const [form, setForm] = useState({ uid:'', name:'', email:'', role:'staff' });
   const [busy, setBusy] = useState(false);
   const set = k => e => setForm(f=>({...f,[k]:e.target.value}));
+  const canGrantSuperAdmin = currentRole === 'superadmin';
 
   const save = async (e) => {
     e.preventDefault(); setBusy(true);
@@ -1579,10 +1586,15 @@ function AddUserModal({ onClose, onSaved }) {
           <div className="field">
             <label>Role</label>
             <select value={form.role} onChange={set('role')}>
-              <option value="superadmin">Super Admin</option>
+              {canGrantSuperAdmin && <option value="superadmin">Super Admin</option>}
               <option value="admin">Admin</option>
               <option value="staff">Staff</option>
             </select>
+            {!canGrantSuperAdmin && (
+              <div style={{fontSize:11,color:'var(--ink-3)',marginTop:5}}>
+                Only a Super Admin can grant the Super Admin role.
+              </div>
+            )}
           </div>
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
@@ -1698,7 +1710,10 @@ function Dashboard({ user, onLogout }) {
 
   const isSuperAdmin = myRole === 'superadmin';
   const isAdminOrHigher = myRole === 'admin' || myRole === 'superadmin';
-  const visibleTabs = TABS.filter(t => t.id !== 'users' || isSuperAdmin);
+  const visibleTabs = TABS.filter(t =>
+    (t.id !== 'users' || isAdminOrHigher) &&
+    (t.id !== 'products' || isAdminOrHigher)
+  );
 
   useEffect(() => {
     const unsubs = ['inquiries','customers','products','users','trash'].map(col =>
@@ -1769,8 +1784,8 @@ function Dashboard({ user, onLogout }) {
           {tab==='pipeline'  && <Pipeline currentUser={user}/>}
           {tab==='inquiries' && <Inquiries currentUser={user}/>}
           {tab==='customers' && <Customers currentUser={user}/>}
-          {tab==='products'  && <Products/>}
-          {tab==='users'     && isSuperAdmin && <Users currentUser={user}/>}
+          {tab==='products'  && isAdminOrHigher && <Products/>}
+          {tab==='users'     && isAdminOrHigher && <Users currentUser={user} currentRole={myRole}/>}
           {tab==='trash'     && <RecentlyDeleted currentUser={user} canPurge={isAdminOrHigher}/>}
         </div>
       </div>
