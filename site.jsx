@@ -1183,82 +1183,106 @@ function PaymentCalculator({ tiers }) {
 
 }
 
-/* ---------- Payment plans ---------- */
+/* ---------- Payment plans ----------
+   Layout mirrors the official price-list document: for each category, a
+   full pricing table (every plot × every term), followed by that
+   category's Payment Guide (Total / Monthly / Duration) for its base
+   plot — same structure as "Regular Plot Payment Guide", "Regular Garden
+   Plot Payment Guide", and "Family Vault Payment Guide" in the source doc. */
+const CATEGORY_GUIDE_TIER_ID = {
+  'Regular Plots': 'regular',
+  'Garden Plots': 'garden-regular',
+  'Family Vault': 'family-vault'
+};
+
 function PaymentPlans({ tiers }) {
+  const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
+  const fiveYear = PLAN_TERMS[4];
+  const cheapest = tiers.reduce((min, t) => t.price < min.price ? t : min, tiers[0] || { price: 0 });
+  const lowestMonthly = cheapest.price * (1 + fiveYear.surcharge) / fiveYear.months;
+
   return (
     <section className="block" id="plans">
       <div className="wrap">
         <div className="section-head fade-up">
           <div>
             <span className="eyebrow">Payment Plans</span>
-            <h2 style={{ marginTop: 18 }}>Own a piece of peace — for as little as ₱1,300 a month.</h2>
+            <h2 style={{ marginTop: 18 }}>Own a piece of peace — for as little as {fmt(lowestMonthly)} a month.</h2>
           </div>
           <div className="side">
             No down payment on any plan. Choose spot cash, or spread the total over 1, 2, 3, or 5 years — pre-need pricing locks today's rate for life.
           </div>
         </div>
-        <div className="plans-grid">
-          <table className="plan-table fade-up">
-            <thead>
-              <tr>
-                <th>Plan</th>
-                <th>Term</th>
-                <th>Surcharge</th>
-                <th>Sample monthly*</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>Spot Cash</strong></td>
-                <td>—</td>
-                <td>None</td>
-                <td>—</td>
-                <td>₱30,000</td>
-              </tr>
-              <tr>
-                <td><strong>1-Year Plan</strong></td>
-                <td>12 mo</td>
-                <td>10%</td>
-                <td>₱2,750</td>
-                <td>₱33,000</td>
-              </tr>
-              <tr>
-                <td><strong>2-Year Plan</strong></td>
-                <td>24 mo</td>
-                <td>15%</td>
-                <td>₱1,438</td>
-                <td>₱34,500</td>
-              </tr>
-              <tr>
-                <td><strong>3-Year Plan</strong></td>
-                <td>36 mo</td>
-                <td>20%</td>
-                <td>₱1,000</td>
-                <td>₱36,000</td>
-              </tr>
-              <tr>
-                <td><strong>5-Year Plan</strong></td>
-                <td>60 mo</td>
-                <td>30%</td>
-                <td>₱650</td>
-                <td>₱39,000</td>
-              </tr>
-            </tbody>
-          </table>
+
+        {categories.map((cat) => {
+          const group = tiers.filter((t) => t.category === cat);
+          if (!group.length) return null;
+          const guideTier = tiers.find((t) => t.id === CATEGORY_GUIDE_TIER_ID[cat]) || group[0];
+
+          return (
+            <div key={cat} style={{ marginBottom: 44 }}>
+              <h3 className="cat-head fade-up">{cat}</h3>
+
+              <table className="plan-table fade-up">
+                <thead>
+                  <tr>
+                    <th>Plot Type</th>
+                    {PLAN_TERMS.map((term) =>
+                    <th key={term.key}>{term.months ? term.label : 'Spot Cash'}</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.map((t) =>
+                  <tr key={t.id}>
+                      <td><strong>{t.name}</strong></td>
+                      {PLAN_TERMS.map((term) =>
+                    <td key={term.key}>{fmt(t.price * (1 + term.surcharge))}</td>
+                    )}
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+              <p className="small" style={{ margin: '18px 0 8px' }}>{guideTier.name} Payment Guide — no down payment required.</p>
+              <table className="plan-table fade-up">
+                <thead>
+                  <tr><th>Plan Type</th><th>Total Price</th><th>Monthly Payment</th><th>Duration</th></tr>
+                </thead>
+                <tbody>
+                  {PLAN_TERMS.filter((term) => term.months).map((term) => {
+                    const total = guideTier.price * (1 + term.surcharge);
+                    const monthly = total / term.months;
+                    return (
+                      <tr key={term.key}>
+                        <td><strong>{term.label}</strong></td>
+                        <td>{fmt(total)}</td>
+                        <td>{fmt(monthly)}</td>
+                        <td>{term.months} months</td>
+                      </tr>);
+
+                  })}
+                </tbody>
+              </table>
+            </div>);
+
+        })}
+
+        <div className="fade-up" style={{ maxWidth: 420, marginBottom: 44 }}>
           <PaymentCalculator tiers={tiers} />
         </div>
-        <div className="fade-up" style={{ marginTop: 44, maxWidth: 640 }}>
+
+        <div className="fade-up" style={{ maxWidth: 640 }}>
           <h3 className="display" style={{ fontSize: 24, marginBottom: 12 }}>What "pre-need" really saves you.</h3>
           <p style={{ color: 'var(--ink-2)', marginBottom: 18 }}>
-            The average burial lot in Palawan has appreciated 8–12% per year for the past decade. A ₱30,000 lot bought today will likely cost significantly more in ten years. Lock the price now, and your family pays nothing later.
+            The average burial lot in Palawan has appreciated 8–12% per year for the past decade. Lock the price now, and your family pays nothing later.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <a href="#brochure" className="btn btn-primary">Get a custom quote</a>
             <a href="tel:+639171234567" className="btn btn-ghost">Talk to a counselor</a>
           </div>
           <p className="small" style={{ marginTop: 18 }}>
-            *Table figures shown for a Regular Plot (₱30,000 spot cash). Use the calculator above for any plot type. No down payment on any plan; a 2% monthly penalty applies to late payments.
+            No down payment on any plan; a 2% monthly penalty applies to late payments.
           </p>
         </div>
       </div>
@@ -1507,7 +1531,7 @@ function PrePostNeed() {
             <h3>At-Need Pricing</h3>
             <div style={{ height: 28 }}></div>
             <div className="price" style={{ fontFamily: 'Newsreader, serif', fontSize: 44 }}>
-              ₱70,000<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /lot, est. 2030</span>
+              ₱35,000<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /lot, est. 2030</span>
             </div>
             <ul>
               <li>Same lot, future market price</li>
