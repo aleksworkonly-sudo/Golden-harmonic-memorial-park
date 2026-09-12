@@ -478,7 +478,7 @@ function App() {
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
       <LightboxRoot>
-        <Header onOpenPortal={() => setPortalOpen(true)} />
+        <Header />
         <main>
           <Hero onOpenPortal={() => setPortalOpen(true)} onRequestPriceList={setHeroPrefillEmail} />
           <Tiers tiers={tiers} />
@@ -501,7 +501,7 @@ function App() {
 }
 
 /* ---------- Header ---------- */
-function Header({ onOpenPortal }) {
+function Header() {
   const [scrolled, setScrolled] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
@@ -620,21 +620,6 @@ function Header({ onOpenPortal }) {
             ))}
           </nav>
 
-          <button
-            onClick={onOpenPortal}
-            className="nav-link-icon"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
-              padding: `${navPadY}px ${navPadX}px`, fontSize: navFontSize,
-              borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
-              background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)',
-              fontFamily: 'inherit', cursor: 'pointer', order: compact ? 1 : 2,
-              transition: 'padding .35s cubic-bezier(.25,.1,.25,1), font-size .35s cubic-bezier(.25,.1,.25,1)' }}>
-            <span style={{ display: 'inline-flex' }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            </span>
-            My Account
-          </button>
-
           <a href="#brochure" className="liquid-metal-btn" style={{
               position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden', borderRadius: 999, padding: `${btnPadY}px ${btnPadX}px`,
@@ -667,14 +652,6 @@ function Header({ onOpenPortal }) {
                 {item.label}
               </a>
             ))}
-            <button onClick={() => { setMobileOpen(false); onOpenPortal(); }}
-              style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
-                background: 'none', border: 'none', font: 'inherit', color: 'inherit', padding: '10px 0', cursor: 'pointer' }}>
-              <span style={{ display: 'inline-flex', marginRight: 10 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-              </span>
-              My Account
-            </button>
             <a href="#brochure" className="btn btn-primary" onClick={() => setMobileOpen(false)}>
               Free price list
             </a>
@@ -838,7 +815,7 @@ function Hero({ onOpenPortal, onRequestPriceList }) {
   return (
     <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
       <style>{`
-        .hero-account-link:hover{ color: var(--accent); text-decoration: underline; }
+        .hero-account-badge:hover{ background: #9c7443; }
         .hero-capture-row input::placeholder{ color: var(--ink-2); opacity:.7; }
         .hero-capture-row input:focus{ outline: 2px solid var(--accent); outline-offset: 1px; }
       `}</style>
@@ -866,11 +843,12 @@ function Hero({ onOpenPortal, onRequestPriceList }) {
             Prefer to browse first? <a href="#tiers" style={{ color: 'var(--ink)', textDecoration: 'underline', fontWeight: 600 }}>View plots &amp; pricing →</a>
           </div>
 
-          <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--ink-2)', maxWidth: 460 }}>
-            Already reserved a plot with us?
-            <button onClick={onOpenPortal} className="hero-account-link"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', padding: 0, marginLeft: 6, verticalAlign: 'middle' }}>
+          <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--ink-2)', maxWidth: 460, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span>Already reserved a plot with us?</span>
+            <button onClick={onOpenPortal} className="hero-account-badge"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--gold)', border: 'none',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer',
+                padding: '7px 14px', borderRadius: 999, boxShadow: '0 4px 12px rgba(176,133,68,.35)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
               My Account
             </button>
