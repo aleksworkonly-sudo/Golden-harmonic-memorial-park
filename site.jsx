@@ -1485,7 +1485,7 @@ function Investment() {
 function AppreciationChart() {
   // 2014–2026 garden lot price (PHP, thousands)
   const data = [33, 36, 40, 45, 51, 57, 62, 66, 70, 74, 78, 82, 85];
-  const years = ['\u201914', '\u201915', '\u201916', '\u201917', '\u201918', '\u201919', '\u201920', '\u201921', '\u201922', '\u201923', '\u201924', '\u201925', '\u201926'];
+  const years = ['’14', '’15', '’16', '’17', '’18', '’19', '’20', '’21', '’22', '’23', '’24', '’25', '’26'];
   const W = 460,H = 220,pad = { l: 36, r: 12, t: 10, b: 26 };
   const max = Math.max(...data) * 1.1;
   const xs = data.map((_, i) => pad.l + i / (data.length - 1) * (W - pad.l - pad.r));
@@ -1945,11 +1945,11 @@ function PortalLogin({ onForgot }) {
     } catch (ex) {
       console.error('[GH portal login]', ex.code, ex.message, ex);
       const map = {
-        'auth/invalid-email': 'That email address doesn\u2019t look right.',
-        'auth/user-not-found': 'We couldn\u2019t find a portal login for that email. Ask our staff to set one up for you.',
-        'auth/wrong-password': 'That password isn\u2019t right \u2014 try again or reset it below.',
-        'auth/invalid-credential': 'Email or password isn\u2019t right \u2014 try again or reset it below.',
-        'auth/too-many-requests': 'Too many attempts \u2014 please wait a bit and try again.'
+        'auth/invalid-email': 'That email address doesn’t look right.',
+        'auth/user-not-found': 'We couldn’t find a portal login for that email. Ask our staff to set one up for you.',
+        'auth/wrong-password': 'That password isn’t right — try again or reset it below.',
+        'auth/invalid-credential': 'Email or password isn’t right — try again or reset it below.',
+        'auth/too-many-requests': 'Too many attempts — please wait a bit and try again.'
       };
       setErr(map[ex.code] || ex.message || 'Could not log in.');
     } finally { setBusy(false); }
@@ -1957,14 +1957,13 @@ function PortalLogin({ onForgot }) {
 
   return (
     <form onSubmit={submit} className="gh-portal-form">
-      <label>Email address</label>
-      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
+      <label>Email</label>
+      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
       <label>Password</label>
-      <input type="password" required value={pass} onChange={e => setPass(e.target.value)} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" />
+      <input type="password" required value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
       {err && <div className="gh-portal-err">{err}</div>}
-      <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Logging in\u2026' : 'Log in'}</button>
+      <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
       <button type="button" className="gh-portal-link-btn" onClick={() => onForgot(email)}>Forgot your password?</button>
-      <p className="gh-portal-foot">Don\u2019t have portal access yet? Ask our staff to set it up \u2014 they\u2019ll email you a link to create your password.</p>
     </form>
   );
 }
@@ -1989,7 +1988,7 @@ function PortalForgot({ initialEmail, onBack }) {
   if (sent) {
     return (
       <div className="gh-portal-form">
-        <p>Check your inbox \u2014 we sent a password reset link to <strong>{email}</strong>.</p>
+        <p>Check your inbox — we sent a password reset link to <strong>{email}</strong>.</p>
         <button type="button" className="gh-portal-link-btn" onClick={onBack}>Back to login</button>
       </div>
     );
@@ -2000,7 +1999,7 @@ function PortalForgot({ initialEmail, onBack }) {
       <label>Email address</label>
       <input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
       {err && <div className="gh-portal-err">{err}</div>}
-      <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Sending\u2026' : 'Send reset link'}</button>
+      <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Sending…' : 'Send reset link'}</button>
       <button type="button" className="gh-portal-link-btn" onClick={onBack}>Back to login</button>
     </form>
   );
@@ -2034,10 +2033,10 @@ function PortalDashboard({ customer, onLogout }) {
         })
       });
       setForm({ referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
-      setToast('Submitted \u2014 our staff will confirm this against the transaction.');
+      setToast('Submitted — our staff will confirm this against the transaction.');
       setTimeout(() => setToast(''), 6000);
     } catch (ex) {
-      setToast(ex.message || 'Could not submit \u2014 please try again.');
+      setToast(ex.message || 'Could not submit — please try again.');
     } finally { setBusy(false); }
   };
 
@@ -2055,7 +2054,7 @@ function PortalDashboard({ customer, onLogout }) {
           <div className="gh-portal-hero">
             <div className="gh-portal-hero-label">Remaining balance</div>
             <div className="gh-portal-hero-amount">{fmt(bal.balance)}</div>
-            <div className="gh-portal-hero-meta">{customer.plan.tierName}{customer.plan.termKey ? ' \u00b7 ' + customer.plan.termKey : ''}</div>
+            <div className="gh-portal-hero-meta">{customer.plan.tierName}{customer.plan.termKey ? ' · ' + customer.plan.termKey : ''}</div>
           </div>
 
           <div className="gh-portal-stats">
@@ -2078,7 +2077,7 @@ function PortalDashboard({ customer, onLogout }) {
               {history.map((p, i) => (
                 <tr key={i}>
                   <td>{p.date}</td>
-                  <td>{p.referenceNumber || '\u2014'}</td>
+                  <td>{p.referenceNumber || '—'}</td>
                   <td>{fmt(p.amount)}</td>
                   <td>
                     {p._kind === 'confirmed'
@@ -2115,7 +2114,7 @@ function PortalDashboard({ customer, onLogout }) {
             <input type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))} placeholder="09XX XXX XXXX" />
           </div>
           <div className="full">
-            <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting\u2026' : 'Submit for confirmation'}</button>
+            <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting…' : 'Submit for confirmation'}</button>
           </div>
         </form>
         {toast && <div className="gh-portal-toast">{toast}</div>}
@@ -2152,24 +2151,33 @@ function CustomerPortal({ open, onClose }) {
     <div className="gh-portal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <style>{`
         .gh-portal-overlay{ position:fixed; inset:0; background:rgba(20,20,18,.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
-        .gh-portal-card{ background:var(--bg); border-radius:8px; max-width:540px; width:100%; max-height:88vh; overflow-y:auto; padding:32px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.3); }
-        .gh-portal-close{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--ink-2); line-height:1; }
+        .gh-portal-card{ background:var(--card); border-radius:16px; max-width:420px; width:100%; max-height:88vh;
+          overflow-y:auto; position:relative; box-shadow:0 20px 50px rgba(0,0,0,.28); border:1px solid var(--line); }
+        .gh-portal-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-2); line-height:1; z-index:2; }
+        .gh-portal-header-block{ padding:32px 32px 30px; background:var(--card); }
         .gh-portal-brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; }
-        .gh-portal-brand img{ width:36px; height:36px; object-fit:contain; flex-shrink:0; }
-        .gh-portal-brand span{ font-size:13px; color:var(--ink-2); }
-        .gh-portal-form label, .gh-portal-form-grid label{ display:block; font-size:12.5px; color:var(--ink-2); margin-bottom:5px; margin-top:14px; }
-        .gh-portal-form input, .gh-portal-form-grid input{ width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:4px; font-size:14px; font-family:inherit; background:var(--card); color:var(--ink); }
-        .gh-portal-btn-primary{ width:100%; margin-top:20px; background:var(--accent); color:var(--accent-ink); border:none; padding:11px; border-radius:4px; font-weight:700; font-size:14px; cursor:pointer; }
-        .gh-portal-btn-gold{ background:var(--gold); color:#fff; border:none; padding:10px 20px; border-radius:4px; font-weight:700; font-size:13.5px; cursor:pointer; }
-        .gh-portal-link-btn{ background:none; border:none; color:var(--accent); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:12px; padding:0; display:block; }
-        .gh-portal-err{ color:var(--terracotta); font-size:13px; margin-top:10px; }
-        .gh-portal-foot{ font-size:12.5px; color:var(--ink-2); margin-top:18px; line-height:1.5; }
+        .gh-portal-brand img{ width:32px; height:32px; object-fit:contain; flex-shrink:0; }
+        .gh-portal-brand span{ font-size:12.5px; color:var(--ink-2); letter-spacing:.02em; }
+        .gh-portal-title{ font-size:24px; font-weight:700; color:var(--ink); margin:0 0 6px; }
+        .gh-portal-subtitle{ font-size:14px; color:var(--ink-2); margin:0 0 24px; }
+        .gh-portal-form label, .gh-portal-form-grid label{ display:block; font-size:13px; font-weight:500; color:var(--ink); margin-bottom:6px; margin-top:16px; }
+        .gh-portal-form label:first-child{ margin-top:0; }
+        .gh-portal-form input, .gh-portal-form-grid input{ width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:10px; font-size:14.5px; font-family:inherit; background:var(--bg); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.04); }
+        .gh-portal-form input:focus, .gh-portal-form-grid input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,93,76,.12); }
+        .gh-portal-btn-primary{ width:100%; margin-top:24px; background:var(--accent); color:var(--accent-ink); border:none; padding:13px; border-radius:10px; font-weight:600; font-size:14.5px; cursor:pointer; box-shadow:0 6px 14px rgba(47,93,76,.2); }
+        .gh-portal-btn-primary:hover{ opacity:.94; }
+        .gh-portal-btn-gold{ background:var(--gold); color:#fff; border:none; padding:10px 20px; border-radius:8px; font-weight:700; font-size:13.5px; cursor:pointer; }
+        .gh-portal-link-btn{ background:none; border:none; color:var(--ink-2); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:14px; padding:0; display:block; text-align:center; width:100%; }
+        .gh-portal-link-btn:hover{ color:var(--accent); }
+        .gh-portal-err{ color:var(--terracotta); font-size:13px; margin-top:12px; }
+        .gh-portal-footer-strip{ background:var(--bg); border-top:1px solid var(--line); padding:16px 32px; text-align:center; font-size:13px; color:var(--ink-2); }
+        .gh-portal-footer-strip button{ background:none; border:none; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; margin-left:4px; padding:0; text-decoration:underline; }
         .gh-portal-topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; font-size:14px; color:var(--ink-2); }
-        .gh-portal-hero{ background:var(--accent); color:var(--accent-ink); border-radius:6px; padding:22px 24px; margin-bottom:16px; }
+        .gh-portal-hero{ background:var(--accent); color:var(--accent-ink); border-radius:10px; padding:22px 24px; margin-bottom:16px; }
         .gh-portal-hero-label{ font-size:12.5px; opacity:.8; margin-bottom:4px; }
         .gh-portal-hero-amount{ font-size:32px; font-weight:700; }
         .gh-portal-hero-meta{ font-size:12.5px; opacity:.85; margin-top:6px; }
-        .gh-portal-stats{ display:flex; flex-wrap:wrap; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:28px; }
+        .gh-portal-stats{ display:flex; flex-wrap:wrap; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:28px; }
         .gh-portal-stats > div{ flex:1; min-width:110px; background:var(--card); padding:12px 14px; }
         .gh-portal-stats .k{ font-size:11.5px; color:var(--ink-2); margin-bottom:4px; }
         .gh-portal-stats .v{ font-size:15px; font-weight:700; color:var(--ink); }
@@ -2185,36 +2193,55 @@ function CustomerPortal({ open, onClose }) {
         .gh-portal-help{ font-size:13px; color:var(--ink-2); margin:0 0 14px; }
         .gh-portal-form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
         .gh-portal-form-grid .full{ grid-column:1/-1; margin-top:16px; }
-        .gh-portal-toast{ margin-top:14px; font-size:13px; color:var(--accent); background:var(--card); border:1px solid var(--line); padding:10px 12px; border-radius:4px; }
+        .gh-portal-toast{ margin-top:14px; font-size:13px; color:var(--accent); background:var(--card); border:1px solid var(--line); padding:10px 12px; border-radius:8px; }
         .gh-portal-empty{ font-size:13.5px; color:var(--ink-2); padding:14px 0; }
+        .gh-portal-dashboard-pad{ padding:32px; }
         @media (max-width:520px){ .gh-portal-form-grid{ grid-template-columns:1fr; } }
       `}</style>
       <div className="gh-portal-card">
-        <button className="gh-portal-close" onClick={onClose} aria-label="Close">\u2715</button>
+        <button className="gh-portal-close" onClick={onClose} aria-label="Close">✕</button>
 
         {authUser === undefined ? (
-          <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink-2)' }}>Checking login\u2026</div>
+          <div style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>Checking login…</div>
         ) : !authUser ? (
           <React.Fragment>
-            <div className="gh-portal-brand">
-              <img src="/logo-header.png" alt="Golden Harmonic Memorial Park logo" />
-              <span>Customer Portal</span>
+            <div className="gh-portal-header-block">
+              <div className="gh-portal-brand">
+                <img src="/logo-header.png" alt="Golden Harmonic Memorial Park logo" />
+                <span>Golden Harmonic — Customer Portal</span>
+              </div>
+              {mode === 'login' ? (
+                <React.Fragment>
+                  <h2 className="gh-portal-title">Welcome back</h2>
+                  <p className="gh-portal-subtitle">Sign in to view your balance and payment history.</p>
+                  <PortalLogin onForgot={(email) => { setForgotEmail(email); setMode('forgot'); }} />
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <h2 className="gh-portal-title">Reset your password</h2>
+                  <p className="gh-portal-subtitle">We'll email you a link to set a new one.</p>
+                  <PortalForgot initialEmail={forgotEmail} onBack={() => setMode('login')} />
+                </React.Fragment>
+              )}
             </div>
-            {mode === 'login'
-              ? <PortalLogin onForgot={(email) => { setForgotEmail(email); setMode('forgot'); }} />
-              : <PortalForgot initialEmail={forgotEmail} onBack={() => setMode('login')} />}
+            <div className="gh-portal-footer-strip">
+              Don't have portal access yet?
+              <button onClick={() => { /* informational only */ }} style={{ cursor: 'default', textDecoration: 'none' }}>Ask our staff to set it up</button>
+            </div>
           </React.Fragment>
         ) : customer === undefined ? (
-          <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink-2)' }}>Loading your account\u2026</div>
+          <div style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>Loading your account…</div>
         ) : customer === null ? (
-          <div>
+          <div className="gh-portal-dashboard-pad">
             <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>
-              We couldn\u2019t find a customer record linked to this login. Please contact our staff so they can connect your account.
+              We couldn't find a customer record linked to this login. Please contact our staff so they can connect your account.
             </p>
             <button className="gh-portal-link-btn" onClick={logout}>Log out</button>
           </div>
         ) : (
-          <PortalDashboard customer={customer} onLogout={logout} />
+          <div className="gh-portal-dashboard-pad">
+            <PortalDashboard customer={customer} onLogout={logout} />
+          </div>
         )}
       </div>
     </div>
