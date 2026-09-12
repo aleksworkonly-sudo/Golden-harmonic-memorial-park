@@ -1057,6 +1057,29 @@ function Pipeline({ currentUser }) {
 }
 
 // ── Customer detail: plan summary + payment history + log a payment ────────
+// Creates a Firebase Auth login for a customer WITHOUT signing the admin
+// out. Normal createUserWithEmailAndPassword() on the default app signs
+// you in as the new user, which would kick the admin out of their own
+// session — so this spins up a second, throwaway Firebase app instance
+// just for the create call, then tears it down.
+//
+// The customer never sees a staff-generated password: right after the
+// account is created we trigger Firebase's built-in "set your password"
+// email, so they choose their own password themselves.
+async function createPortalAccount(email) {
+  const secondaryApp = firebase.initializeApp(window.firebaseConfig, 'PortalCreate_' + Date.now());
+  try {
+    const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!'; // never shown to anyone; overwritten by the reset-email flow below
+    const cred = await secondaryApp.auth().createUserWithEmailAndPassword(email, tempPassword);
+    const uid = cred.user.uid;
+    await secondaryApp.auth().signOut();
+    await window.auth.sendPasswordResetEmail(email);
+    return uid;
+  } finally {
+    await secondaryApp.delete();
+  }
+}
+
 function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
   const [tab, setTab] = useState('payments');
   const [editingPlan, setEditingPlan] = useState(false);
@@ -1076,6 +1099,38 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
     date: customer.followUpAt || '', note: customer.followUpNote || ''
   });
   const [savingFollowUp, setSavingFollowUp] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalError, setPortalError] = useState('');
+
+  const handleCreatePortal = async () => {
+    if (!customer.email) { setPortalError('This customer has no email on file — add one first.'); return; }
+    setPortalBusy(true); setPortalError('');
+    try {
+      const uid = await createPortalAccount(customer.email);
+      await window.db.collection('customers').doc(customer._id).update({
+        authUid: uid,
+        portalCreatedAt: Date.now(),
+        portalCreatedBy: (currentUser && currentUser.email) || 'unknown'
+      });
+      onToast(`Portal login created — a "set your password" email was sent to ${customer.email}`);
+    } catch (err) {
+      setPortalError(
+        err && err.code === 'auth/email-already-in-use'
+          ? 'That email already has a login (maybe an admin/staff account, or a portal login was already created).'
+          : (err && err.message) || 'Could not create the portal login.'
+      );
+    } finally { setPortalBusy(false); }
+  };
+
+  const resendPortalReset = async () => {
+    setPortalBusy(true); setPortalError('');
+    try {
+      await window.auth.sendPasswordResetEmail(customer.email);
+      onToast(`Password-setup email re-sent to ${customer.email}`);
+    } catch (err) {
+      setPortalError((err && err.message) || 'Could not send the email.');
+    } finally { setPortalBusy(false); }
+  };
 
   const bal = planBalance(customer);
   const payments = [...(customer.payments || [])].sort((a,b) => (a.date < b.date ? 1 : -1));
@@ -1175,6 +1230,31 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
             <div style={{color:'var(--ink-3)'}}>No plan selected yet for this customer.</div>
           </div>
         )}
+
+        <div className="plan-summary" style={{gridTemplateColumns:'1fr auto', alignItems:'center', marginTop: customer.plan ? 10 : 0}}>
+          <div>
+            <div className="lbl">Portal access</div>
+            {customer.authUid ? (
+              <div className="val" style={{fontSize:13, color:'var(--green)'}}>
+                ✅ Active — customer can log in with {customer.email} to view their balance
+              </div>
+            ) : (
+              <div className="val" style={{fontSize:13, color:'var(--ink-3)'}}>No login created yet</div>
+            )}
+            {portalError && <div style={{fontSize:12, color:'var(--red)', marginTop:4}}>{portalError}</div>}
+          </div>
+          <div>
+            {customer.authUid ? (
+              <button className="btn btn-outline btn-sm" disabled={portalBusy} onClick={resendPortalReset}>
+                {portalBusy ? 'Sending…' : 'Resend password-setup email'}
+              </button>
+            ) : (
+              <button className="btn btn-primary btn-sm" disabled={portalBusy} onClick={handleCreatePortal}>
+                {portalBusy ? 'Creating…' : 'Create portal login'}
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="detail-tabs">
           <button className={tab==='payments'?'on':''} onClick={()=>setTab('payments')}>Payments</button>
