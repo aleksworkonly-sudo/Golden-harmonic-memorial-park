@@ -1154,10 +1154,6 @@ function Tier({ tier, i = 0, allTiers = [] }) {
             <div className="price"><span className="currency">₱</span>{Math.round(tier.price).toLocaleString('en-PH')}</div>
           </div>
         </div>
-        <div className="monthly">
-          <span>or pay as low as</span>
-          <strong>{fmt(monthly)}/mo</strong>
-        </div>
         <ul className="feature-list">
           {tier.features.map((f) => <li key={f}>{f}</li>)}
         </ul>
