@@ -153,8 +153,16 @@ function LightboxRoot({ children }) {
             {state.items.length > 1 &&
           <button className="lb-btn lb-prev" onClick={() => step(-1)} aria-label="Previous">‹</button>}
 
-            <div className="ph aspect-wide">
-              <div className="ph-label">{state.items[state.index].label}</div>
+            <div className={`ph aspect-wide ${(state.items[state.index].image || state.items[state.index].scene) ? 'illustrated' : ''}`}>
+              {state.items[state.index].image
+                ? <img
+                    src={state.items[state.index].image}
+                    alt={state.items[state.index].label}
+                    className="ph-image"
+                    style={state.items[state.index].imagePosition ? { objectPosition: state.items[state.index].imagePosition } : undefined} />
+                : state.items[state.index].scene
+                ? <Scene variant={state.items[state.index].scene} />
+                : <div className="ph-label">{state.items[state.index].label}</div>}
             </div>
             {state.items.length > 1 &&
           <button className="lb-btn lb-next" onClick={() => step(1)} aria-label="Next">›</button>}
@@ -175,7 +183,13 @@ function LightboxRoot({ children }) {
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
 function Photo({ label, caption, items, index, aspect = '', className = '', style, scene, image, imagePosition }) {
   const openLightbox = useLightbox();
-  const group = items || [{ label, caption: caption || label }];
+  const group = (items || [{ label, caption: caption || label }]).map((it) => ({
+    image: it.image || image,
+    scene: it.scene || scene,
+    imagePosition: it.imagePosition || imagePosition,
+    label: it.label,
+    caption: it.caption
+  }));
   const idx = index || 0;
   const isArt = scene || image;
   return (
