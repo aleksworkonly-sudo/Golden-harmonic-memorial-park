@@ -42,13 +42,24 @@
     --terracotta: #b8593a;
     --card: #fbf7ee;
     --shadow: 0 1px 0 rgba(31,42,38,.04), 0 14px 40px -22px rgba(31,42,38,.25);
+    /* Same page background as --bg, but at 93% opacity so the fixed
+       animated canvas (rendered behind everything in App()) shows through
+       uniformly across the whole site instead of just the hero. Small UI
+       elements (pills, cards, badges) keep using the fully solid --bg-2
+       and --card so text stays legible — only the page-wide surface goes
+       semi-transparent. */
+    --bg-wash: rgba(246,241,232,.93);
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+  /* Solid fallback behind body's semi-transparent wash — matters if JS/WebGL
+     doesn't run for any reason (old browser, disabled JS): without this,
+     the missing 7% would reveal plain white instead of the site's cream. */
+  html { background: var(--bg); }
   body {
     font-family: 'Inter', -apple-system, sans-serif;
-    background: var(--bg);
+    background: var(--bg-wash);
     color: var(--ink);
     font-size: 16px;
     line-height: 1.55;
@@ -245,7 +256,9 @@
 
   /* Trust strip */
   .trust {
-    background: var(--bg-2);
+    /* was a solid var(--bg-2) band — removed so this section uses the same
+       body background-wash as everywhere else, for one uniform surface
+       instead of an alternating light/dark band */
     padding: 28px 0;
     border-bottom: 1px solid var(--line);
   }
@@ -522,7 +535,7 @@
   .field label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
   .field input, .field select {
     padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; min-height: 44px;
-    background: var(--bg); font-family: 'Inter', sans-serif; font-size: 14px;
+    background: var(--bg); font-family: 'Inter', sans-serif; font-size: 16px;
     color: var(--ink); outline: none; transition: border-color .15s;
   }
   .field input:focus, .field select:focus { border-color: var(--accent); }
