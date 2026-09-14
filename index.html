@@ -80,12 +80,20 @@
     display: flex; justify-content: space-between; align-items: center;
     height: 38px;
   }
-  .utility .links { display: flex; gap: 22px; }
-  .utility a { text-decoration: none; opacity: .85; }
+  .utility .links { display: flex; gap: 22px; align-items: center; }
+  .utility a { text-decoration: none; opacity: .85; white-space: nowrap; }
   .utility a:hover { opacity: 1; }
   .utility .pill {
     background: var(--gold); color: #1f1607; padding: 4px 12px; border-radius: 999px;
-    font-weight: 600; font-size: 12px; letter-spacing: .02em;
+    font-weight: 600; font-size: 12px; letter-spacing: .02em; white-space: nowrap;
+  }
+  /* On narrow phones, the location text competes with the phone number + pill for
+     space in a fixed-height row — drop the location so the two calls-to-action
+     (call, get price list) stay fully visible and tappable without crowding. */
+  @media (max-width: 480px) {
+    .utility .row { height: auto; padding: 8px 0; flex-wrap: wrap; gap: 8px; }
+    .utility .links:first-child { display: none; }
+    .utility .links { gap: 14px; }
   }
 
   /* Header */
@@ -524,6 +532,11 @@
     padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; min-height: 44px;
     background: var(--bg); font-family: 'Inter', sans-serif; font-size: 14px;
     color: var(--ink); outline: none; transition: border-color .15s;
+  }
+  /* iOS Safari auto-zooms on focus for any text input under 16px — bump to 16px on
+     phones so tapping a field doesn't jolt the whole page in and out of zoom. */
+  @media (max-width: 480px) {
+    .field input, .field select, .calc-select { font-size: 16px; }
   }
   .field input:focus, .field select:focus { border-color: var(--accent); }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
