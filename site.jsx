@@ -448,6 +448,15 @@ function CountUp({ text }) {
   return <span className="count-num" ref={ref}>{display}</span>;
 }
 
+// Local photos for plot cards — merged in by id regardless of whether tier
+// data came from Firestore or the hardcoded fallback above, since the
+// Firestore 'products' docs don't have an image field yet.
+const LOCAL_PLOT_IMAGES = {
+  'regular': '/regular_plot.jpg',
+  'premium': '/premium_plot.jpg',
+  'corner-premium': '/corner_premium_plot.jpg'
+};
+
 /* ---------- App ---------- */
 function App() {
   const [t, setTweak] = useTweaks(window.TWEAK_DEFAULTS);
@@ -479,7 +488,8 @@ function App() {
   // Apply tier prices
   const tiers = useMemo(() => baseTiers.map((tier) => ({
     ...tier,
-    price: tier.price * priceMult
+    price: tier.price * priceMult,
+    image: tier.image || LOCAL_PLOT_IMAGES[tier.id]
   })), [baseTiers, priceMult]);
 
   // Scroll fade-in
