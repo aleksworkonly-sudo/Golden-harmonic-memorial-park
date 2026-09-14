@@ -173,21 +173,24 @@ function LightboxRoot({ children }) {
 }
 
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
-function Photo({ label, caption, items, index, aspect = '', className = '', style, scene }) {
+function Photo({ label, caption, items, index, aspect = '', className = '', style, scene, image, imagePosition }) {
   const openLightbox = useLightbox();
   const group = items || [{ label, caption: caption || label }];
   const idx = index || 0;
+  const isArt = scene || image;
   return (
     <div
-      className={`ph ${aspect} clickable ${scene ? 'illustrated' : ''} ${className}`}
+      className={`ph ${aspect} clickable ${isArt ? 'illustrated' : ''} ${className}`}
       style={style}
       onClick={() => openLightbox(group, idx)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') openLightbox(group, idx); }}>
 
-      {scene ? <Scene variant={scene} /> : <div className="ph-label">{label}</div>}
-      {scene && <div className="ph-label ph-label-overlay">{label}</div>}
+      {image
+        ? <img src={image} alt={label} className="ph-image" style={imagePosition ? { objectPosition: imagePosition } : undefined} />
+        : scene ? <Scene variant={scene} /> : <div className="ph-label">{label}</div>}
+      {isArt && <div className="ph-label ph-label-overlay">{label}</div>}
       <div className="ph-expand">⤢</div>
     </div>);
 
@@ -852,7 +855,7 @@ function Hero({ onOpenPortal }) {
           </div>
         </div>
         <div className="fade-up in">
-          <Photo aspect="aspect-hero" scene="hero-voyage" label="the soul's passage — after Palawan's Tabon Cave funerary boats"
+          <Photo aspect="aspect-hero" image="/hero-tabon-cave.jpg" imagePosition="60% 55%" label="the soul's passage — after Palawan's Tabon Cave funerary boats"
             items={[{ label: 'the soul\'s passage', caption: 'A motif carried from the Tabon Caves — Palawan\'s earliest funerary art, and the same lineage later carved into the Manunggul jar.' }]} />
         </div>
       </div>
@@ -1213,10 +1216,18 @@ const CATEGORY_GUIDE_TIER_ID = {
 };
 
 function PaymentPlans({ tiers }) {
+  const { selectTier } = usePlanSelection();
   const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
   const fiveYear = PLAN_TERMS[4];
   const cheapest = tiers.reduce((min, t) => t.price < min.price ? t : min, tiers[0] || { price: 0 });
   const lowestMonthly = cheapest.price * (1 + fiveYear.surcharge) / fiveYear.months;
+  // Which term column gets the "lowest monthly" highlight + badge
+  const BEST_VALUE_KEY = '5yr';
+
+  const jumpToBrochure = (tierId) => (e) => {
+    selectTier(tierId);
+    // let the anchor scroll happen, selection is already applied via context
+  };
 
   return (
     <section className="block" id="plans">
@@ -1227,7 +1238,7 @@ function PaymentPlans({ tiers }) {
             <h2 style={{ marginTop: 18 }}>Own a piece of peace — for as little as {fmt(lowestMonthly)} a month.</h2>
           </div>
           <div className="side">
-            No down payment on any plan. Choose spot cash, or spread the total over 1, 2, 3, or 5 years — pre-need pricing locks today's rate for life.
+            No down payment on any plan. Choose spot cash, or spread the total over 1, 2, 3, or 5 years — the longer the term, the higher the surcharge, but the lower your monthly payment.
           </div>
         </div>
 
@@ -1245,7 +1256,20 @@ function PaymentPlans({ tiers }) {
                   <tr>
                     <th>Plot Type</th>
                     {PLAN_TERMS.map((term) =>
-                    <th key={term.key}>{term.months ? term.label : 'Spot Cash'}</th>
+                    <th key={term.key}>
+                        {term.months ? term.label : 'Spot Cash'}
+                        <div style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: 11, marginTop: 3, opacity: 0.8 }}>
+                          {term.months ? `+${Math.round(term.surcharge * 100)}% surcharge` : 'no surcharge'}
+                        </div>
+                        {term.key === BEST_VALUE_KEY &&
+                        <div style={{ marginTop: 5 }}>
+                            <span style={{
+                              display: 'inline-block', background: 'var(--gold)', color: '#1f1607',
+                              borderRadius: 999, padding: '2px 9px', fontSize: 10, fontWeight: 700,
+                              textTransform: 'uppercase', letterSpacing: '.04em'
+                            }}>Lowest monthly</span>
+                          </div>}
+                      </th>
                     )}
                   </tr>
                 </thead>
@@ -1253,34 +1277,35 @@ function PaymentPlans({ tiers }) {
                   {group.map((t) =>
                   <tr key={t.id}>
                       <td><strong>{t.name}</strong></td>
-                      {PLAN_TERMS.map((term) =>
-                    <td key={term.key}>{fmt(t.price * (1 + term.surcharge))}</td>
-                    )}
+                      {PLAN_TERMS.map((term) => {
+                      const total = t.price * (1 + term.surcharge);
+                      const monthly = term.months ? total / term.months : null;
+                      return (
+                        <td key={term.key} className={term.key === BEST_VALUE_KEY ? 'highlight' : ''}>
+                            <div>{fmt(total)}</div>
+                            {monthly &&
+                          <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2, fontWeight: 400 }}>
+                                {fmt(monthly)}/mo · {term.months}mo
+                              </div>}
+                          </td>);
+
+                    })}
                     </tr>
                   )}
                 </tbody>
               </table>
+              <p className="small" style={{ marginTop: 10 }}>
+                {guideTier.name} shown at {fmt(guideTier.price)} spot cash · no down payment on any plan.
+              </p>
 
-              <p className="small" style={{ margin: '18px 0 8px' }}>{guideTier.name} Payment Guide — no down payment required.</p>
-              <table className="plan-table fade-up">
-                <thead>
-                  <tr><th>Plan Type</th><th>Total Price</th><th>Monthly Payment</th><th>Duration</th></tr>
-                </thead>
-                <tbody>
-                  {PLAN_TERMS.filter((term) => term.months).map((term) => {
-                    const total = guideTier.price * (1 + term.surcharge);
-                    const monthly = total / term.months;
-                    return (
-                      <tr key={term.key}>
-                        <td><strong>{term.label}</strong></td>
-                        <td>{fmt(total)}</td>
-                        <td>{fmt(monthly)}</td>
-                        <td>{term.months} months</td>
-                      </tr>);
-
-                  })}
-                </tbody>
-              </table>
+              <div style={{ marginTop: 16 }}>
+                <a
+                  href="#brochure"
+                  className="btn btn-ghost"
+                  onClick={jumpToBrochure(guideTier.id)}>
+                  Get pricing for {cat} →
+                </a>
+              </div>
             </div>);
 
         })}
