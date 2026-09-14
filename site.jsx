@@ -476,10 +476,13 @@ function App() {
 
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
-      <LightboxRoot>
-        <Header />
-        <main>
-          <Hero onOpenPortal={() => setPortalOpen(true)} />
+      <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12}
+        style={{ position: 'fixed', zIndex: 0 }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <LightboxRoot>
+          <Header />
+          <main>
+            <Hero onOpenPortal={() => setPortalOpen(true)} />
           <Tiers tiers={tiers} />
           <Gallery />
           <PaymentPlans tiers={tiers} />
@@ -496,6 +499,7 @@ function App() {
         <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
         <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
       </LightboxRoot>
+      </div>
     </PlanSelectionContext.Provider>);
 }
 
@@ -808,7 +812,6 @@ function Hero({ onOpenPortal }) {
       <style>{`
         .hero-account-badge:hover{ background: #9c7443; }
       `}</style>
-      <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12} />
       <div className="wrap hero-grid" style={{ position: 'relative', zIndex: 1 }}>
         <div className="fade-up in">
           <span className="eyebrow mono">9°29′N 118°30′E · Palawan, Philippines</span>
