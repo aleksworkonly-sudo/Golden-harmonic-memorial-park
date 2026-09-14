@@ -1902,8 +1902,19 @@ function Brochure({ tiers = [] }) {
 function customerPlanBalance(c) {
   if (!c || !c.plan) return null;
   const paid = (c.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
-  const price = Number(c.plan.price) || 0;
-  return { price, paid, balance: Math.max(0, price - paid), pct: price ? Math.min(100, (paid / price) * 100) : 0 };
+  // plan.price is the base cash price with no installment surcharge —
+  // plan.totalPrice (price + term surcharge, e.g. +20% on a 3-year plan)
+  // is what's actually owed. Fall back to price only for older records
+  // saved before totalPrice existed.
+  const price = Number(c.plan.totalPrice ?? c.plan.price) || 0;
+  const monthly = Number(c.plan.monthlyAmount) || 0;
+  const termMonths = Number(c.plan.termMonths) || 0;
+  const paymentsMade = monthly ? Math.min(termMonths || Infinity, Math.floor(paid / monthly)) : 0;
+  return {
+    price, paid, balance: Math.max(0, price - paid),
+    pct: price ? Math.min(100, (paid / price) * 100) : 0,
+    monthly, termMonths, paymentsMade
+  };
 }
 
 function PortalLogin({ onForgot }) {
@@ -2030,6 +2041,17 @@ function PortalDashboard({ customer, onLogout }) {
             <div className="gh-portal-hero-label">Remaining balance</div>
             <div className="gh-portal-hero-amount">{fmt(bal.balance)}</div>
             <div className="gh-portal-hero-meta">{customer.plan.tierName}{customer.plan.termKey ? ' · ' + customer.plan.termKey : ''}</div>
+
+            <div className="gh-portal-progress" role="progressbar" aria-valuenow={Math.round(bal.pct)} aria-valuemin={0} aria-valuemax={100}
+              aria-label={`${Math.round(bal.pct)}% of plan paid off`}>
+              <div className="gh-portal-progress-track">
+                <div className="gh-portal-progress-fill" style={{ width: `${Math.max(2, bal.pct)}%` }} />
+              </div>
+              <div className="gh-portal-progress-caption">
+                <span>{fmt(bal.paid)} of {fmt(bal.price)} paid</span>
+                <span>{Math.round(bal.pct)}%{bal.termMonths ? ` · payment ${Math.min(bal.paymentsMade + 1, bal.termMonths)} of ${bal.termMonths}` : ''}</span>
+              </div>
+            </div>
           </div>
 
           <div className="gh-portal-stats">
@@ -2172,6 +2194,10 @@ function CustomerPortal({ open, onClose }) {
         .gh-portal-hero-label{ font-size:12.5px; opacity:.8; margin-bottom:4px; }
         .gh-portal-hero-amount{ font-size:32px; font-weight:700; }
         .gh-portal-hero-meta{ font-size:12.5px; opacity:.85; margin-top:6px; }
+        .gh-portal-progress{ margin-top:16px; }
+        .gh-portal-progress-track{ background:rgba(255,255,255,.22); border-radius:999px; height:8px; overflow:hidden; }
+        .gh-portal-progress-fill{ background:var(--gold); height:100%; border-radius:999px; transition:width .4s ease; }
+        .gh-portal-progress-caption{ display:flex; justify-content:space-between; gap:10px; font-size:11.5px; opacity:.85; margin-top:7px; }
         .gh-portal-stats{ display:flex; flex-wrap:wrap; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:28px; }
         .gh-portal-stats > div{ flex:1; min-width:110px; background:var(--card); padding:12px 14px; }
         .gh-portal-stats .k{ font-size:11.5px; color:var(--ink-2); margin-bottom:4px; }
