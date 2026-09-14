@@ -234,12 +234,13 @@
     color: var(--ink-2);
     text-align: center;
   }
-  .ph.aspect-hero { aspect-ratio: 4/5; }
+  .ph.aspect-hero { aspect-ratio: 5/4; }
   .ph.aspect-wide { aspect-ratio: 16/10; }
 
   /* Illustrated scenes (stand-in artwork, replaces the striped placeholder) */
   .ph.illustrated { background: none; display: block; }
   .ph.illustrated .scene-svg { width: 100%; height: 100%; display: block; }
+  .ph-image { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 50%; }
   .ph.illustrated .ph-label-overlay {
     position: absolute; left: 10px; bottom: 10px;
     font-size: 10px; padding: 4px 9px;
