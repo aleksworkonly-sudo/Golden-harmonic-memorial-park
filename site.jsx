@@ -1932,11 +1932,11 @@ function PortalLogin({ onForgot }) {
 
   return (
     <form onSubmit={submit} className="gh-portal-form">
-      <label>Email</label>
-      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
-      <label>Password</label>
-      <input type="password" required value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
-      {err && <div className="gh-portal-err">{err}</div>}
+      <label htmlFor="gh-login-email">Email</label>
+      <input id="gh-login-email" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
+      <label htmlFor="gh-login-password">Password</label>
+      <input id="gh-login-password" type="password" required value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" />
+      {err && <div className="gh-portal-err" role="alert">{err}</div>}
       <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
       <button type="button" className="gh-portal-link-btn" onClick={() => onForgot(email)}>Forgot your password?</button>
     </form>
@@ -1971,9 +1971,9 @@ function PortalForgot({ initialEmail, onBack }) {
 
   return (
     <form onSubmit={submit} className="gh-portal-form">
-      <label>Email address</label>
-      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
-      {err && <div className="gh-portal-err">{err}</div>}
+      <label htmlFor="gh-forgot-email">Email address</label>
+      <input id="gh-forgot-email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+      {err && <div className="gh-portal-err" role="alert">{err}</div>}
       <button type="submit" className="gh-portal-btn-primary" disabled={busy}>{busy ? 'Sending…' : 'Send reset link'}</button>
       <button type="button" className="gh-portal-link-btn" onClick={onBack}>Back to login</button>
     </form>
@@ -2073,20 +2073,20 @@ function PortalDashboard({ customer, onLogout }) {
         <p className="gh-portal-help">Pay via our GCash for Business QR code, then send us the reference number. Our staff will confirm it against the transaction and update your balance.</p>
         <form onSubmit={submitReference} className="gh-portal-form-grid">
           <div>
-            <label>GCash reference number</label>
-            <input type="text" required value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder="e.g. GC-99214870" />
+            <label htmlFor="gh-pay-ref">GCash reference number</label>
+            <input id="gh-pay-ref" type="text" required value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder="e.g. GC-99214870" />
           </div>
           <div>
-            <label>Amount paid</label>
-            <input type="number" required min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+            <label htmlFor="gh-pay-amount">Amount paid</label>
+            <input id="gh-pay-amount" type="number" required min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
           </div>
           <div>
-            <label>Date of payment</label>
-            <input type="date" required value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+            <label htmlFor="gh-pay-date">Date of payment</label>
+            <input id="gh-pay-date" type="date" required value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
           </div>
           <div>
-            <label>Your GCash mobile no. (optional)</label>
-            <input type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))} placeholder="09XX XXX XXXX" />
+            <label htmlFor="gh-pay-mobile">Your GCash mobile no. (optional)</label>
+            <input id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))} placeholder="09XX XXX XXXX" />
           </div>
           <div className="full">
             <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting…' : 'Submit for confirmation'}</button>
@@ -2103,6 +2103,8 @@ function CustomerPortal({ open, onClose }) {
   const [customer, setCustomer] = useState(undefined); // undefined = loading, null = no match found
   const [mode, setMode] = useState('login'); // 'login' | 'forgot'
   const [forgotEmail, setForgotEmail] = useState('');
+  const cardRef = useRef(null);
+  const previousFocusRef = useRef(null);
 
   useEffect(() => {
     if (!open || !window.auth) return;
@@ -2117,6 +2119,24 @@ function CustomerPortal({ open, onClose }) {
         err => { console.error('[GH portal] customer lookup failed:', err); setCustomer(null); }
       );
   }, [authUser]);
+
+  // Accessibility: move focus into the dialog on open, restore it to whatever
+  // triggered the dialog (the "My Account" badge, header button, etc.) on
+  // close, and let Escape close it the same way clicking outside does.
+  useEffect(() => {
+    if (!open) return;
+    previousFocusRef.current = document.activeElement;
+    const focusTimer = setTimeout(() => { if (cardRef.current) cardRef.current.focus(); }, 0);
+    const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown);
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -2173,7 +2193,7 @@ function CustomerPortal({ open, onClose }) {
         .gh-portal-dashboard-pad{ padding:32px; }
         @media (max-width:520px){ .gh-portal-form-grid{ grid-template-columns:1fr; } }
       `}</style>
-      <div className="gh-portal-card">
+      <div className="gh-portal-card" ref={cardRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Golden Harmonic Memorial Park customer portal" style={{ outline: 'none' }}>
         <button className="gh-portal-close" onClick={onClose} aria-label="Close">✕</button>
 
         {authUser === undefined ? (
