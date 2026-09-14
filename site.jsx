@@ -46,19 +46,19 @@ const BASE_TIERS = [
   id: 'regular', name: 'Regular Plot', category: 'Regular Plots', price: 30000,
   desc: 'A standard single-interment lot in our open-lawn sections. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Open-lawn setting'],
-  label: 'regular plot — open lawn'
+  label: 'regular plot — open lawn', image: '/regular_plot.jpg'
 },
 {
   id: 'premium', name: 'Premium Plot', category: 'Regular Plots', price: 42500,
   desc: 'An upgraded standard plot in one of the park\'s preferred sections. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Preferred section placement'],
-  label: 'premium plot — preferred section'
+  label: 'premium plot — preferred section', image: '/premium_plot.jpg'
 },
 {
   id: 'corner-premium', name: 'Corner Premium Plot', category: 'Regular Plots', price: 47500,
   desc: 'A corner plot in our most requested standard section. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Corner placement'],
-  label: 'corner premium plot'
+  label: 'corner premium plot', image: '/corner_premium_plot.jpg'
 },
 {
   id: 'garden-regular', name: 'Regular Garden Plot', category: 'Garden Plots', price: 37500,
@@ -1096,18 +1096,22 @@ function Tiers({ tiers }) {
 
 }
 
+function tierSceneKey(t) {
+  return t.id === 'family-vault' ? 'family' :
+  t.id === 'regular' || t.id === 'garden-regular' ? 'lawn' :
+  'premium-lawn';
+}
+
 function Tier({ tier, i = 0, allTiers = [] }) {
   const { selectedTierId, selectTier } = usePlanSelection();
   const group = allTiers.length ?
-  allTiers.map((t) => ({ label: t.label, caption: t.name })) :
-  [{ label: tier.label, caption: tier.name }];
+  allTiers.map((t) => ({ label: t.label, caption: t.name, image: t.image, scene: t.image ? undefined : tierSceneKey(t) })) :
+  [{ label: tier.label, caption: tier.name, image: tier.image, scene: tier.image ? undefined : tierSceneKey(tier) }];
   const idx = allTiers.findIndex((t) => t.id === tier.id);
   const isSelected = selectedTierId === tier.id;
   const fiveYear = PLAN_TERMS[4]; // lowest monthly = longest term
   const monthly = tier.price * (1 + fiveYear.surcharge) / fiveYear.months;
-  const sceneKey = tier.id === 'family-vault' ? 'family' :
-  tier.id === 'regular' || tier.id === 'garden-regular' ? 'lawn' :
-  'premium-lawn';
+  const sceneKey = tierSceneKey(tier);
   return (
     <div
       className={`tier fade-up ${isSelected ? 'selected' : ''}`}
@@ -1116,7 +1120,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
       <div className="tier-cine-card">
         <div className="cine-frame">
           <div className="cine-zoom">
-            <Photo label={tier.label} scene={sceneKey} items={group} index={idx < 0 ? 0 : idx} />
+            <Photo label={tier.label} image={tier.image} scene={tier.image ? undefined : sceneKey} items={group} index={idx < 0 ? 0 : idx} />
           </div>
           <div className="cine-vignette"></div>
           <div className="cine-glow"></div>
