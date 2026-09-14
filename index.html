@@ -126,36 +126,20 @@
   nav.primary { display: flex; gap: 28px; }
   nav.primary a { text-decoration: none; color: var(--ink-2); font-size: 14px; font-weight: 500; }
   nav.primary a:hover { color: var(--ink); }
-  @media (max-width: 860px) { nav.primary { display: none !important; } }
+  /* Nav never collapses into a hamburger — on narrow screens it scrolls
+     horizontally instead of wrapping or hiding behind a menu button. */
+  @media (max-width: 860px) {
+    nav.primary {
+      flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    nav.primary::-webkit-scrollbar { display: none; }
+  }
 
-  /* ---------- Mobile navigation (hamburger + slide-down panel) ---------- */
-  .mobile-menu-btn {
-    display: none;
-    width: 44px; height: 44px;
-    align-items: center; justify-content: center;
-    background: transparent; border: 1px solid var(--line); border-radius: 10px;
-    cursor: pointer; flex-shrink: 0;
-  }
-  @media (max-width: 860px) { .mobile-menu-btn { display: inline-flex; } }
-  .mobile-menu-btn span { display: block; width: 20px; height: 2px; background: var(--ink); position: relative; }
-  .mobile-menu-btn span::before, .mobile-menu-btn span::after {
-    content: ''; position: absolute; left: 0; width: 20px; height: 2px; background: var(--ink);
-    transition: transform .2s ease, opacity .2s ease;
-  }
-  .mobile-menu-btn span::before { top: -6px; }
-  .mobile-menu-btn span::after { top: 6px; }
-  .mobile-menu-btn.open span { background: transparent; }
-  .mobile-menu-btn.open span::before { transform: translateY(6px) rotate(45deg); }
-  .mobile-menu-btn.open span::after { transform: translateY(-6px) rotate(-45deg); }
-
-  .mobile-nav-panel {
-    display: none;
-    max-height: 0; overflow: hidden;
-    transition: max-height .3s ease;
-    border-top: 1px solid var(--line);
-  }
-  @media (max-width: 860px) { .mobile-nav-panel { display: block; } }
-  .mobile-nav-panel.open { max-height: 480px; }
+  /* ---------- Mobile navigation (hamburger + slide-down panel) — disabled;
+     the full nav.primary row stays visible and scrolls horizontally instead. ---------- */
+  .mobile-menu-btn { display: none !important; }
+  .mobile-nav-panel { display: none !important; }
   .mobile-nav-panel .inner { padding: 18px 0; display: flex; flex-direction: column; gap: 4px; }
   .mobile-nav-panel a {
     text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 500;
