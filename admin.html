@@ -1131,11 +1131,19 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
   };
 
   const handleManualLink = async () => {
-    if (!manualUid.trim()) { setPortalError('Paste the Firebase Auth UID first.'); return; }
+    const uid = manualUid.trim();
+    if (!uid) { setPortalError('Paste the Firebase Auth UID first.'); return; }
+    // Firebase Auth UIDs are alphanumeric, no @ or spaces, and normally
+    // ~28 characters — catches the most common mistake (pasting the email
+    // instead of the UID) before it silently saves bad data.
+    if (uid.includes('@') || uid.includes(' ') || uid.length < 15 || !/^[a-zA-Z0-9]+$/.test(uid)) {
+      setPortalError('That doesn\'t look like a Firebase Auth UID — it should be a string of letters/numbers (~28 characters), not an email. Copy it from the "User UID" column in Authentication → Users.');
+      return;
+    }
     setPortalBusy(true); setPortalError('');
     try {
       await window.db.collection('customers').doc(customer._id).update({
-        authUid: manualUid.trim(),
+        authUid: uid,
         portalCreatedAt: Date.now(),
         portalCreatedBy: (currentUser && currentUser.email) || 'unknown'
       });
@@ -1847,25 +1855,41 @@ function PendingPayments({ currentUser }) {
   }
   pending.sort((a, b) => (a.sub.submittedAt || 0) - (b.sub.submittedAt || 0));
 
+  // Wrapped in a transaction so two staff confirming the same submission at
+  // nearly the same time can't both push it into payments[] — the second
+  // one re-reads fresh data inside the transaction, sees it's no longer
+  // 'pending', and bails out with a clear message instead of double-logging
+  // the payment and understating the customer's balance.
   const resolve = async (customer, subToResolve, action) => {
     const key = customer._id + '_' + subToResolve.submittedAt;
     setBusyKey(key);
     try {
-      const nextSubmissions = (customer.paymentSubmissions || []).map(s =>
-        s.submittedAt === subToResolve.submittedAt
-          ? { ...s, status: action === 'confirm' ? 'confirmed' : 'rejected' }
-          : s
-      );
-      const updates = { paymentSubmissions: nextSubmissions };
-      if (action === 'confirm') {
-        updates.payments = firebase.firestore.FieldValue.arrayUnion({
-          date: subToResolve.date,
-          amount: Number(subToResolve.amount),
-          method: subToResolve.method || 'GCash',
-          note: `Ref ${subToResolve.referenceNumber}${subToResolve.mobileNumber ? ' · ' + subToResolve.mobileNumber : ''} — confirmed from customer portal by ${(currentUser && currentUser.email) || 'staff'}`
-        });
-      }
-      await window.db.collection('customers').doc(customer._id).update(updates);
+      const ref = window.db.collection('customers').doc(customer._id);
+      await window.db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new Error('That customer record no longer exists.');
+        const data = snap.data();
+        const current = (data.paymentSubmissions || []).find(s => s.submittedAt === subToResolve.submittedAt);
+        if (!current) throw new Error('That submission is gone — it may have already been removed.');
+        if ((current.status || 'pending') !== 'pending') {
+          throw new Error(`Already marked "${current.status}" — probably by another staff member.`);
+        }
+        const nextSubmissions = (data.paymentSubmissions || []).map(s =>
+          s.submittedAt === subToResolve.submittedAt
+            ? { ...s, status: action === 'confirm' ? 'confirmed' : 'rejected' }
+            : s
+        );
+        const updates = { paymentSubmissions: nextSubmissions };
+        if (action === 'confirm') {
+          updates.payments = firebase.firestore.FieldValue.arrayUnion({
+            date: current.date,
+            amount: Number(current.amount),
+            method: current.method || 'GCash',
+            note: `Ref ${current.referenceNumber}${current.mobileNumber ? ' · ' + current.mobileNumber : ''} — confirmed from customer portal by ${(currentUser && currentUser.email) || 'staff'}`
+          });
+        }
+        tx.update(ref, updates);
+      });
       setToast(action === 'confirm' ? 'Payment confirmed — balance updated' : 'Marked as needing attention');
     } catch (err) {
       setToast((err && err.message) || 'Could not update');
