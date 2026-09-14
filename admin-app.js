@@ -1,4 +1,3 @@
-import { jsxDEV as _jsxDEV, Fragment as _Fragment } from "react/jsx-dev-runtime";
 const {
   useState,
   useEffect,
@@ -111,10 +110,9 @@ function Toast({
     const t = setTimeout(onDone, 2800);
     return () => clearTimeout(t);
   }, []);
-  return /*#__PURE__*/_jsxDEV("div", {
-    className: "toast",
-    children: msg
-  }, void 0, false);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "toast"
+  }, msg);
 }
 
 // ── Login ──────────────────────────────────────────────────────────────────
@@ -148,66 +146,50 @@ function Login({
       setBusy(false);
     }
   };
-  return /*#__PURE__*/_jsxDEV("div", {
-    className: "login-wrap",
-    children: /*#__PURE__*/_jsxDEV("div", {
-      className: "login-card",
-      children: [/*#__PURE__*/_jsxDEV("div", {
-        className: "login-logo",
-        children: [/*#__PURE__*/_jsxDEV("img", {
-          src: "/logo-header.png",
-          alt: "Golden Harmonic logo",
-          style: {
-            width: 44,
-            height: 44,
-            objectFit: 'contain',
-            flexShrink: 0
-          }
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "login-title",
-            children: "Golden Harmonic"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "login-sub",
-            children: "Memorial Park · Admin Panel"
-          }, void 0, false)]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("form", {
-        onSubmit: submit,
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          className: "login-field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Email address"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-            type: "email",
-            required: true,
-            placeholder: "admin@ghmemorialpark.com",
-            value: email,
-            onChange: e => setEmail(e.target.value)
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "login-field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Password"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-            type: "password",
-            required: true,
-            placeholder: "••••••••",
-            value: pass,
-            onChange: e => setPass(e.target.value)
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("button", {
-          className: "login-btn",
-          type: "submit",
-          disabled: busy,
-          children: busy ? 'Signing in…' : 'Sign in →'
-        }, void 0, false), err && /*#__PURE__*/_jsxDEV("p", {
-          className: "login-err",
-          children: err
-        }, void 0, false)]
-      }, void 0, true)]
-    }, void 0, true)
-  }, void 0, false);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "login-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "login-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "login-logo"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/logo-header.png",
+    alt: "Golden Harmonic logo",
+    style: {
+      width: 44,
+      height: 44,
+      objectFit: 'contain',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "login-title"
+  }, "Golden Harmonic"), /*#__PURE__*/React.createElement("div", {
+    className: "login-sub"
+  }, "Memorial Park · Admin Panel"))), /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "login-field"
+  }, /*#__PURE__*/React.createElement("label", null, "Email address"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    required: true,
+    placeholder: "admin@ghmemorialpark.com",
+    value: email,
+    onChange: e => setEmail(e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "login-field"
+  }, /*#__PURE__*/React.createElement("label", null, "Password"), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    required: true,
+    placeholder: "••••••••",
+    value: pass,
+    onChange: e => setPass(e.target.value)
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "login-btn",
+    type: "submit",
+    disabled: busy
+  }, busy ? 'Signing in…' : 'Sign in →'), err && /*#__PURE__*/React.createElement("p", {
+    className: "login-err"
+  }, err))));
 }
 
 // ── Trash / Recently Deleted helpers ────────────────────────────────────────
@@ -295,133 +277,78 @@ function Inquiries({
     converted: 'badge-converted',
     closed: 'badge-closed'
   })[s] || 'badge-new';
-  if (!rows) return /*#__PURE__*/_jsxDEV("div", {
-    className: "loading",
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "spinner"
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      children: "Loading inquiries…"
-    }, void 0, false)]
-  }, void 0, true);
-  return /*#__PURE__*/_jsxDEV(_Fragment, {
-    children: [toast && /*#__PURE__*/_jsxDEV(Toast, {
-      msg: toast,
-      onDone: () => setToast('')
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "section-hd",
-      children: [/*#__PURE__*/_jsxDEV("h2", {
-        children: ["Inquiries ", /*#__PURE__*/_jsxDEV("span", {
-          style: {
-            color: 'var(--ink-3)',
-            fontWeight: 400,
-            fontSize: 13
-          },
-          children: ["(", rows.length, ")"]
-        }, void 0, true)]
-      }, void 0, true), selectedIds.length > 0 && /*#__PURE__*/_jsxDEV("button", {
-        className: "btn btn-danger btn-sm",
-        disabled: deleting,
-        onClick: deleteSelected,
-        children: deleting ? 'Deleting…' : `🗑 Delete selected (${selectedIds.length})`
-      }, void 0, false)]
-    }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-      className: "table-card",
-      children: rows.length === 0 ? /*#__PURE__*/_jsxDEV("div", {
-        className: "empty",
-        children: "No inquiries yet. When someone fills out the brochure form on your website, it will appear here."
-      }, void 0, false) : /*#__PURE__*/_jsxDEV("table", {
-        className: "gh-table",
-        children: [/*#__PURE__*/_jsxDEV("thead", {
-          children: /*#__PURE__*/_jsxDEV("tr", {
-            children: [/*#__PURE__*/_jsxDEV("th", {
-              style: {
-                width: 30
-              },
-              children: /*#__PURE__*/_jsxDEV("input", {
-                type: "checkbox",
-                checked: rows.length > 0 && selectedIds.length === rows.length,
-                onChange: toggleAll
-              }, void 0, false)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Name"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Email"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Phone"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Interest"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Date"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Status"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {}, void 0, false)]
-          }, void 0, true)
-        }, void 0, false), /*#__PURE__*/_jsxDEV("tbody", {
-          children: rows.map(r => /*#__PURE__*/_jsxDEV("tr", {
-            children: [/*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("input", {
-                type: "checkbox",
-                checked: !!selected[r._id],
-                onChange: () => toggleOne(r._id)
-              }, void 0, false)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("strong", {
-                children: r.fullName || `${r.firstName} ${r.lastName}`
-              }, void 0, false)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("a", {
-                href: `mailto:${r.email}`,
-                style: {
-                  color: 'var(--green)'
-                },
-                children: r.email
-              }, void 0, false)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: r.phone
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              style: {
-                maxWidth: 160,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              },
-              children: r.interest
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              style: {
-                color: 'var(--ink-3)'
-              },
-              children: fmtDate(r.createdAt)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("select", {
-                className: "status-sel",
-                value: r.status || 'new',
-                onChange: e => updateStatus(r._id, e.target.value),
-                children: [/*#__PURE__*/_jsxDEV("option", {
-                  value: "new",
-                  children: "New"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  value: "contacted",
-                  children: "Contacted"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  value: "converted",
-                  children: "Converted"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  value: "closed",
-                  children: "Closed"
-                }, void 0, false)]
-              }, void 0, true)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("button", {
-                className: "btn btn-danger btn-sm",
-                onClick: () => deleteOne(r._id, r.fullName || `${r.firstName} ${r.lastName}`),
-                children: "Delete"
-              }, void 0, false)
-            }, void 0, false)]
-          }, r._id, true))
-        }, void 0, false)]
-      }, void 0, true)
-    }, void 0, false)]
-  }, void 0, true);
+  if (!rows) return /*#__PURE__*/React.createElement("div", {
+    className: "loading"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), /*#__PURE__*/React.createElement("div", null, "Loading inquiries…"));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Inquiries ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-3)',
+      fontWeight: 400,
+      fontSize: 13
+    }
+  }, "(", rows.length, ")")), selectedIds.length > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-danger btn-sm",
+    disabled: deleting,
+    onClick: deleteSelected
+  }, deleting ? 'Deleting…' : `🗑 Delete selected (${selectedIds.length})`)), /*#__PURE__*/React.createElement("div", {
+    className: "table-card"
+  }, rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "No inquiries yet. When someone fills out the brochure form on your website, it will appear here.") : /*#__PURE__*/React.createElement("table", {
+    className: "gh-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 30
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: rows.length > 0 && selectedIds.length === rows.length,
+    onChange: toggleAll
+  })), /*#__PURE__*/React.createElement("th", null, "Name"), /*#__PURE__*/React.createElement("th", null, "Email"), /*#__PURE__*/React.createElement("th", null, "Phone"), /*#__PURE__*/React.createElement("th", null, "Interest"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r._id
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: !!selected[r._id],
+    onChange: () => toggleOne(r._id)
+  })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("strong", null, r.fullName || `${r.firstName} ${r.lastName}`)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("a", {
+    href: `mailto:${r.email}`,
+    style: {
+      color: 'var(--green)'
+    }
+  }, r.email)), /*#__PURE__*/React.createElement("td", null, r.phone), /*#__PURE__*/React.createElement("td", {
+    style: {
+      maxWidth: 160,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    }
+  }, r.interest), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: 'var(--ink-3)'
+    }
+  }, fmtDate(r.createdAt)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("select", {
+    className: "status-sel",
+    value: r.status || 'new',
+    onChange: e => updateStatus(r._id, e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "new"
+  }, "New"), /*#__PURE__*/React.createElement("option", {
+    value: "contacted"
+  }, "Contacted"), /*#__PURE__*/React.createElement("option", {
+    value: "converted"
+  }, "Converted"), /*#__PURE__*/React.createElement("option", {
+    value: "closed"
+  }, "Closed"))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-danger btn-sm",
+    onClick: () => deleteOne(r._id, r.fullName || `${r.firstName} ${r.lastName}`)
+  }, "Delete"))))))));
 }
 
 // ── Customers panel ────────────────────────────────────────────────────────
@@ -518,275 +445,163 @@ function Customers({
     await moveToTrash('customers', id, data, currentUser && currentUser.email);
     setToast('Customer moved to Recently Deleted');
   };
-  if (!rows) return /*#__PURE__*/_jsxDEV("div", {
-    className: "loading",
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "spinner"
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      children: "Loading customers…"
-    }, void 0, false)]
-  }, void 0, true);
+  if (!rows) return /*#__PURE__*/React.createElement("div", {
+    className: "loading"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), /*#__PURE__*/React.createElement("div", null, "Loading customers…"));
   const openCustomer = rows.find(r => r._id === openId) || null;
-  return /*#__PURE__*/_jsxDEV(_Fragment, {
-    children: [toast && /*#__PURE__*/_jsxDEV(Toast, {
-      msg: toast,
-      onDone: () => setToast('')
-    }, void 0, false), showAdd && /*#__PURE__*/_jsxDEV(AddCustomerModal, {
-      onClose: () => setShowAdd(false),
-      onSaved: () => {
-        setShowAdd(false);
-        setToast('Customer added');
+  return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), showAdd && /*#__PURE__*/React.createElement(AddCustomerModal, {
+    onClose: () => setShowAdd(false),
+    onSaved: () => {
+      setShowAdd(false);
+      setToast('Customer added');
+    }
+  }), openCustomer && /*#__PURE__*/React.createElement(CustomerDetailModal, {
+    customer: openCustomer,
+    currentUser: currentUser,
+    onClose: () => setOpenId(null),
+    onToast: setToast
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Customers / Leads ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-3)',
+      fontWeight: 400,
+      fontSize: 13
+    }
+  }, "(", rows.length, ")")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => window.print()
+  }, "🖨 Print all"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    onClick: () => setShowAdd(true)
+  }, "+ Add customer"))), /*#__PURE__*/React.createElement("div", {
+    className: "table-card"
+  }, rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "No customers yet. Leads from your website form appear here automatically.") : /*#__PURE__*/React.createElement("table", {
+    className: "gh-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Name"), /*#__PURE__*/React.createElement("th", null, "Contact"), /*#__PURE__*/React.createElement("th", null, "Plan"), /*#__PURE__*/React.createElement("th", null, "Balance"), /*#__PURE__*/React.createElement("th", null, "Revenue"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => {
+    const bal = planBalance(r);
+    return /*#__PURE__*/React.createElement("tr", {
+      key: r._id
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        cursor: 'pointer'
+      },
+      onClick: () => setOpenId(r._id)
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 30,
+        height: 30,
+        borderRadius: '50%',
+        background: 'var(--green)',
+        color: '#fff',
+        display: 'grid',
+        placeItems: 'center',
+        fontSize: 11,
+        fontWeight: 700,
+        flexShrink: 0
       }
-    }, void 0, false), openCustomer && /*#__PURE__*/_jsxDEV(CustomerDetailModal, {
-      customer: openCustomer,
-      currentUser: currentUser,
-      onClose: () => setOpenId(null),
-      onToast: setToast
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "section-hd",
-      children: [/*#__PURE__*/_jsxDEV("h2", {
-        children: ["Customers / Leads ", /*#__PURE__*/_jsxDEV("span", {
-          style: {
-            color: 'var(--ink-3)',
-            fontWeight: 400,
-            fontSize: 13
-          },
-          children: ["(", rows.length, ")"]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        style: {
-          display: 'flex',
-          gap: 8
-        },
-        children: [/*#__PURE__*/_jsxDEV("button", {
-          className: "btn btn-outline btn-sm",
-          onClick: () => window.print(),
-          children: "🖨 Print all"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-          className: "btn btn-primary btn-sm",
-          onClick: () => setShowAdd(true),
-          children: "+ Add customer"
-        }, void 0, false)]
-      }, void 0, true)]
-    }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-      className: "table-card",
-      children: rows.length === 0 ? /*#__PURE__*/_jsxDEV("div", {
-        className: "empty",
-        children: "No customers yet. Leads from your website form appear here automatically."
-      }, void 0, false) : /*#__PURE__*/_jsxDEV("table", {
-        className: "gh-table",
-        children: [/*#__PURE__*/_jsxDEV("thead", {
-          children: /*#__PURE__*/_jsxDEV("tr", {
-            children: [/*#__PURE__*/_jsxDEV("th", {
-              children: "Name"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Contact"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Plan"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Balance"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Revenue"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Status"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {}, void 0, false)]
-          }, void 0, true)
-        }, void 0, false), /*#__PURE__*/_jsxDEV("tbody", {
-          children: rows.map(r => {
-            const bal = planBalance(r);
-            return /*#__PURE__*/_jsxDEV("tr", {
-              children: [/*#__PURE__*/_jsxDEV("td", {
-                children: /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    cursor: 'pointer'
-                  },
-                  onClick: () => setOpenId(r._id),
-                  children: [/*#__PURE__*/_jsxDEV("div", {
-                    style: {
-                      width: 30,
-                      height: 30,
-                      borderRadius: '50%',
-                      background: 'var(--green)',
-                      color: '#fff',
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      flexShrink: 0
-                    },
-                    children: initials(r.fullName || `${r.firstName || ''} ${r.lastName || ''}`)
-                  }, void 0, false), /*#__PURE__*/_jsxDEV("strong", {
-                    children: r.fullName || `${r.firstName} ${r.lastName}`
-                  }, void 0, false)]
-                }, void 0, true)
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: [/*#__PURE__*/_jsxDEV("div", {
-                  children: /*#__PURE__*/_jsxDEV("a", {
-                    href: `mailto:${r.email}`,
-                    style: {
-                      color: 'var(--green)'
-                    },
-                    children: r.email
-                  }, void 0, false)
-                }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    color: 'var(--ink-3)',
-                    fontSize: 12
-                  },
-                  children: r.phone
-                }, void 0, false)]
-              }, void 0, true), /*#__PURE__*/_jsxDEV("td", {
-                children: r.plan ? /*#__PURE__*/_jsxDEV("span", {
-                  className: "plan-badge",
-                  children: r.plan.tierName
-                }, void 0, false) : r.interestedPlanName ? /*#__PURE__*/_jsxDEV("span", {
-                  className: "plan-badge none",
-                  title: "Expressed interest on the website — not a formal plan yet",
-                  children: ["Interested: ", r.interestedPlanName]
-                }, void 0, true) : /*#__PURE__*/_jsxDEV("span", {
-                  className: "plan-badge none",
-                  children: "No plan yet"
-                }, void 0, false)
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: bal ? /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    minWidth: 110
-                  },
-                  children: [/*#__PURE__*/_jsxDEV("div", {
-                    style: {
-                      fontWeight: 700,
-                      fontSize: 13
-                    },
-                    children: fmt(bal.balance)
-                  }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                    className: "progress-track",
-                    style: {
-                      marginTop: 4
-                    },
-                    children: /*#__PURE__*/_jsxDEV("div", {
-                      className: "progress-fill",
-                      style: {
-                        width: `${bal.pct}%`
-                      }
-                    }, void 0, false)
-                  }, void 0, false)]
-                }, void 0, true) : /*#__PURE__*/_jsxDEV("span", {
-                  style: {
-                    color: 'var(--ink-3)'
-                  },
-                  children: "—"
-                }, void 0, false)
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: totalPaid(r) > 0 ? /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color: 'var(--green)'
-                  },
-                  children: fmt(totalPaid(r))
-                }, void 0, false) : /*#__PURE__*/_jsxDEV("span", {
-                  style: {
-                    color: 'var(--ink-3)'
-                  },
-                  children: "—"
-                }, void 0, false)
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: /*#__PURE__*/_jsxDEV("select", {
-                  className: "status-sel",
-                  value: normalizeStage(r.status),
-                  onChange: e => updateStatus(r._id, e.target.value),
-                  children: STAGES.map(s => /*#__PURE__*/_jsxDEV("option", {
-                    value: s.id,
-                    children: s.label
-                  }, s.id, false))
-                }, void 0, false)
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    display: 'flex',
-                    gap: 6
-                  },
-                  children: [/*#__PURE__*/_jsxDEV("button", {
-                    className: "btn btn-outline btn-sm",
-                    onClick: () => setOpenId(r._id),
-                    children: "View"
-                  }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-                    className: "btn btn-danger btn-sm",
-                    onClick: () => deleteCustomer(r._id, r.fullName),
-                    children: "Delete"
-                  }, void 0, false)]
-                }, void 0, true)
-              }, void 0, false)]
-            }, r._id, true);
-          })
-        }, void 0, false)]
-      }, void 0, true)
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "print-sheet",
-      children: [/*#__PURE__*/_jsxDEV("div", {
-        className: "letterhead",
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "brand",
-            children: "Golden Harmonic Memorial Park"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "sub",
-            children: "Customer / Leads Summary — Internal Records"
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "sub",
-          children: ["Printed: ", new Date().toLocaleString('en-PH')]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("table", {
-        children: [/*#__PURE__*/_jsxDEV("thead", {
-          children: /*#__PURE__*/_jsxDEV("tr", {
-            children: [/*#__PURE__*/_jsxDEV("th", {
-              children: "Name"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Email"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Phone"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Plan"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Balance"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Status"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Follow-up"
-            }, void 0, false)]
-          }, void 0, true)
-        }, void 0, false), /*#__PURE__*/_jsxDEV("tbody", {
-          children: rows.map(r => {
-            const bal = planBalance(r);
-            return /*#__PURE__*/_jsxDEV("tr", {
-              children: [/*#__PURE__*/_jsxDEV("td", {
-                children: r.fullName || `${r.firstName} ${r.lastName}`
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: r.email || '—'
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: r.phone || '—'
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: r.plan ? r.plan.tierName : r.interestedPlanName || '—'
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: bal ? fmt(bal.balance) : '—'
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: STAGE_LABEL[normalizeStage(r.status)]
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: r.followUpAt || '—'
-              }, void 0, false)]
-            }, r._id, true);
-          })
-        }, void 0, false)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "footer-note",
-        children: ["Total customers/leads on record: ", rows.length]
-      }, void 0, true)]
-    }, void 0, true)]
-  }, void 0, true);
+    }, initials(r.fullName || `${r.firstName || ''} ${r.lastName || ''}`)), /*#__PURE__*/React.createElement("strong", null, r.fullName || `${r.firstName} ${r.lastName}`))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("a", {
+      href: `mailto:${r.email}`,
+      style: {
+        color: 'var(--green)'
+      }
+    }, r.email)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--ink-3)',
+        fontSize: 12
+      }
+    }, r.phone)), /*#__PURE__*/React.createElement("td", null, r.plan ? /*#__PURE__*/React.createElement("span", {
+      className: "plan-badge"
+    }, r.plan.tierName) : r.interestedPlanName ? /*#__PURE__*/React.createElement("span", {
+      className: "plan-badge none",
+      title: "Expressed interest on the website — not a formal plan yet"
+    }, "Interested: ", r.interestedPlanName) : /*#__PURE__*/React.createElement("span", {
+      className: "plan-badge none"
+    }, "No plan yet")), /*#__PURE__*/React.createElement("td", null, bal ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 110
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13
+      }
+    }, fmt(bal.balance)), /*#__PURE__*/React.createElement("div", {
+      className: "progress-track",
+      style: {
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "progress-fill",
+      style: {
+        width: `${bal.pct}%`
+      }
+    }))) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--ink-3)'
+      }
+    }, "—")), /*#__PURE__*/React.createElement("td", null, totalPaid(r) > 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13,
+        color: 'var(--green)'
+      }
+    }, fmt(totalPaid(r))) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--ink-3)'
+      }
+    }, "—")), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("select", {
+      className: "status-sel",
+      value: normalizeStage(r.status),
+      onChange: e => updateStatus(r._id, e.target.value)
+    }, STAGES.map(s => /*#__PURE__*/React.createElement("option", {
+      key: s.id,
+      value: s.id
+    }, s.label)))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-outline btn-sm",
+      onClick: () => setOpenId(r._id)
+    }, "View"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-danger btn-sm",
+      onClick: () => deleteCustomer(r._id, r.fullName)
+    }, "Delete"))));
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "print-sheet"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "letterhead"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "brand"
+  }, "Golden Harmonic Memorial Park"), /*#__PURE__*/React.createElement("div", {
+    className: "sub"
+  }, "Customer / Leads Summary — Internal Records")), /*#__PURE__*/React.createElement("div", {
+    className: "sub"
+  }, "Printed: ", new Date().toLocaleString('en-PH'))), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Name"), /*#__PURE__*/React.createElement("th", null, "Email"), /*#__PURE__*/React.createElement("th", null, "Phone"), /*#__PURE__*/React.createElement("th", null, "Plan"), /*#__PURE__*/React.createElement("th", null, "Balance"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null, "Follow-up"))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => {
+    const bal = planBalance(r);
+    return /*#__PURE__*/React.createElement("tr", {
+      key: r._id
+    }, /*#__PURE__*/React.createElement("td", null, r.fullName || `${r.firstName} ${r.lastName}`), /*#__PURE__*/React.createElement("td", null, r.email || '—'), /*#__PURE__*/React.createElement("td", null, r.phone || '—'), /*#__PURE__*/React.createElement("td", null, r.plan ? r.plan.tierName : r.interestedPlanName || '—'), /*#__PURE__*/React.createElement("td", null, bal ? fmt(bal.balance) : '—'), /*#__PURE__*/React.createElement("td", null, STAGE_LABEL[normalizeStage(r.status)]), /*#__PURE__*/React.createElement("td", null, r.followUpAt || '—'));
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "footer-note"
+  }, "Total customers/leads on record: ", rows.length)));
 }
 
 // Shared plan-terms fields, used by both the Add Customer and Edit Plan forms.
@@ -835,95 +650,73 @@ function PlanFields({
   const term = PLAN_TERMS.find(t => t.key === (p.termKey || '1yr')) || PLAN_TERMS[1];
   const total = (Number(p.price) || 0) * (1 + term.surcharge);
   const monthly = term.months ? Math.round(total / term.months) : 0;
-  return /*#__PURE__*/_jsxDEV(_Fragment, {
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "field",
-      children: [/*#__PURE__*/_jsxDEV("label", {
-        children: "Plot / plan"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("select", {
-        value: p.tierId,
-        onChange: e => e.target.value ? pickTier(e.target.value) : onChange(null),
-        children: [/*#__PURE__*/_jsxDEV("option", {
-          value: "",
-          children: "No plan yet — just a lead"
-        }, void 0, false), BASE_TIERS.map(t => /*#__PURE__*/_jsxDEV("option", {
-          value: t.id,
-          children: [t.name, " — ", fmt(t.price)]
-        }, t.id, true))]
-      }, void 0, true)]
-    }, void 0, true), p.tierId && /*#__PURE__*/_jsxDEV(_Fragment, {
-      children: [p.imageUrl && /*#__PURE__*/_jsxDEV("div", {
-        style: {
-          marginBottom: 12
-        },
-        children: /*#__PURE__*/_jsxDEV("img", {
-          src: p.imageUrl,
-          alt: p.tierName,
-          style: {
-            width: '100%',
-            maxHeight: 160,
-            objectFit: 'cover',
-            borderRadius: 8
-          }
-        }, void 0, false)
-      }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-        style: {
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12
-        },
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          className: "field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Spot cash price (₱)"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-            type: "number",
-            value: p.price,
-            onChange: e => set({
-              price: e.target.value
-            })
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Start date"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-            type: "date",
-            value: p.startDate,
-            onChange: e => set({
-              startDate: e.target.value
-            })
-          }, void 0, false)]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "field",
-        children: [/*#__PURE__*/_jsxDEV("label", {
-          children: "Payment term — no down payment on any plan"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            display: 'flex',
-            gap: 6,
-            flexWrap: 'wrap'
-          },
-          children: PLAN_TERMS.map(t => /*#__PURE__*/_jsxDEV("button", {
-            type: "button",
-            className: `btn btn-sm ${p.termKey === t.key || !p.termKey && t.key === '1yr' ? 'btn-primary' : 'btn-outline'}`,
-            onClick: () => set({
-              termKey: t.key
-            }),
-            children: t.label
-          }, t.key, false))
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            fontSize: 12,
-            color: 'var(--ink-3)',
-            marginTop: 6
-          },
-          children: term.key === 'cash' ? `Due in full: ${fmt(p.price)}` : `${fmt(monthly)}/mo for ${term.months} months (total ${fmt(total)}, includes ${Math.round(term.surcharge * 100)}% surcharge)`
-        }, void 0, false)]
-      }, void 0, true)]
-    }, void 0, true)]
-  }, void 0, true);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Plot / plan"), /*#__PURE__*/React.createElement("select", {
+    value: p.tierId,
+    onChange: e => e.target.value ? pickTier(e.target.value) : onChange(null)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "No plan yet — just a lead"), BASE_TIERS.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t.id,
+    value: t.id
+  }, t.name, " — ", fmt(t.price))))), p.tierId && /*#__PURE__*/React.createElement(React.Fragment, null, p.imageUrl && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: p.imageUrl,
+    alt: p.tierName,
+    style: {
+      width: '100%',
+      maxHeight: 160,
+      objectFit: 'cover',
+      borderRadius: 8
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Spot cash price (₱)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: p.price,
+    onChange: e => set({
+      price: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Start date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: p.startDate,
+    onChange: e => set({
+      startDate: e.target.value
+    })
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Payment term — no down payment on any plan"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap'
+    }
+  }, PLAN_TERMS.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.key,
+    type: "button",
+    className: `btn btn-sm ${p.termKey === t.key || !p.termKey && t.key === '1yr' ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => set({
+      termKey: t.key
+    })
+  }, t.label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      marginTop: 6
+    }
+  }, term.key === 'cash' ? `Due in full: ${fmt(p.price)}` : `${fmt(monthly)}/mo for ${term.months} months (total ${fmt(total)}, includes ${Math.round(term.surcharge * 100)}% surcharge)`))));
 }
 function buildPlanPayload(p) {
   if (!p || !p.tierId) return null;
@@ -986,151 +779,98 @@ function AddCustomerModal({
       setBusy(false);
     }
   };
-  return /*#__PURE__*/_jsxDEV("div", {
+  return /*#__PURE__*/React.createElement("div", {
     className: "modal-bg",
-    onClick: e => e.target === e.currentTarget && onClose(),
-    children: /*#__PURE__*/_jsxDEV("div", {
-      className: "modal wide",
-      children: [/*#__PURE__*/_jsxDEV("h3", {
-        children: "Add Customer"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("form", {
-        onSubmit: save,
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          className: "modal-scroll",
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            style: {
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 12
-            },
-            children: [/*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "First name"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-                required: true,
-                value: form.firstName,
-                onChange: set('firstName'),
-                placeholder: "Maria"
-              }, void 0, false)]
-            }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Last name"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-                required: true,
-                value: form.lastName,
-                onChange: set('lastName'),
-                placeholder: "Santos"
-              }, void 0, false)]
-            }, void 0, true)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            className: "field",
-            children: [/*#__PURE__*/_jsxDEV("label", {
-              children: "Email"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-              type: "email",
-              required: true,
-              value: form.email,
-              onChange: set('email'),
-              placeholder: "maria@example.com"
-            }, void 0, false)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            className: "field",
-            children: [/*#__PURE__*/_jsxDEV("label", {
-              children: "Phone"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-              value: form.phone,
-              onChange: set('phone'),
-              placeholder: "+63 917 ..."
-            }, void 0, false)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 12
-            },
-            children: [/*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Location"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("select", {
-                value: form.preferredLocation,
-                onChange: set('preferredLocation'),
-                children: [/*#__PURE__*/_jsxDEV("option", {
-                  children: "Either park"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  children: "Aborlan"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  children: "Roxas"
-                }, void 0, false)]
-              }, void 0, true)]
-            }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Status"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("select", {
-                value: form.status,
-                onChange: set('status'),
-                children: [/*#__PURE__*/_jsxDEV("option", {
-                  value: "lead",
-                  children: "Lead"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  value: "active",
-                  children: "Active"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  value: "converted",
-                  children: "Converted"
-                }, void 0, false)]
-              }, void 0, true)]
-            }, void 0, true)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            className: "field",
-            children: [/*#__PURE__*/_jsxDEV("label", {
-              children: "Interest"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("select", {
-              value: form.interest,
-              onChange: set('interest'),
-              children: [/*#__PURE__*/_jsxDEV("option", {
-                children: "Pre-need (planning ahead)"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                children: "At-need (immediate)"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                children: "Investment / resale"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                children: "Just exploring"
-              }, void 0, false)]
-            }, void 0, true)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("hr", {
-            style: {
-              border: 'none',
-              borderTop: '1px solid var(--border)',
-              margin: '18px 0'
-            }
-          }, void 0, false), /*#__PURE__*/_jsxDEV(PlanFields, {
-            plan: plan,
-            onChange: setPlan
-          }, void 0, false)]
-        }, void 0, true), err && /*#__PURE__*/_jsxDEV("p", {
-          className: "err-msg",
-          children: err
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          className: "modal-actions",
-          children: [/*#__PURE__*/_jsxDEV("button", {
-            type: "button",
-            className: "btn btn-outline",
-            onClick: onClose,
-            children: "Cancel"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-            type: "submit",
-            className: "btn btn-primary",
-            disabled: busy,
-            children: busy ? 'Saving…' : 'Save customer'
-          }, void 0, false)]
-        }, void 0, true)]
-      }, void 0, true)]
-    }, void 0, true)
-  }, void 0, false);
+    onClick: e => e.target === e.currentTarget && onClose()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal wide"
+  }, /*#__PURE__*/React.createElement("h3", null, "Add Customer"), /*#__PURE__*/React.createElement("form", {
+    onSubmit: save
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-scroll"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "First name"), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    value: form.firstName,
+    onChange: set('firstName'),
+    placeholder: "Maria"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Last name"), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    value: form.lastName,
+    onChange: set('lastName'),
+    placeholder: "Santos"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    required: true,
+    value: form.email,
+    onChange: set('email'),
+    placeholder: "maria@example.com"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Phone"), /*#__PURE__*/React.createElement("input", {
+    value: form.phone,
+    onChange: set('phone'),
+    placeholder: "+63 917 ..."
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Location"), /*#__PURE__*/React.createElement("select", {
+    value: form.preferredLocation,
+    onChange: set('preferredLocation')
+  }, /*#__PURE__*/React.createElement("option", null, "Either park"), /*#__PURE__*/React.createElement("option", null, "Aborlan"), /*#__PURE__*/React.createElement("option", null, "Roxas"))), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Status"), /*#__PURE__*/React.createElement("select", {
+    value: form.status,
+    onChange: set('status')
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "lead"
+  }, "Lead"), /*#__PURE__*/React.createElement("option", {
+    value: "active"
+  }, "Active"), /*#__PURE__*/React.createElement("option", {
+    value: "converted"
+  }, "Converted")))), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Interest"), /*#__PURE__*/React.createElement("select", {
+    value: form.interest,
+    onChange: set('interest')
+  }, /*#__PURE__*/React.createElement("option", null, "Pre-need (planning ahead)"), /*#__PURE__*/React.createElement("option", null, "At-need (immediate)"), /*#__PURE__*/React.createElement("option", null, "Investment / resale"), /*#__PURE__*/React.createElement("option", null, "Just exploring"))), /*#__PURE__*/React.createElement("hr", {
+    style: {
+      border: 'none',
+      borderTop: '1px solid var(--border)',
+      margin: '18px 0'
+    }
+  }), /*#__PURE__*/React.createElement(PlanFields, {
+    plan: plan,
+    onChange: setPlan
+  })), err && /*#__PURE__*/React.createElement("p", {
+    className: "err-msg"
+  }, err), /*#__PURE__*/React.createElement("div", {
+    className: "modal-actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn-outline",
+    onClick: onClose
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    className: "btn btn-primary",
+    disabled: busy
+  }, busy ? 'Saving…' : 'Save customer')))));
 }
 
 // ── Charts (Chart.js) ────────────────────────────────────────────────────
@@ -1203,9 +943,9 @@ function InquiriesBarChart({
       }
     }
   });
-  return /*#__PURE__*/_jsxDEV("canvas", {
+  return /*#__PURE__*/React.createElement("canvas", {
     ref: ref
-  }, void 0, false);
+  });
 }
 function PipelineDonutChart({
   customers
@@ -1234,22 +974,19 @@ function PipelineDonutChart({
       }
     }
   });
-  return /*#__PURE__*/_jsxDEV(_Fragment, {
-    children: [/*#__PURE__*/_jsxDEV("canvas", {
-      ref: ref
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "donut-legend",
-      children: STAGES.map((s, i) => /*#__PURE__*/_jsxDEV("div", {
-        className: "donut-legend-item",
-        children: [/*#__PURE__*/_jsxDEV("span", {
-          className: "donut-dot",
-          style: {
-            background: colors[i]
-          }
-        }, void 0, false), s.label, " — ", counts[i]]
-      }, s.id, true))
-    }, void 0, false)]
-  }, void 0, true);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("canvas", {
+    ref: ref
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "donut-legend"
+  }, STAGES.map((s, i) => /*#__PURE__*/React.createElement("div", {
+    key: s.id,
+    className: "donut-legend-item"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "donut-dot",
+    style: {
+      background: colors[i]
+    }
+  }), s.label, " — ", counts[i]))));
 }
 
 // ── Pipeline: drag-and-drop CRM board over the same customers collection ───
@@ -1279,14 +1016,11 @@ function Pipeline({
       return () => clearTimeout(t);
     }
   }, [toast]);
-  if (!rows) return /*#__PURE__*/_jsxDEV("div", {
-    className: "loading",
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "spinner"
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      children: "Loading pipeline…"
-    }, void 0, false)]
-  }, void 0, true);
+  if (!rows) return /*#__PURE__*/React.createElement("div", {
+    className: "loading"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), /*#__PURE__*/React.createElement("div", null, "Loading pipeline…"));
   const byStage = Object.fromEntries(STAGES.map(s => [s.id, []]));
   for (const r of rows) byStage[normalizeStage(r.status)].push(r);
   const dueList = rows.filter(r => r.followUpAt && (isOverdue(r.followUpAt) || isDueToday(r.followUpAt)));
@@ -1299,181 +1033,151 @@ function Pipeline({
     await changeStage(id, stageId, currentUser && currentUser.email);
     setToast('Moved to ' + STAGE_LABEL[stageId]);
   };
-  return /*#__PURE__*/_jsxDEV("div", {
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "section-hd",
-      children: /*#__PURE__*/_jsxDEV("h2", {
-        children: ["Pipeline ", /*#__PURE__*/_jsxDEV("span", {
-          style: {
-            color: 'var(--ink-3)',
-            fontWeight: 400,
-            fontSize: 13
-          },
-          children: ["(", rows.length, ")"]
-        }, void 0, true)]
-      }, void 0, true)
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "charts-row",
-      children: [/*#__PURE__*/_jsxDEV("div", {
-        className: "chart-card",
-        children: [/*#__PURE__*/_jsxDEV("h3", {
-          children: "Inquiries — last 6 months"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            height: 220
-          },
-          children: /*#__PURE__*/_jsxDEV(InquiriesBarChart, {
-            inquiries: inquiries
-          }, void 0, false)
-        }, void 0, false)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "chart-card",
-        children: [/*#__PURE__*/_jsxDEV("h3", {
-          children: "Pipeline breakdown"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            height: 150
-          },
-          children: /*#__PURE__*/_jsxDEV(PipelineDonutChart, {
-            customers: rows
-          }, void 0, false)
-        }, void 0, false)]
-      }, void 0, true)]
-    }, void 0, true), dueList.length > 0 && /*#__PURE__*/_jsxDEV("div", {
-      style: {
-        background: '#fff8e1',
-        border: '1px solid #ffe082',
-        borderRadius: 8,
-        padding: '10px 14px',
-        marginBottom: 16,
-        fontSize: 13
-      },
-      children: [/*#__PURE__*/_jsxDEV("strong", {
-        children: ["⏰ ", dueList.length, " follow-up", dueList.length > 1 ? 's' : '', " due:"]
-      }, void 0, true), ' ', dueList.map((r, i) => /*#__PURE__*/_jsxDEV("span", {
-        children: [/*#__PURE__*/_jsxDEV("a", {
-          href: "#",
-          onClick: e => {
-            e.preventDefault();
-            setOpenId(r._id);
-          },
-          style: {
-            color: isOverdue(r.followUpAt) ? '#c0392b' : '#8a6d3b',
-            fontWeight: 600
-          },
-          children: r.fullName || r.firstName
-        }, void 0, false), i < dueList.length - 1 ? ', ' : '']
-      }, r._id, true))]
-    }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-      className: "kanban-board",
-      children: STAGES.map(stage => /*#__PURE__*/_jsxDEV("div", {
-        className: "kanban-col",
-        onDragOver: e => {
-          e.preventDefault();
-          setDragOverStage(stage.id);
-        },
-        onDragLeave: () => setDragOverStage(null),
-        onDrop: e => drop(stage.id, e),
-        style: {
-          background: dragOverStage === stage.id ? '#eef6f0' : 'var(--bg-2,#f4f1e8)',
-          borderRadius: 10,
-          padding: 10,
-          minHeight: 400,
-          border: dragOverStage === stage.id ? '2px dashed var(--green,#3f7a5c)' : '2px dashed transparent'
-        },
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          style: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 10,
-            padding: '0 4px'
-          },
-          children: [/*#__PURE__*/_jsxDEV("strong", {
-            style: {
-              fontSize: 13
-            },
-            children: stage.label
-          }, void 0, false), /*#__PURE__*/_jsxDEV("span", {
-            style: {
-              fontSize: 11,
-              color: 'var(--ink-3)',
-              background: '#fff',
-              borderRadius: 10,
-              padding: '1px 8px'
-            },
-            children: byStage[stage.id].length
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8
-          },
-          children: [byStage[stage.id].map(c => /*#__PURE__*/_jsxDEV("div", {
-            draggable: true,
-            onDragStart: e => e.dataTransfer.setData('text/plain', c._id),
-            onClick: () => setOpenId(c._id),
-            style: {
-              background: '#fff',
-              borderRadius: 8,
-              padding: '10px 12px',
-              cursor: 'grab',
-              boxShadow: '0 1px 2px rgba(0,0,0,.06)',
-              fontSize: 13
-            },
-            children: [/*#__PURE__*/_jsxDEV("div", {
-              className: "kanban-card-name",
-              style: {
-                fontWeight: 700,
-                marginBottom: 2
-              },
-              children: c.fullName || `${c.firstName} ${c.lastName}`
-            }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-              className: "kanban-card-name",
-              style: {
-                color: 'var(--ink-3)',
-                fontSize: 11.5
-              },
-              children: c.interest || '—'
-            }, void 0, false), c.followUpAt && /*#__PURE__*/_jsxDEV("div", {
-              style: {
-                marginTop: 6,
-                fontSize: 11,
-                fontWeight: 600,
-                color: isOverdue(c.followUpAt) ? '#c0392b' : isDueToday(c.followUpAt) ? '#b7791f' : 'var(--ink-3)'
-              },
-              children: [isOverdue(c.followUpAt) ? '🔴' : isDueToday(c.followUpAt) ? '🟡' : '📅', " ", c.followUpAt]
-            }, void 0, true), totalPaid(c) > 0 && /*#__PURE__*/_jsxDEV("div", {
-              style: {
-                marginTop: 4,
-                fontSize: 11.5,
-                color: 'var(--green,#3f7a5c)',
-                fontWeight: 700
-              },
-              children: fmt(totalPaid(c))
-            }, void 0, false)]
-          }, c._id, true)), byStage[stage.id].length === 0 && /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              fontSize: 11.5,
-              color: 'var(--ink-3)',
-              textAlign: 'center',
-              padding: '16px 4px'
-            },
-            children: "Drop a card here"
-          }, void 0, false)]
-        }, void 0, true)]
-      }, stage.id, true))
-    }, void 0, false), openCustomer && /*#__PURE__*/_jsxDEV(CustomerDetailModal, {
-      customer: openCustomer,
-      currentUser: currentUser,
-      onClose: () => setOpenId(null),
-      onToast: setToast
-    }, void 0, false), toast && /*#__PURE__*/_jsxDEV("div", {
-      className: "toast",
-      children: toast
-    }, void 0, false)]
-  }, void 0, true);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Pipeline ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-3)',
+      fontWeight: 400,
+      fontSize: 13
+    }
+  }, "(", rows.length, ")"))), /*#__PURE__*/React.createElement("div", {
+    className: "charts-row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "chart-card"
+  }, /*#__PURE__*/React.createElement("h3", null, "Inquiries — last 6 months"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 220
+    }
+  }, /*#__PURE__*/React.createElement(InquiriesBarChart, {
+    inquiries: inquiries
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "chart-card"
+  }, /*#__PURE__*/React.createElement("h3", null, "Pipeline breakdown"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 150
+    }
+  }, /*#__PURE__*/React.createElement(PipelineDonutChart, {
+    customers: rows
+  })))), dueList.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#fff8e1',
+      border: '1px solid #ffe082',
+      borderRadius: 8,
+      padding: '10px 14px',
+      marginBottom: 16,
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "⏰ ", dueList.length, " follow-up", dueList.length > 1 ? 's' : '', " due:"), ' ', dueList.map((r, i) => /*#__PURE__*/React.createElement("span", {
+    key: r._id
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "#",
+    onClick: e => {
+      e.preventDefault();
+      setOpenId(r._id);
+    },
+    style: {
+      color: isOverdue(r.followUpAt) ? '#c0392b' : '#8a6d3b',
+      fontWeight: 600
+    }
+  }, r.fullName || r.firstName), i < dueList.length - 1 ? ', ' : ''))), /*#__PURE__*/React.createElement("div", {
+    className: "kanban-board"
+  }, STAGES.map(stage => /*#__PURE__*/React.createElement("div", {
+    key: stage.id,
+    className: "kanban-col",
+    onDragOver: e => {
+      e.preventDefault();
+      setDragOverStage(stage.id);
+    },
+    onDragLeave: () => setDragOverStage(null),
+    onDrop: e => drop(stage.id, e),
+    style: {
+      background: dragOverStage === stage.id ? '#eef6f0' : 'var(--bg-2,#f4f1e8)',
+      borderRadius: 10,
+      padding: 10,
+      minHeight: 400,
+      border: dragOverStage === stage.id ? '2px dashed var(--green,#3f7a5c)' : '2px dashed transparent'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+      padding: '0 4px'
+    }
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      fontSize: 13
+    }
+  }, stage.label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      background: '#fff',
+      borderRadius: 10,
+      padding: '1px 8px'
+    }
+  }, byStage[stage.id].length)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
+  }, byStage[stage.id].map(c => /*#__PURE__*/React.createElement("div", {
+    key: c._id,
+    draggable: true,
+    onDragStart: e => e.dataTransfer.setData('text/plain', c._id),
+    onClick: () => setOpenId(c._id),
+    style: {
+      background: '#fff',
+      borderRadius: 8,
+      padding: '10px 12px',
+      cursor: 'grab',
+      boxShadow: '0 1px 2px rgba(0,0,0,.06)',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kanban-card-name",
+    style: {
+      fontWeight: 700,
+      marginBottom: 2
+    }
+  }, c.fullName || `${c.firstName} ${c.lastName}`), /*#__PURE__*/React.createElement("div", {
+    className: "kanban-card-name",
+    style: {
+      color: 'var(--ink-3)',
+      fontSize: 11.5
+    }
+  }, c.interest || '—'), c.followUpAt && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 11,
+      fontWeight: 600,
+      color: isOverdue(c.followUpAt) ? '#c0392b' : isDueToday(c.followUpAt) ? '#b7791f' : 'var(--ink-3)'
+    }
+  }, isOverdue(c.followUpAt) ? '🔴' : isDueToday(c.followUpAt) ? '🟡' : '📅', " ", c.followUpAt), totalPaid(c) > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 11.5,
+      color: 'var(--green,#3f7a5c)',
+      fontWeight: 700
+    }
+  }, fmt(totalPaid(c))))), byStage[stage.id].length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: 'var(--ink-3)',
+      textAlign: 'center',
+      padding: '16px 4px'
+    }
+  }, "Drop a card here"))))), openCustomer && /*#__PURE__*/React.createElement(CustomerDetailModal, {
+    customer: openCustomer,
+    currentUser: currentUser,
+    onClose: () => setOpenId(null),
+    onToast: setToast
+  }), toast && /*#__PURE__*/React.createElement("div", {
+    className: "toast"
+  }, toast));
 }
 
 // ── Customer detail: plan summary + payment history + log a payment ────────
@@ -1684,638 +1388,394 @@ function CustomerDetailModal({
       setBusy(false);
     }
   };
-  return /*#__PURE__*/_jsxDEV("div", {
+  return /*#__PURE__*/React.createElement("div", {
     className: "modal-bg",
-    onClick: e => e.target === e.currentTarget && onClose(),
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "modal wide",
-      children: [/*#__PURE__*/_jsxDEV("h3", {
-        children: [customer.fullName || `${customer.firstName} ${customer.lastName}`, /*#__PURE__*/_jsxDEV("span", {
-          style: {
-            fontWeight: 400,
-            fontSize: 13,
-            color: 'var(--ink-3)',
-            marginLeft: 8
-          },
-          children: customer.email
-        }, void 0, false)]
-      }, void 0, true), customer.plan ? /*#__PURE__*/_jsxDEV("div", {
-        className: "plan-summary",
-        style: customer.plan.imageUrl ? {
-          gridTemplateColumns: '96px 1fr 1fr 1fr'
-        } : undefined,
-        children: [customer.plan.imageUrl && /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            gridRow: '1 / 3'
-          },
-          children: /*#__PURE__*/_jsxDEV("img", {
-            src: customer.plan.imageUrl,
-            alt: customer.plan.tierName,
-            style: {
-              width: 96,
-              height: 96,
-              objectFit: 'cover',
-              borderRadius: 8
-            }
-          }, void 0, false)
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "lbl",
-            children: "Plan"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "val",
-            style: {
-              fontSize: 14
-            },
-            children: customer.plan.tierName
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "lbl",
-            children: "Monthly"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "val",
-            style: {
-              fontSize: 14
-            },
-            children: [fmt(customer.plan.monthlyAmount), "/mo"]
-          }, void 0, true)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "lbl",
-            children: "Balance"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "val",
-            style: {
-              fontSize: 14
-            },
-            children: fmt(bal.balance)
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            gridColumn: customer.plan.imageUrl ? '2 / -1' : '1 / -1'
-          },
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "progress-track",
-            children: /*#__PURE__*/_jsxDEV("div", {
-              className: "progress-fill",
-              style: {
-                width: `${bal.pct}%`
-              }
-            }, void 0, false)
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              fontSize: 12,
-              color: 'var(--ink-3)',
-              marginTop: 4
-            },
-            children: [fmt(bal.paid), " paid of ", fmt(bal.price), " (", Math.round(bal.pct), "%)"]
-          }, void 0, true)]
-        }, void 0, true)]
-      }, void 0, true) : /*#__PURE__*/_jsxDEV("div", {
-        className: "plan-summary",
-        style: {
-          gridTemplateColumns: '1fr'
-        },
-        children: /*#__PURE__*/_jsxDEV("div", {
-          style: {
-            color: 'var(--ink-3)'
-          },
-          children: "No plan selected yet for this customer."
-        }, void 0, false)
-      }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-        className: "plan-summary",
-        style: {
-          gridTemplateColumns: '1fr auto',
-          alignItems: 'center',
-          marginTop: customer.plan ? 10 : 0
-        },
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "lbl",
-            children: "Portal access"
-          }, void 0, false), customer.authUid ? /*#__PURE__*/_jsxDEV("div", {
-            className: "val",
-            style: {
-              fontSize: 13,
-              color: 'var(--green)'
-            },
-            children: ["✅ Active — customer can log in with ", customer.email, " to view their balance"]
-          }, void 0, true) : /*#__PURE__*/_jsxDEV("div", {
-            className: "val",
-            style: {
-              fontSize: 13,
-              color: 'var(--ink-3)'
-            },
-            children: "No login created yet"
-          }, void 0, false), portalError && /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              fontSize: 12,
-              color: 'var(--red)',
-              marginTop: 4
-            },
-            children: portalError
-          }, void 0, false), !customer.authUid && /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              marginTop: 6
-            },
-            children: [/*#__PURE__*/_jsxDEV("button", {
-              type: "button",
-              onClick: () => setShowManualLink(v => !v),
-              style: {
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                fontSize: 12,
-                color: 'var(--ink-3)',
-                textDecoration: 'underline',
-                cursor: 'pointer'
-              },
-              children: showManualLink ? 'Hide manual link' : 'Already have a Firebase Auth account for this email? Link it manually'
-            }, void 0, false), showManualLink && /*#__PURE__*/_jsxDEV("div", {
-              style: {
-                marginTop: 8,
-                display: 'flex',
-                gap: 6,
-                alignItems: 'flex-start',
-                flexWrap: 'wrap'
-              },
-              children: [/*#__PURE__*/_jsxDEV("div", {
-                children: [/*#__PURE__*/_jsxDEV("input", {
-                  type: "text",
-                  value: manualUid,
-                  onChange: e => setManualUid(e.target.value),
-                  placeholder: "Paste Firebase Auth UID",
-                  style: {
-                    fontSize: 12,
-                    padding: '6px 8px',
-                    border: '1px solid var(--line)',
-                    borderRadius: 6,
-                    minWidth: 220
-                  }
-                }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    fontSize: 11,
-                    color: 'var(--ink-3)',
-                    marginTop: 4,
-                    maxWidth: 260
-                  },
-                  children: ["Find it in Firebase console → Authentication → Users tab, search by ", customer.email || 'this customer\'s email', ", copy the User UID column."]
-                }, void 0, true)]
-              }, void 0, true), /*#__PURE__*/_jsxDEV("button", {
-                className: "btn btn-outline btn-sm",
-                disabled: portalBusy,
-                onClick: handleManualLink,
-                children: portalBusy ? 'Linking…' : 'Link account'
-              }, void 0, false)]
-            }, void 0, true)]
-          }, void 0, true)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: customer.authUid ? /*#__PURE__*/_jsxDEV("button", {
-            className: "btn btn-outline btn-sm",
-            disabled: portalBusy,
-            onClick: resendPortalReset,
-            children: portalBusy ? 'Sending…' : 'Resend password-setup email'
-          }, void 0, false) : /*#__PURE__*/_jsxDEV("button", {
-            className: "btn btn-primary btn-sm",
-            disabled: portalBusy,
-            onClick: handleCreatePortal,
-            children: portalBusy ? 'Creating…' : 'Create portal login'
-          }, void 0, false)
-        }, void 0, false)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "detail-tabs",
-        children: [/*#__PURE__*/_jsxDEV("button", {
-          className: tab === 'payments' ? 'on' : '',
-          onClick: () => setTab('payments'),
-          children: "Payments"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-          className: tab === 'plan' ? 'on' : '',
-          onClick: () => {
-            setTab('plan');
-            setEditingPlan(true);
-          },
-          children: customer.plan ? 'Edit plan' : 'Set a plan'
-        }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-          className: tab === 'activity' ? 'on' : '',
-          onClick: () => setTab('activity'),
-          children: ["Activity", customer.followUpAt && isOverdue(customer.followUpAt) ? ' 🔴' : '']
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "modal-scroll",
-        children: [tab === 'payments' && /*#__PURE__*/_jsxDEV(_Fragment, {
-          children: [customer.plan ? /*#__PURE__*/_jsxDEV("form", {
-            onSubmit: logPayment,
-            style: {
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr auto',
-              gap: 8,
-              alignItems: 'end',
-              marginBottom: 6
-            },
-            children: [/*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              style: {
-                margin: 0
-              },
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Date"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-                type: "date",
-                value: pay.date,
-                onChange: e => setPay(p => ({
-                  ...p,
-                  date: e.target.value
-                }))
-              }, void 0, false)]
-            }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              style: {
-                margin: 0
-              },
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Amount (₱)"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-                type: "number",
-                required: true,
-                value: pay.amount,
-                onChange: e => setPay(p => ({
-                  ...p,
-                  amount: e.target.value
-                })),
-                placeholder: "3188"
-              }, void 0, false)]
-            }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              style: {
-                margin: 0
-              },
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Method"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("select", {
-                value: pay.method,
-                onChange: e => setPay(p => ({
-                  ...p,
-                  method: e.target.value
-                })),
-                children: [/*#__PURE__*/_jsxDEV("option", {
-                  children: "Cash"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  children: "Bank transfer"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  children: "GCash"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-                  children: "Check"
-                }, void 0, false)]
-              }, void 0, true)]
-            }, void 0, true), /*#__PURE__*/_jsxDEV("button", {
-              className: "btn btn-primary btn-sm",
-              disabled: busy,
-              children: busy ? 'Logging…' : '+ Log payment'
-            }, void 0, false)]
-          }, void 0, true) : /*#__PURE__*/_jsxDEV("div", {
-            className: "empty",
-            children: "Set a plan first, then payments can be logged against it."
-          }, void 0, false), payments.length > 0 && /*#__PURE__*/_jsxDEV("table", {
-            className: "pay-table",
-            children: [/*#__PURE__*/_jsxDEV("thead", {
-              children: /*#__PURE__*/_jsxDEV("tr", {
-                children: [/*#__PURE__*/_jsxDEV("th", {
-                  children: "Date"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-                  children: "Amount"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-                  children: "Method"
-                }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-                  children: "Note"
-                }, void 0, false)]
-              }, void 0, true)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("tbody", {
-              children: payments.map((p, i) => /*#__PURE__*/_jsxDEV("tr", {
-                children: [/*#__PURE__*/_jsxDEV("td", {
-                  children: p.date
-                }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                  children: fmt(p.amount)
-                }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                  children: p.method
-                }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                  children: p.note
-                }, void 0, false)]
-              }, i, true))
-            }, void 0, false)]
-          }, void 0, true)]
-        }, void 0, true), tab === 'plan' && /*#__PURE__*/_jsxDEV(_Fragment, {
-          children: [/*#__PURE__*/_jsxDEV(PlanFields, {
-            plan: plan,
-            onChange: setPlan
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "modal-actions",
-            children: /*#__PURE__*/_jsxDEV("button", {
-              className: "btn btn-primary btn-sm",
-              disabled: savingPlan,
-              onClick: savePlan,
-              children: savingPlan ? 'Saving…' : 'Save plan'
-            }, void 0, false)
-          }, void 0, false)]
-        }, void 0, true), tab === 'activity' && /*#__PURE__*/_jsxDEV(_Fragment, {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            style: {
-              display: 'grid',
-              gridTemplateColumns: '1fr 2fr auto',
-              gap: 8,
-              alignItems: 'end',
-              padding: 12,
-              background: 'var(--card-2, #f7f4ec)',
-              borderRadius: 8,
-              marginBottom: 16
-            },
-            children: [/*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              style: {
-                margin: 0
-              },
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Follow-up date"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-                type: "date",
-                value: followUp.date,
-                onChange: e => setFollowUp(f => ({
-                  ...f,
-                  date: e.target.value
-                }))
-              }, void 0, false)]
-            }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-              className: "field",
-              style: {
-                margin: 0
-              },
-              children: [/*#__PURE__*/_jsxDEV("label", {
-                children: "Reminder note"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-                type: "text",
-                placeholder: "e.g. Call about site visit",
-                value: followUp.note,
-                onChange: e => setFollowUp(f => ({
-                  ...f,
-                  note: e.target.value
-                }))
-              }, void 0, false)]
-            }, void 0, true), /*#__PURE__*/_jsxDEV("button", {
-              className: "btn btn-primary btn-sm",
-              disabled: savingFollowUp,
-              onClick: saveFollowUp,
-              children: savingFollowUp ? 'Saving…' : 'Save'
-            }, void 0, false), customer.followUpAt && /*#__PURE__*/_jsxDEV("div", {
-              style: {
-                gridColumn: '1 / -1',
-                fontSize: 12,
-                color: isOverdue(customer.followUpAt) ? '#c0392b' : isDueToday(customer.followUpAt) ? '#b7791f' : 'var(--ink-3)'
-              },
-              children: [isOverdue(customer.followUpAt) ? '🔴 Overdue' : isDueToday(customer.followUpAt) ? '🟡 Due today' : '📅 Upcoming', ' — ', customer.followUpAt, customer.followUpNote ? `: ${customer.followUpNote}` : '']
-            }, void 0, true)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              display: 'flex',
-              gap: 8,
-              marginBottom: 16
-            },
-            children: [/*#__PURE__*/_jsxDEV("input", {
-              type: "text",
-              placeholder: "Add a note about this customer…",
-              style: {
-                flex: 1
-              },
-              value: noteText,
-              onChange: e => setNoteText(e.target.value),
-              onKeyDown: e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addNote();
-                }
-              }
-            }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-              className: "btn btn-primary btn-sm",
-              disabled: addingNote || !noteText.trim(),
-              onClick: addNote,
-              children: addingNote ? 'Adding…' : '+ Add note'
-            }, void 0, false)]
-          }, void 0, true), activity.length === 0 ? /*#__PURE__*/_jsxDEV("div", {
-            className: "empty",
-            children: "No activity yet — notes, stage changes, and payments will show up here."
-          }, void 0, false) : /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10
-            },
-            children: activity.map((a, i) => /*#__PURE__*/_jsxDEV("div", {
-              style: {
-                display: 'flex',
-                gap: 10,
-                fontSize: 13,
-                paddingBottom: 10,
-                borderBottom: i < activity.length - 1 ? '1px solid var(--border,#eee)' : 'none'
-              },
-              children: [/*#__PURE__*/_jsxDEV("div", {
-                style: {
-                  flexShrink: 0,
-                  width: 20,
-                  textAlign: 'center'
-                },
-                children: a.kind === 'payment' ? '💵' : a.kind === 'system' ? '↻' : '📝'
-              }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                style: {
-                  flex: 1
-                },
-                children: [/*#__PURE__*/_jsxDEV("div", {
-                  children: a.text
-                }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    color: 'var(--ink-3)',
-                    fontSize: 11,
-                    marginTop: 2
-                  },
-                  children: [a.author ? `${a.author} · ` : '', a.at ? new Date(a.at).toLocaleString('en-PH') : '']
-                }, void 0, true)]
-              }, void 0, true)]
-            }, i, true))
-          }, void 0, false)]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "modal-actions",
-        children: [/*#__PURE__*/_jsxDEV("button", {
-          type: "button",
-          className: "btn btn-outline",
-          onClick: () => window.print(),
-          children: "🖨 Print record"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-          type: "button",
-          className: "btn btn-outline",
-          onClick: onClose,
-          children: "Close"
-        }, void 0, false)]
-      }, void 0, true)]
-    }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-      className: "print-sheet",
-      children: [/*#__PURE__*/_jsxDEV("div", {
-        className: "letterhead",
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "brand",
-            children: "Golden Harmonic Memorial Park"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "sub",
-            children: "Customer Record — Internal Records"
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "sub",
-          children: ["Printed: ", new Date().toLocaleString('en-PH')]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("h2", {
-        children: "Customer Information"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-        className: "meta-grid",
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Name: "
-          }, void 0, false), /*#__PURE__*/_jsxDEV("strong", {
-            children: customer.fullName || `${customer.firstName} ${customer.lastName}`
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Pipeline stage: "
-          }, void 0, false), /*#__PURE__*/_jsxDEV("strong", {
-            children: STAGE_LABEL[normalizeStage(customer.status)]
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Email: "
-          }, void 0, false), customer.email || '—']
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Phone: "
-          }, void 0, false), customer.phone || '—']
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Preferred location: "
-          }, void 0, false), customer.preferredLocation || '—']
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Interest: "
-          }, void 0, false), customer.interest || '—']
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Lead source: "
-          }, void 0, false), customer.source || '—']
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            children: "Date added: "
-          }, void 0, false), customer.createdAt && customer.createdAt.toDate ? customer.createdAt.toDate().toLocaleDateString('en-PH') : customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('en-PH') : '—']
-        }, void 0, true)]
-      }, void 0, true), customer.plan && /*#__PURE__*/_jsxDEV(_Fragment, {
-        children: [/*#__PURE__*/_jsxDEV("h2", {
-          children: "Plan Details"
-        }, void 0, false), customer.plan.imageUrl && /*#__PURE__*/_jsxDEV("img", {
-          src: customer.plan.imageUrl,
-          alt: customer.plan.tierName,
-          style: {
-            width: '100%',
-            maxHeight: 220,
-            objectFit: 'cover',
-            borderRadius: 6,
-            marginBottom: 10
-          }
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          className: "meta-grid",
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Plan: "
-            }, void 0, false), /*#__PURE__*/_jsxDEV("strong", {
-              children: customer.plan.tierName
-            }, void 0, false)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Term: "
-            }, void 0, false), customer.plan.termLabel || '—']
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Plan price: "
-            }, void 0, false), fmt(customer.plan.price)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Monthly amount: "
-            }, void 0, false), fmt(customer.plan.monthlyAmount), "/mo"]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Total paid to date: "
-            }, void 0, false), fmt(bal.paid)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Remaining balance: "
-            }, void 0, false), fmt(bal.balance)]
-          }, void 0, true)]
-        }, void 0, true)]
-      }, void 0, true), payments.length > 0 && /*#__PURE__*/_jsxDEV(_Fragment, {
-        children: [/*#__PURE__*/_jsxDEV("h2", {
-          children: "Payment History"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("table", {
-          children: [/*#__PURE__*/_jsxDEV("thead", {
-            children: /*#__PURE__*/_jsxDEV("tr", {
-              children: [/*#__PURE__*/_jsxDEV("th", {
-                children: "Date"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-                children: "Amount"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-                children: "Method"
-              }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-                children: "Note"
-              }, void 0, false)]
-            }, void 0, true)
-          }, void 0, false), /*#__PURE__*/_jsxDEV("tbody", {
-            children: payments.map((p, i) => /*#__PURE__*/_jsxDEV("tr", {
-              children: [/*#__PURE__*/_jsxDEV("td", {
-                children: p.date
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: fmt(p.amount)
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: p.method
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: p.note || '—'
-              }, void 0, false)]
-            }, i, true))
-          }, void 0, false)]
-        }, void 0, true)]
-      }, void 0, true), customer.followUpAt && /*#__PURE__*/_jsxDEV(_Fragment, {
-        children: [/*#__PURE__*/_jsxDEV("h2", {
-          children: "Follow-up"
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          className: "meta-grid",
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Date: "
-            }, void 0, false), customer.followUpAt]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            children: [/*#__PURE__*/_jsxDEV("span", {
-              children: "Note: "
-            }, void 0, false), customer.followUpNote || '—']
-          }, void 0, true)]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("h2", {
-        children: "Activity & Notes"
-      }, void 0, false), activity.length === 0 ? /*#__PURE__*/_jsxDEV("div", {
-        className: "activity-item",
-        children: "No activity recorded."
-      }, void 0, false) : activity.map((a, i) => /*#__PURE__*/_jsxDEV("div", {
-        className: "activity-item",
-        children: [/*#__PURE__*/_jsxDEV("strong", {
-          children: a.at ? new Date(a.at).toLocaleString('en-PH') : '—'
-        }, void 0, false), " — ", a.text, a.author ? ` (${a.author})` : '']
-      }, i, true)), /*#__PURE__*/_jsxDEV("div", {
-        className: "footer-note",
-        children: "This record was generated from the Golden Harmonic Memorial Park CRM for internal filing purposes."
-      }, void 0, false)]
-    }, void 0, true)]
-  }, void 0, true);
+    onClick: e => e.target === e.currentTarget && onClose()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal wide"
+  }, /*#__PURE__*/React.createElement("h3", null, customer.fullName || `${customer.firstName} ${customer.lastName}`, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 400,
+      fontSize: 13,
+      color: 'var(--ink-3)',
+      marginLeft: 8
+    }
+  }, customer.email)), customer.plan ? /*#__PURE__*/React.createElement("div", {
+    className: "plan-summary",
+    style: customer.plan.imageUrl ? {
+      gridTemplateColumns: '96px 1fr 1fr 1fr'
+    } : undefined
+  }, customer.plan.imageUrl && /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridRow: '1 / 3'
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: customer.plan.imageUrl,
+    alt: customer.plan.tierName,
+    style: {
+      width: 96,
+      height: 96,
+      objectFit: 'cover',
+      borderRadius: 8
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "lbl"
+  }, "Plan"), /*#__PURE__*/React.createElement("div", {
+    className: "val",
+    style: {
+      fontSize: 14
+    }
+  }, customer.plan.tierName)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "lbl"
+  }, "Monthly"), /*#__PURE__*/React.createElement("div", {
+    className: "val",
+    style: {
+      fontSize: 14
+    }
+  }, fmt(customer.plan.monthlyAmount), "/mo")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "lbl"
+  }, "Balance"), /*#__PURE__*/React.createElement("div", {
+    className: "val",
+    style: {
+      fontSize: 14
+    }
+  }, fmt(bal.balance))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: customer.plan.imageUrl ? '2 / -1' : '1 / -1'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-track"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-fill",
+    style: {
+      width: `${bal.pct}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      marginTop: 4
+    }
+  }, fmt(bal.paid), " paid of ", fmt(bal.price), " (", Math.round(bal.pct), "%)"))) : /*#__PURE__*/React.createElement("div", {
+    className: "plan-summary",
+    style: {
+      gridTemplateColumns: '1fr'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--ink-3)'
+    }
+  }, "No plan selected yet for this customer.")), /*#__PURE__*/React.createElement("div", {
+    className: "plan-summary",
+    style: {
+      gridTemplateColumns: '1fr auto',
+      alignItems: 'center',
+      marginTop: customer.plan ? 10 : 0
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "lbl"
+  }, "Portal access"), customer.authUid ? /*#__PURE__*/React.createElement("div", {
+    className: "val",
+    style: {
+      fontSize: 13,
+      color: 'var(--green)'
+    }
+  }, "✅ Active — customer can log in with ", customer.email, " to view their balance") : /*#__PURE__*/React.createElement("div", {
+    className: "val",
+    style: {
+      fontSize: 13,
+      color: 'var(--ink-3)'
+    }
+  }, "No login created yet"), portalError && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--red)',
+      marginTop: 4
+    }
+  }, portalError), !customer.authUid && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setShowManualLink(v => !v),
+    style: {
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      textDecoration: 'underline',
+      cursor: 'pointer'
+    }
+  }, showManualLink ? 'Hide manual link' : 'Already have a Firebase Auth account for this email? Link it manually'), showManualLink && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      display: 'flex',
+      gap: 6,
+      alignItems: 'flex-start',
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: manualUid,
+    onChange: e => setManualUid(e.target.value),
+    placeholder: "Paste Firebase Auth UID",
+    style: {
+      fontSize: 12,
+      padding: '6px 8px',
+      border: '1px solid var(--line)',
+      borderRadius: 6,
+      minWidth: 220
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      marginTop: 4,
+      maxWidth: 260
+    }
+  }, "Find it in Firebase console → Authentication → Users tab, search by ", customer.email || 'this customer\'s email', ", copy the User UID column.")), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    disabled: portalBusy,
+    onClick: handleManualLink
+  }, portalBusy ? 'Linking…' : 'Link account')))), /*#__PURE__*/React.createElement("div", null, customer.authUid ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    disabled: portalBusy,
+    onClick: resendPortalReset
+  }, portalBusy ? 'Sending…' : 'Resend password-setup email') : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    disabled: portalBusy,
+    onClick: handleCreatePortal
+  }, portalBusy ? 'Creating…' : 'Create portal login'))), /*#__PURE__*/React.createElement("div", {
+    className: "detail-tabs"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: tab === 'payments' ? 'on' : '',
+    onClick: () => setTab('payments')
+  }, "Payments"), /*#__PURE__*/React.createElement("button", {
+    className: tab === 'plan' ? 'on' : '',
+    onClick: () => {
+      setTab('plan');
+      setEditingPlan(true);
+    }
+  }, customer.plan ? 'Edit plan' : 'Set a plan'), /*#__PURE__*/React.createElement("button", {
+    className: tab === 'activity' ? 'on' : '',
+    onClick: () => setTab('activity')
+  }, "Activity", customer.followUpAt && isOverdue(customer.followUpAt) ? ' 🔴' : '')), /*#__PURE__*/React.createElement("div", {
+    className: "modal-scroll"
+  }, tab === 'payments' && /*#__PURE__*/React.createElement(React.Fragment, null, customer.plan ? /*#__PURE__*/React.createElement("form", {
+    onSubmit: logPayment,
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr auto',
+      gap: 8,
+      alignItems: 'end',
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: pay.date,
+    onChange: e => setPay(p => ({
+      ...p,
+      date: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Amount (₱)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    required: true,
+    value: pay.amount,
+    onChange: e => setPay(p => ({
+      ...p,
+      amount: e.target.value
+    })),
+    placeholder: "3188"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Method"), /*#__PURE__*/React.createElement("select", {
+    value: pay.method,
+    onChange: e => setPay(p => ({
+      ...p,
+      method: e.target.value
+    }))
+  }, /*#__PURE__*/React.createElement("option", null, "Cash"), /*#__PURE__*/React.createElement("option", null, "Bank transfer"), /*#__PURE__*/React.createElement("option", null, "GCash"), /*#__PURE__*/React.createElement("option", null, "Check"))), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    disabled: busy
+  }, busy ? 'Logging…' : '+ Log payment')) : /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "Set a plan first, then payments can be logged against it."), payments.length > 0 && /*#__PURE__*/React.createElement("table", {
+    className: "pay-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Amount"), /*#__PURE__*/React.createElement("th", null, "Method"), /*#__PURE__*/React.createElement("th", null, "Note"))), /*#__PURE__*/React.createElement("tbody", null, payments.map((p, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, p.date), /*#__PURE__*/React.createElement("td", null, fmt(p.amount)), /*#__PURE__*/React.createElement("td", null, p.method), /*#__PURE__*/React.createElement("td", null, p.note)))))), tab === 'plan' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PlanFields, {
+    plan: plan,
+    onChange: setPlan
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "modal-actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    disabled: savingPlan,
+    onClick: savePlan
+  }, savingPlan ? 'Saving…' : 'Save plan'))), tab === 'activity' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 2fr auto',
+      gap: 8,
+      alignItems: 'end',
+      padding: 12,
+      background: 'var(--card-2, #f7f4ec)',
+      borderRadius: 8,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Follow-up date"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: followUp.date,
+    onChange: e => setFollowUp(f => ({
+      ...f,
+      date: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Reminder note"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "e.g. Call about site visit",
+    value: followUp.note,
+    onChange: e => setFollowUp(f => ({
+      ...f,
+      note: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    disabled: savingFollowUp,
+    onClick: saveFollowUp
+  }, savingFollowUp ? 'Saving…' : 'Save'), customer.followUpAt && /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: '1 / -1',
+      fontSize: 12,
+      color: isOverdue(customer.followUpAt) ? '#c0392b' : isDueToday(customer.followUpAt) ? '#b7791f' : 'var(--ink-3)'
+    }
+  }, isOverdue(customer.followUpAt) ? '🔴 Overdue' : isDueToday(customer.followUpAt) ? '🟡 Due today' : '📅 Upcoming', ' — ', customer.followUpAt, customer.followUpNote ? `: ${customer.followUpNote}` : '')), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "Add a note about this customer…",
+    style: {
+      flex: 1
+    },
+    value: noteText,
+    onChange: e => setNoteText(e.target.value),
+    onKeyDown: e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addNote();
+      }
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    disabled: addingNote || !noteText.trim(),
+    onClick: addNote
+  }, addingNote ? 'Adding…' : '+ Add note')), activity.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "No activity yet — notes, stage changes, and payments will show up here.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10
+    }
+  }, activity.map((a, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      gap: 10,
+      fontSize: 13,
+      paddingBottom: 10,
+      borderBottom: i < activity.length - 1 ? '1px solid var(--border,#eee)' : 'none'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      width: 20,
+      textAlign: 'center'
+    }
+  }, a.kind === 'payment' ? '💵' : a.kind === 'system' ? '↻' : '📝'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", null, a.text), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--ink-3)',
+      fontSize: 11,
+      marginTop: 2
+    }
+  }, a.author ? `${a.author} · ` : '', a.at ? new Date(a.at).toLocaleString('en-PH') : ''))))))), /*#__PURE__*/React.createElement("div", {
+    className: "modal-actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn-outline",
+    onClick: () => window.print()
+  }, "🖨 Print record"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn-outline",
+    onClick: onClose
+  }, "Close"))), /*#__PURE__*/React.createElement("div", {
+    className: "print-sheet"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "letterhead"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "brand"
+  }, "Golden Harmonic Memorial Park"), /*#__PURE__*/React.createElement("div", {
+    className: "sub"
+  }, "Customer Record — Internal Records")), /*#__PURE__*/React.createElement("div", {
+    className: "sub"
+  }, "Printed: ", new Date().toLocaleString('en-PH'))), /*#__PURE__*/React.createElement("h2", null, "Customer Information"), /*#__PURE__*/React.createElement("div", {
+    className: "meta-grid"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Name: "), /*#__PURE__*/React.createElement("strong", null, customer.fullName || `${customer.firstName} ${customer.lastName}`)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Pipeline stage: "), /*#__PURE__*/React.createElement("strong", null, STAGE_LABEL[normalizeStage(customer.status)])), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Email: "), customer.email || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Phone: "), customer.phone || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Preferred location: "), customer.preferredLocation || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Interest: "), customer.interest || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Lead source: "), customer.source || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Date added: "), customer.createdAt && customer.createdAt.toDate ? customer.createdAt.toDate().toLocaleDateString('en-PH') : customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('en-PH') : '—')), customer.plan && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Plan Details"), customer.plan.imageUrl && /*#__PURE__*/React.createElement("img", {
+    src: customer.plan.imageUrl,
+    alt: customer.plan.tierName,
+    style: {
+      width: '100%',
+      maxHeight: 220,
+      objectFit: 'cover',
+      borderRadius: 6,
+      marginBottom: 10
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "meta-grid"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Plan: "), /*#__PURE__*/React.createElement("strong", null, customer.plan.tierName)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Term: "), customer.plan.termLabel || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Plan price: "), fmt(customer.plan.price)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Monthly amount: "), fmt(customer.plan.monthlyAmount), "/mo"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Total paid to date: "), fmt(bal.paid)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Remaining balance: "), fmt(bal.balance)))), payments.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Payment History"), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Amount"), /*#__PURE__*/React.createElement("th", null, "Method"), /*#__PURE__*/React.createElement("th", null, "Note"))), /*#__PURE__*/React.createElement("tbody", null, payments.map((p, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, p.date), /*#__PURE__*/React.createElement("td", null, fmt(p.amount)), /*#__PURE__*/React.createElement("td", null, p.method), /*#__PURE__*/React.createElement("td", null, p.note || '—')))))), customer.followUpAt && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Follow-up"), /*#__PURE__*/React.createElement("div", {
+    className: "meta-grid"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Date: "), customer.followUpAt), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Note: "), customer.followUpNote || '—'))), /*#__PURE__*/React.createElement("h2", null, "Activity & Notes"), activity.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "activity-item"
+  }, "No activity recorded.") : activity.map((a, i) => /*#__PURE__*/React.createElement("div", {
+    className: "activity-item",
+    key: i
+  }, /*#__PURE__*/React.createElement("strong", null, a.at ? new Date(a.at).toLocaleString('en-PH') : '—'), " — ", a.text, a.author ? ` (${a.author})` : '')), /*#__PURE__*/React.createElement("div", {
+    className: "footer-note"
+  }, "This record was generated from the Golden Harmonic Memorial Park CRM for internal filing purposes.")));
 }
 
 // ── Products panel ─────────────────────────────────────────────────────────
@@ -2395,124 +1855,97 @@ function Products() {
       [k]: v
     }
   }));
-  if (!products) return /*#__PURE__*/_jsxDEV("div", {
-    className: "loading",
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "spinner"
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      children: "Loading products…"
-    }, void 0, false)]
-  }, void 0, true);
-  return /*#__PURE__*/_jsxDEV(_Fragment, {
-    children: [toast && /*#__PURE__*/_jsxDEV(Toast, {
-      msg: toast,
-      onDone: () => setToast('')
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "section-hd",
-      children: [/*#__PURE__*/_jsxDEV("h2", {
-        children: "Products & Pricing"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-        className: "btn btn-outline btn-sm",
-        onClick: seedProducts,
-        children: products.length === 0 ? '⬆ Seed default products' : '↺ Reset to defaults'
-      }, void 0, false)]
-    }, void 0, true), products.length === 0 ? /*#__PURE__*/_jsxDEV("div", {
-      className: "table-card",
-      children: /*#__PURE__*/_jsxDEV("div", {
-        className: "empty",
-        children: ["No products in database yet.", /*#__PURE__*/_jsxDEV("br", {}, void 0, false), "Click \"Seed default products\" to push your 7 standard plot types to Firestore.", /*#__PURE__*/_jsxDEV("br", {}, void 0, false), "After seeding, price changes here will reflect live on your website."]
-      }, void 0, true)
-    }, void 0, false) : /*#__PURE__*/_jsxDEV("div", {
-      className: "products-grid",
-      children: products.map(p => {
-        const ed = local[p._id] || {
-          price: p.price
-        };
-        const price = Number(ed.price) || 0;
-        return /*#__PURE__*/_jsxDEV("div", {
-          className: "product-card",
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            style: {
-              fontSize: 11,
-              color: 'var(--ink-3)',
-              textTransform: 'uppercase',
-              letterSpacing: '.04em',
-              marginBottom: 2
-            },
-            children: p.category
-          }, void 0, false), /*#__PURE__*/_jsxDEV("h3", {
-            children: p.name
-          }, void 0, false), /*#__PURE__*/_jsxDEV("p", {
-            className: "product-desc",
-            children: p.desc
-          }, void 0, false), ed.imageUrl && /*#__PURE__*/_jsxDEV("img", {
-            src: ed.imageUrl,
-            alt: p.name,
-            style: {
-              width: '100%',
-              height: 120,
-              objectFit: 'cover',
-              borderRadius: 8,
-              marginBottom: 10
-            },
-            onError: e => e.target.style.display = 'none'
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "price-edit",
-            children: [/*#__PURE__*/_jsxDEV("label", {
-              children: "Photo URL"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-              type: "text",
-              value: ed.imageUrl || '',
-              placeholder: "https://…",
-              onChange: e => setVal(p._id, 'imageUrl', e.target.value)
-            }, void 0, false)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            className: "price-edit",
-            children: [/*#__PURE__*/_jsxDEV("label", {
-              children: "Spot cash price (₱)"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-              type: "number",
-              value: ed.price,
-              onChange: e => setVal(p._id, 'price', e.target.value)
-            }, void 0, false)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              fontSize: 12,
-              color: 'var(--ink-3)',
-              margin: '10px 0',
-              lineHeight: 1.6
-            },
-            children: ["No down payment — surcharge + term applies:", /*#__PURE__*/_jsxDEV("br", {}, void 0, false), PLAN_TERMS.slice(1).map(t => /*#__PURE__*/_jsxDEV("span", {
-              style: {
-                display: 'inline-block',
-                marginRight: 12
-              },
-              children: [t.label.replace(' Plan', ''), ": ", fmt(Math.round(price * (1 + t.surcharge) / t.months)), "/mo"]
-            }, t.key, true))]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginTop: 12
-            },
-            children: [/*#__PURE__*/_jsxDEV("button", {
-              className: "btn btn-primary btn-sm",
-              disabled: saving[p._id],
-              onClick: () => saveProduct(p),
-              children: saving[p._id] ? 'Saving…' : 'Save'
-            }, void 0, false), /*#__PURE__*/_jsxDEV("span", {
-              className: "save-indicator",
-              children: saved[p._id] && /*#__PURE__*/_jsxDEV("span", {
-                className: "save-ok",
-                children: "✓ Saved"
-              }, void 0, false)
-            }, void 0, false)]
-          }, void 0, true)]
-        }, p._id, true);
-      })
-    }, void 0, false)]
-  }, void 0, true);
+  if (!products) return /*#__PURE__*/React.createElement("div", {
+    className: "loading"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), /*#__PURE__*/React.createElement("div", null, "Loading products…"));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Products & Pricing"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: seedProducts
+  }, products.length === 0 ? '⬆ Seed default products' : '↺ Reset to defaults')), products.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "table-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "No products in database yet.", /*#__PURE__*/React.createElement("br", null), "Click \"Seed default products\" to push your 7 standard plot types to Firestore.", /*#__PURE__*/React.createElement("br", null), "After seeding, price changes here will reflect live on your website.")) : /*#__PURE__*/React.createElement("div", {
+    className: "products-grid"
+  }, products.map(p => {
+    const ed = local[p._id] || {
+      price: p.price
+    };
+    const price = Number(ed.price) || 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: p._id,
+      className: "product-card"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--ink-3)',
+        textTransform: 'uppercase',
+        letterSpacing: '.04em',
+        marginBottom: 2
+      }
+    }, p.category), /*#__PURE__*/React.createElement("h3", null, p.name), /*#__PURE__*/React.createElement("p", {
+      className: "product-desc"
+    }, p.desc), ed.imageUrl && /*#__PURE__*/React.createElement("img", {
+      src: ed.imageUrl,
+      alt: p.name,
+      style: {
+        width: '100%',
+        height: 120,
+        objectFit: 'cover',
+        borderRadius: 8,
+        marginBottom: 10
+      },
+      onError: e => e.target.style.display = 'none'
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "price-edit"
+    }, /*#__PURE__*/React.createElement("label", null, "Photo URL"), /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: ed.imageUrl || '',
+      placeholder: "https://…",
+      onChange: e => setVal(p._id, 'imageUrl', e.target.value)
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "price-edit"
+    }, /*#__PURE__*/React.createElement("label", null, "Spot cash price (₱)"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: ed.price,
+      onChange: e => setVal(p._id, 'price', e.target.value)
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: 'var(--ink-3)',
+        margin: '10px 0',
+        lineHeight: 1.6
+      }
+    }, "No down payment — surcharge + term applies:", /*#__PURE__*/React.createElement("br", null), PLAN_TERMS.slice(1).map(t => /*#__PURE__*/React.createElement("span", {
+      key: t.key,
+      style: {
+        display: 'inline-block',
+        marginRight: 12
+      }
+    }, t.label.replace(' Plan', ''), ": ", fmt(Math.round(price * (1 + t.surcharge) / t.months)), "/mo"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 12
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary btn-sm",
+      disabled: saving[p._id],
+      onClick: () => saveProduct(p)
+    }, saving[p._id] ? 'Saving…' : 'Save'), /*#__PURE__*/React.createElement("span", {
+      className: "save-indicator"
+    }, saved[p._id] && /*#__PURE__*/React.createElement("span", {
+      className: "save-ok"
+    }, "✓ Saved"))));
+  })));
 }
 
 // ── Users panel ────────────────────────────────────────────────────────────
@@ -2543,82 +1976,57 @@ function Users({
     await window.db.collection('users').doc(id).delete();
     setToast('User removed from records');
   };
-  return /*#__PURE__*/_jsxDEV(_Fragment, {
-    children: [toast && /*#__PURE__*/_jsxDEV(Toast, {
-      msg: toast,
-      onDone: () => setToast('')
-    }, void 0, false), showAdd && /*#__PURE__*/_jsxDEV(AddUserModal, {
-      currentRole: currentRole,
-      onClose: () => setShowAdd(false),
-      onSaved: () => {
-        setShowAdd(false);
-        setToast('User record added');
-      }
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "section-hd",
-      children: [/*#__PURE__*/_jsxDEV("h2", {
-        children: "Admin Users"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-        className: "btn btn-primary btn-sm",
-        onClick: () => setShowAdd(true),
-        children: "+ Add user"
-      }, void 0, false)]
-    }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-      style: {
-        background: '#fff8e1',
-        border: '1px solid #ffe082',
-        borderRadius: 8,
-        padding: '12px 16px',
-        fontSize: 13,
-        color: '#795548',
-        marginBottom: 16
-      },
-      children: ["💡 First create the real login in ", /*#__PURE__*/_jsxDEV("strong", {
-        children: "Firebase Console → Authentication → Add user"
-      }, void 0, false), ", then copy that user's ", /*#__PURE__*/_jsxDEV("strong", {
-        children: "UID"
-      }, void 0, false), " and paste it below. The role only takes effect — both here and in Firestore security rules — when this record's ID matches their Auth UID.", !isSuperAdmin && /*#__PURE__*/_jsxDEV(_Fragment, {
-        children: [/*#__PURE__*/_jsxDEV("br", {}, void 0, false), "🔒 As an Admin, you can manage Staff and Admin accounts. Super Admin accounts are visible but locked to you."]
-      }, void 0, true)]
-    }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-      className: "users-grid",
-      children: [users.length === 0 && /*#__PURE__*/_jsxDEV("div", {
-        className: "table-card",
-        children: /*#__PURE__*/_jsxDEV("div", {
-          className: "empty",
-          children: "No users recorded yet. Add your admin accounts above."
-        }, void 0, false)
-      }, void 0, false), users.map(u => {
-        const locked = u.role === 'superadmin' && !isSuperAdmin;
-        return /*#__PURE__*/_jsxDEV("div", {
-          className: "user-row",
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "user-info",
-            children: [/*#__PURE__*/_jsxDEV("div", {
-              className: "user-avatar",
-              children: initials(u.name || u.email)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-              children: [/*#__PURE__*/_jsxDEV("div", {
-                className: "user-name",
-                children: u.name || '(no name)'
-              }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                className: "user-email",
-                children: [u.email, " · ", /*#__PURE__*/_jsxDEV("em", {
-                  children: u.role || 'admin'
-                }, void 0, false)]
-              }, void 0, true)]
-            }, void 0, true)]
-          }, void 0, true), /*#__PURE__*/_jsxDEV("button", {
-            className: "btn btn-danger btn-sm",
-            disabled: locked,
-            title: locked ? 'Only a Super Admin can remove this account' : '',
-            onClick: () => removeUser(u._id, u.email, u.role),
-            children: "Remove"
-          }, void 0, false)]
-        }, u._id, true);
-      })]
-    }, void 0, true)]
-  }, void 0, true);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), showAdd && /*#__PURE__*/React.createElement(AddUserModal, {
+    currentRole: currentRole,
+    onClose: () => setShowAdd(false),
+    onSaved: () => {
+      setShowAdd(false);
+      setToast('User record added');
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Admin Users"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    onClick: () => setShowAdd(true)
+  }, "+ Add user")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#fff8e1',
+      border: '1px solid #ffe082',
+      borderRadius: 8,
+      padding: '12px 16px',
+      fontSize: 13,
+      color: '#795548',
+      marginBottom: 16
+    }
+  }, "💡 First create the real login in ", /*#__PURE__*/React.createElement("strong", null, "Firebase Console → Authentication → Add user"), ", then copy that user's ", /*#__PURE__*/React.createElement("strong", null, "UID"), " and paste it below. The role only takes effect — both here and in Firestore security rules — when this record's ID matches their Auth UID.", !isSuperAdmin && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), "🔒 As an Admin, you can manage Staff and Admin accounts. Super Admin accounts are visible but locked to you.")), /*#__PURE__*/React.createElement("div", {
+    className: "users-grid"
+  }, users.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "table-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "No users recorded yet. Add your admin accounts above.")), users.map(u => {
+    const locked = u.role === 'superadmin' && !isSuperAdmin;
+    return /*#__PURE__*/React.createElement("div", {
+      key: u._id,
+      className: "user-row"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "user-info"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "user-avatar"
+    }, initials(u.name || u.email)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      className: "user-name"
+    }, u.name || '(no name)'), /*#__PURE__*/React.createElement("div", {
+      className: "user-email"
+    }, u.email, " · ", /*#__PURE__*/React.createElement("em", null, u.role || 'admin')))), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-danger btn-sm",
+      disabled: locked,
+      title: locked ? 'Only a Super Admin can remove this account' : '',
+      onClick: () => removeUser(u._id, u.email, u.role)
+    }, "Remove"));
+  })));
 }
 function AddUserModal({
   onClose,
@@ -2655,88 +2063,63 @@ function AddUserModal({
       setBusy(false);
     }
   };
-  return /*#__PURE__*/_jsxDEV("div", {
+  return /*#__PURE__*/React.createElement("div", {
     className: "modal-bg",
-    onClick: e => e.target === e.currentTarget && onClose(),
-    children: /*#__PURE__*/_jsxDEV("div", {
-      className: "modal",
-      children: [/*#__PURE__*/_jsxDEV("h3", {
-        children: "Add Admin User"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("form", {
-        onSubmit: save,
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          className: "field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Firebase Auth UID"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-            required: true,
-            value: form.uid,
-            onChange: set('uid'),
-            placeholder: "Copy from Firebase Console → Authentication"
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Full name"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-            required: true,
-            value: form.name,
-            onChange: set('name'),
-            placeholder: "Juan dela Cruz"
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Email"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("input", {
-            type: "email",
-            required: true,
-            value: form.email,
-            onChange: set('email'),
-            placeholder: "juan@ghmemorialpark.com"
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "field",
-          children: [/*#__PURE__*/_jsxDEV("label", {
-            children: "Role"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("select", {
-            value: form.role,
-            onChange: set('role'),
-            children: [canGrantSuperAdmin && /*#__PURE__*/_jsxDEV("option", {
-              value: "superadmin",
-              children: "Super Admin"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-              value: "admin",
-              children: "Admin"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("option", {
-              value: "staff",
-              children: "Staff"
-            }, void 0, false)]
-          }, void 0, true), !canGrantSuperAdmin && /*#__PURE__*/_jsxDEV("div", {
-            style: {
-              fontSize: 11,
-              color: 'var(--ink-3)',
-              marginTop: 5
-            },
-            children: "Only a Super Admin can grant the Super Admin role."
-          }, void 0, false)]
-        }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-          className: "modal-actions",
-          children: [/*#__PURE__*/_jsxDEV("button", {
-            type: "button",
-            className: "btn btn-outline",
-            onClick: onClose,
-            children: "Cancel"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-            type: "submit",
-            className: "btn btn-primary",
-            disabled: busy,
-            children: busy ? 'Saving…' : 'Add user'
-          }, void 0, false)]
-        }, void 0, true)]
-      }, void 0, true)]
-    }, void 0, true)
-  }, void 0, false);
+    onClick: e => e.target === e.currentTarget && onClose()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal"
+  }, /*#__PURE__*/React.createElement("h3", null, "Add Admin User"), /*#__PURE__*/React.createElement("form", {
+    onSubmit: save
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Firebase Auth UID"), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    value: form.uid,
+    onChange: set('uid'),
+    placeholder: "Copy from Firebase Console → Authentication"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Full name"), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    value: form.name,
+    onChange: set('name'),
+    placeholder: "Juan dela Cruz"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    required: true,
+    value: form.email,
+    onChange: set('email'),
+    placeholder: "juan@ghmemorialpark.com"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "field"
+  }, /*#__PURE__*/React.createElement("label", null, "Role"), /*#__PURE__*/React.createElement("select", {
+    value: form.role,
+    onChange: set('role')
+  }, canGrantSuperAdmin && /*#__PURE__*/React.createElement("option", {
+    value: "superadmin"
+  }, "Super Admin"), /*#__PURE__*/React.createElement("option", {
+    value: "admin"
+  }, "Admin"), /*#__PURE__*/React.createElement("option", {
+    value: "staff"
+  }, "Staff")), !canGrantSuperAdmin && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      marginTop: 5
+    }
+  }, "Only a Super Admin can grant the Super Admin role.")), /*#__PURE__*/React.createElement("div", {
+    className: "modal-actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn-outline",
+    onClick: onClose
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    className: "btn btn-primary",
+    disabled: busy
+  }, busy ? 'Saving…' : 'Add user')))));
 }
 
 // ── Recently Deleted panel ───────────────────────────────────────────────────
@@ -2775,98 +2158,54 @@ function RecentlyDeleted({
       setBusyId(null);
     }
   };
-  if (!rows) return /*#__PURE__*/_jsxDEV("div", {
-    className: "loading",
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "spinner"
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      children: "Loading Recently Deleted…"
-    }, void 0, false)]
-  }, void 0, true);
-  return /*#__PURE__*/_jsxDEV(_Fragment, {
-    children: [toast && /*#__PURE__*/_jsxDEV(Toast, {
-      msg: toast,
-      onDone: () => setToast('')
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "section-hd",
-      children: /*#__PURE__*/_jsxDEV("h2", {
-        children: ["Recently Deleted ", /*#__PURE__*/_jsxDEV("span", {
-          style: {
-            color: 'var(--ink-3)',
-            fontWeight: 400,
-            fontSize: 13
-          },
-          children: ["(", rows.length, ")"]
-        }, void 0, true)]
-      }, void 0, true)
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "table-card",
-      children: rows.length === 0 ? /*#__PURE__*/_jsxDEV("div", {
-        className: "empty",
-        children: "Nothing here. Deleted inquiries and customers show up in this list before they're gone for good."
-      }, void 0, false) : /*#__PURE__*/_jsxDEV("table", {
-        className: "gh-table",
-        children: [/*#__PURE__*/_jsxDEV("thead", {
-          children: /*#__PURE__*/_jsxDEV("tr", {
-            children: [/*#__PURE__*/_jsxDEV("th", {
-              children: "Type"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Name"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Email"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Deleted"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Deleted by"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {}, void 0, false)]
-          }, void 0, true)
-        }, void 0, false), /*#__PURE__*/_jsxDEV("tbody", {
-          children: rows.map(r => /*#__PURE__*/_jsxDEV("tr", {
-            children: [/*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("span", {
-                className: "plan-badge",
-                children: typeLabel(r.collection)
-              }, void 0, false)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("strong", {
-                children: nameOf(r)
-              }, void 0, false)
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: r.data && r.data.email || '—'
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              style: {
-                color: 'var(--ink-3)'
-              },
-              children: r.deletedAt ? new Date(r.deletedAt).toLocaleString('en-PH') : '—'
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              style: {
-                color: 'var(--ink-3)'
-              },
-              children: r.deletedBy || '—'
-            }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-              children: /*#__PURE__*/_jsxDEV("div", {
-                style: {
-                  display: 'flex',
-                  gap: 6
-                },
-                children: [/*#__PURE__*/_jsxDEV("button", {
-                  className: "btn btn-outline btn-sm",
-                  disabled: busyId === r._id,
-                  onClick: () => restore(r),
-                  children: busyId === r._id ? '…' : '↩ Restore'
-                }, void 0, false), canPurge && /*#__PURE__*/_jsxDEV("button", {
-                  className: "btn btn-danger btn-sm",
-                  disabled: busyId === r._id,
-                  onClick: () => purge(r),
-                  children: "Delete forever"
-                }, void 0, false)]
-              }, void 0, true)
-            }, void 0, false)]
-          }, r._id, true))
-        }, void 0, false)]
-      }, void 0, true)
-    }, void 0, false)]
-  }, void 0, true);
+  if (!rows) return /*#__PURE__*/React.createElement("div", {
+    className: "loading"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), /*#__PURE__*/React.createElement("div", null, "Loading Recently Deleted…"));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Recently Deleted ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-3)',
+      fontWeight: 400,
+      fontSize: 13
+    }
+  }, "(", rows.length, ")"))), /*#__PURE__*/React.createElement("div", {
+    className: "table-card"
+  }, rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "Nothing here. Deleted inquiries and customers show up in this list before they're gone for good.") : /*#__PURE__*/React.createElement("table", {
+    className: "gh-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Type"), /*#__PURE__*/React.createElement("th", null, "Name"), /*#__PURE__*/React.createElement("th", null, "Email"), /*#__PURE__*/React.createElement("th", null, "Deleted"), /*#__PURE__*/React.createElement("th", null, "Deleted by"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r._id
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: "plan-badge"
+  }, typeLabel(r.collection))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("strong", null, nameOf(r))), /*#__PURE__*/React.createElement("td", null, r.data && r.data.email || '—'), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: 'var(--ink-3)'
+    }
+  }, r.deletedAt ? new Date(r.deletedAt).toLocaleString('en-PH') : '—'), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: 'var(--ink-3)'
+    }
+  }, r.deletedBy || '—'), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    disabled: busyId === r._id,
+    onClick: () => restore(r)
+  }, busyId === r._id ? '…' : '↩ Restore'), canPurge && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-danger btn-sm",
+    disabled: busyId === r._id,
+    onClick: () => purge(r)
+  }, "Delete forever")))))))));
 }
 
 // ── PendingPayments: review queue for customer-portal GCash submissions ────
@@ -2894,14 +2233,11 @@ function PendingPayments({
       return () => clearTimeout(t);
     }
   }, [toast]);
-  if (!rows) return /*#__PURE__*/_jsxDEV("div", {
-    className: "loading",
-    children: [/*#__PURE__*/_jsxDEV("div", {
-      className: "spinner"
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      children: "Loading pending payments…"
-    }, void 0, false)]
-  }, void 0, true);
+  if (!rows) return /*#__PURE__*/React.createElement("div", {
+    className: "loading"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), /*#__PURE__*/React.createElement("div", null, "Loading pending payments…"));
 
   // Flatten every customer's paymentSubmissions into one list, oldest first
   const pending = [];
@@ -2958,104 +2294,61 @@ function PendingPayments({
       setBusyKey(null);
     }
   };
-  return /*#__PURE__*/_jsxDEV("div", {
-    children: [toast && /*#__PURE__*/_jsxDEV(Toast, {
-      msg: toast,
-      onDone: () => setToast('')
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "section-hd",
-      children: /*#__PURE__*/_jsxDEV("h2", {
-        children: ["Pending Payments ", /*#__PURE__*/_jsxDEV("span", {
-          style: {
-            color: 'var(--ink-3)',
-            fontWeight: 400,
-            fontSize: 13
-          },
-          children: ["(", pending.length, ")"]
-        }, void 0, true)]
-      }, void 0, true)
-    }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-      className: "table-card",
-      children: pending.length === 0 ? /*#__PURE__*/_jsxDEV("div", {
-        className: "empty",
-        children: "No pending payment submissions right now. New GCash references from the customer portal will show up here."
-      }, void 0, false) : /*#__PURE__*/_jsxDEV("table", {
-        className: "gh-table",
-        children: [/*#__PURE__*/_jsxDEV("thead", {
-          children: /*#__PURE__*/_jsxDEV("tr", {
-            children: [/*#__PURE__*/_jsxDEV("th", {
-              children: "Customer"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Reference"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Amount"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Payment date"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {
-              children: "Submitted"
-            }, void 0, false), /*#__PURE__*/_jsxDEV("th", {}, void 0, false)]
-          }, void 0, true)
-        }, void 0, false), /*#__PURE__*/_jsxDEV("tbody", {
-          children: pending.map(({
-            customer,
-            sub
-          }) => {
-            const key = customer._id + '_' + sub.submittedAt;
-            const isBusy = busyKey === key;
-            return /*#__PURE__*/_jsxDEV("tr", {
-              children: [/*#__PURE__*/_jsxDEV("td", {
-                children: [/*#__PURE__*/_jsxDEV("strong", {
-                  children: customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`
-                }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    fontSize: 12,
-                    color: 'var(--ink-3)'
-                  },
-                  children: customer.email
-                }, void 0, false)]
-              }, void 0, true), /*#__PURE__*/_jsxDEV("td", {
-                children: [sub.referenceNumber, sub.mobileNumber && /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    fontSize: 12,
-                    color: 'var(--ink-3)'
-                  },
-                  children: sub.mobileNumber
-                }, void 0, false)]
-              }, void 0, true), /*#__PURE__*/_jsxDEV("td", {
-                children: fmt(sub.amount)
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: sub.date
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                style: {
-                  fontSize: 12,
-                  color: 'var(--ink-3)'
-                },
-                children: sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '—'
-              }, void 0, false), /*#__PURE__*/_jsxDEV("td", {
-                children: /*#__PURE__*/_jsxDEV("div", {
-                  style: {
-                    display: 'flex',
-                    gap: 6
-                  },
-                  children: [/*#__PURE__*/_jsxDEV("button", {
-                    className: "btn btn-primary btn-sm",
-                    disabled: isBusy,
-                    onClick: () => resolve(customer, sub, 'confirm'),
-                    children: isBusy ? '…' : '✓ Confirm'
-                  }, void 0, false), /*#__PURE__*/_jsxDEV("button", {
-                    className: "btn btn-outline btn-sm",
-                    disabled: isBusy,
-                    onClick: () => resolve(customer, sub, 'reject'),
-                    children: "Reject"
-                  }, void 0, false)]
-                }, void 0, true)
-              }, void 0, false)]
-            }, key, true);
-          })
-        }, void 0, false)]
-      }, void 0, true)
-    }, void 0, false)]
-  }, void 0, true);
+  return /*#__PURE__*/React.createElement("div", null, toast && /*#__PURE__*/React.createElement(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Pending Payments ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-3)',
+      fontWeight: 400,
+      fontSize: 13
+    }
+  }, "(", pending.length, ")"))), /*#__PURE__*/React.createElement("div", {
+    className: "table-card"
+  }, pending.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "empty"
+  }, "No pending payment submissions right now. New GCash references from the customer portal will show up here.") : /*#__PURE__*/React.createElement("table", {
+    className: "gh-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Customer"), /*#__PURE__*/React.createElement("th", null, "Reference"), /*#__PURE__*/React.createElement("th", null, "Amount"), /*#__PURE__*/React.createElement("th", null, "Payment date"), /*#__PURE__*/React.createElement("th", null, "Submitted"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, pending.map(({
+    customer,
+    sub
+  }) => {
+    const key = customer._id + '_' + sub.submittedAt;
+    const isBusy = busyKey === key;
+    return /*#__PURE__*/React.createElement("tr", {
+      key: key
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("strong", null, customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: 'var(--ink-3)'
+      }
+    }, customer.email)), /*#__PURE__*/React.createElement("td", null, sub.referenceNumber, sub.mobileNumber && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: 'var(--ink-3)'
+      }
+    }, sub.mobileNumber)), /*#__PURE__*/React.createElement("td", null, fmt(sub.amount)), /*#__PURE__*/React.createElement("td", null, sub.date), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12,
+        color: 'var(--ink-3)'
+      }
+    }, sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '—'), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-primary btn-sm",
+      disabled: isBusy,
+      onClick: () => resolve(customer, sub, 'confirm')
+    }, isBusy ? '…' : '✓ Confirm'), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-outline btn-sm",
+      disabled: isBusy,
+      onClick: () => resolve(customer, sub, 'reject')
+    }, "Reject"))));
+  })))));
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -3145,131 +2438,101 @@ function Dashboard({
       pendingUnsub();
     };
   }, []);
-  return /*#__PURE__*/_jsxDEV("div", {
-    className: "layout",
-    children: [/*#__PURE__*/_jsxDEV("aside", {
-      className: "sidebar",
-      children: [/*#__PURE__*/_jsxDEV("div", {
-        className: "sidebar-logo",
-        children: [/*#__PURE__*/_jsxDEV("img", {
-          src: "/logo-header.png",
-          alt: "Golden Harmonic logo",
-          style: {
-            width: 34,
-            height: 34,
-            objectFit: 'contain',
-            flexShrink: 0
-          }
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          children: [/*#__PURE__*/_jsxDEV("div", {
-            className: "sidebar-name",
-            children: "Golden Harmonic"
-          }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-            className: "sidebar-sub",
-            children: "Admin Panel"
-          }, void 0, false)]
-        }, void 0, true)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "sidebar-divider"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-        className: "sidebar-section",
-        children: "Management"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("nav", {
-        className: "sidebar-nav",
-        children: visibleTabs.map(t => /*#__PURE__*/_jsxDEV("div", {
-          className: `nav-item ${tab === t.id ? 'active' : ''}`,
-          onClick: () => setTab(t.id),
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            className: "ico",
-            children: t.ico
-          }, void 0, false), /*#__PURE__*/_jsxDEV("span", {
-            children: t.label
-          }, void 0, false), counts[t.id] > 0 && /*#__PURE__*/_jsxDEV("span", {
-            style: {
-              marginLeft: 'auto',
-              background: 'rgba(255,255,255,.2)',
-              fontSize: 10,
-              fontWeight: 700,
-              padding: '2px 7px',
-              borderRadius: 10
-            },
-            children: counts[t.id]
-          }, void 0, false)]
-        }, t.id, true))
-      }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-        className: "sidebar-footer",
-        children: /*#__PURE__*/_jsxDEV("button", {
-          className: "logout-btn",
-          onClick: onLogout,
-          children: [/*#__PURE__*/_jsxDEV("span", {
-            style: {
-              fontSize: 16
-            },
-            children: "🚪"
-          }, void 0, false), " Sign out"]
-        }, void 0, true)
-      }, void 0, false)]
-    }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-      className: "main",
-      children: [/*#__PURE__*/_jsxDEV("div", {
-        className: "topbar",
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          className: "topbar-title",
-          children: TABS.find(t => t.id === tab)?.label
-        }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-          className: "topbar-right",
-          children: /*#__PURE__*/_jsxDEV("span", {
-            className: "user-badge",
-            children: ["Signed in as ", /*#__PURE__*/_jsxDEV("strong", {
-              children: user.email
-            }, void 0, false), myRole && myRole !== 'unlinked' ? ` · ${myRole}` : '']
-          }, void 0, true)
-        }, void 0, false)]
-      }, void 0, true), /*#__PURE__*/_jsxDEV("div", {
-        className: "content",
-        children: [/*#__PURE__*/_jsxDEV("div", {
-          className: "stats-row",
-          children: visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash').map(t => /*#__PURE__*/_jsxDEV("div", {
-            className: "stat-card",
-            style: {
-              cursor: 'pointer'
-            },
-            onClick: () => setTab(t.id),
-            children: [/*#__PURE__*/_jsxDEV("div", {
-              className: "stat-badge",
-              style: {
-                background: `var(--badge-${t.badge})`,
-                color: `var(--badge-${t.badge}-ic)`
-              },
-              children: t.ico
-            }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-              children: [/*#__PURE__*/_jsxDEV("div", {
-                className: "stat-num",
-                children: counts[t.id]
-              }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-                className: "stat-lbl",
-                children: t.label
-              }, void 0, false)]
-            }, void 0, true)]
-          }, t.id, true))
-        }, void 0, false), tab === 'pipeline' && /*#__PURE__*/_jsxDEV(Pipeline, {
-          currentUser: user
-        }, void 0, false), tab === 'inquiries' && /*#__PURE__*/_jsxDEV(Inquiries, {
-          currentUser: user
-        }, void 0, false), tab === 'customers' && /*#__PURE__*/_jsxDEV(Customers, {
-          currentUser: user
-        }, void 0, false), tab === 'pending' && /*#__PURE__*/_jsxDEV(PendingPayments, {
-          currentUser: user
-        }, void 0, false), tab === 'products' && isAdminOrHigher && /*#__PURE__*/_jsxDEV(Products, {}, void 0, false), tab === 'users' && isAdminOrHigher && /*#__PURE__*/_jsxDEV(Users, {
-          currentUser: user,
-          currentRole: myRole
-        }, void 0, false), tab === 'trash' && /*#__PURE__*/_jsxDEV(RecentlyDeleted, {
-          currentUser: user,
-          canPurge: isAdminOrHigher
-        }, void 0, false)]
-      }, void 0, true)]
-    }, void 0, true)]
-  }, void 0, true);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "layout"
+  }, /*#__PURE__*/React.createElement("aside", {
+    className: "sidebar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sidebar-logo"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/logo-header.png",
+    alt: "Golden Harmonic logo",
+    style: {
+      width: 34,
+      height: 34,
+      objectFit: 'contain',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "sidebar-name"
+  }, "Golden Harmonic"), /*#__PURE__*/React.createElement("div", {
+    className: "sidebar-sub"
+  }, "Admin Panel"))), /*#__PURE__*/React.createElement("div", {
+    className: "sidebar-divider"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "sidebar-section"
+  }, "Management"), /*#__PURE__*/React.createElement("nav", {
+    className: "sidebar-nav"
+  }, visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
+    key: t.id,
+    className: `nav-item ${tab === t.id ? 'active' : ''}`,
+    onClick: () => setTab(t.id)
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "ico"
+  }, t.ico), /*#__PURE__*/React.createElement("span", null, t.label), counts[t.id] > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 'auto',
+      background: 'rgba(255,255,255,.2)',
+      fontSize: 10,
+      fontWeight: 700,
+      padding: '2px 7px',
+      borderRadius: 10
+    }
+  }, counts[t.id])))), /*#__PURE__*/React.createElement("div", {
+    className: "sidebar-footer"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "logout-btn",
+    onClick: onLogout
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "🚪"), " Sign out"))), /*#__PURE__*/React.createElement("div", {
+    className: "main"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "topbar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "topbar-title"
+  }, TABS.find(t => t.id === tab)?.label), /*#__PURE__*/React.createElement("div", {
+    className: "topbar-right"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "user-badge"
+  }, "Signed in as ", /*#__PURE__*/React.createElement("strong", null, user.email), myRole && myRole !== 'unlinked' ? ` · ${myRole}` : ''))), /*#__PURE__*/React.createElement("div", {
+    className: "content"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stats-row"
+  }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash').map(t => /*#__PURE__*/React.createElement("div", {
+    key: t.id,
+    className: "stat-card",
+    style: {
+      cursor: 'pointer'
+    },
+    onClick: () => setTab(t.id)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat-badge",
+    style: {
+      background: `var(--badge-${t.badge})`,
+      color: `var(--badge-${t.badge}-ic)`
+    }
+  }, t.ico), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "stat-num"
+  }, counts[t.id]), /*#__PURE__*/React.createElement("div", {
+    className: "stat-lbl"
+  }, t.label))))), tab === 'pipeline' && /*#__PURE__*/React.createElement(Pipeline, {
+    currentUser: user
+  }), tab === 'inquiries' && /*#__PURE__*/React.createElement(Inquiries, {
+    currentUser: user
+  }), tab === 'customers' && /*#__PURE__*/React.createElement(Customers, {
+    currentUser: user
+  }), tab === 'pending' && /*#__PURE__*/React.createElement(PendingPayments, {
+    currentUser: user
+  }), tab === 'products' && isAdminOrHigher && /*#__PURE__*/React.createElement(Products, null), tab === 'users' && isAdminOrHigher && /*#__PURE__*/React.createElement(Users, {
+    currentUser: user,
+    currentRole: myRole
+  }), tab === 'trash' && /*#__PURE__*/React.createElement(RecentlyDeleted, {
+    currentUser: user,
+    canPurge: isAdminOrHigher
+  }))));
 }
 
 // ── Root ───────────────────────────────────────────────────────────────────
@@ -3280,27 +2543,22 @@ function Root() {
     return window.auth.onAuthStateChanged(u => setUser(u || null));
   }, []);
   const logout = () => window.auth.signOut();
-  if (user === undefined) return /*#__PURE__*/_jsxDEV("div", {
+  if (user === undefined) return /*#__PURE__*/React.createElement("div", {
     className: "loading",
     style: {
       minHeight: '100vh',
       display: 'grid',
       placeItems: 'center'
-    },
-    children: /*#__PURE__*/_jsxDEV("div", {
-      children: [/*#__PURE__*/_jsxDEV("div", {
-        className: "spinner"
-      }, void 0, false), /*#__PURE__*/_jsxDEV("div", {
-        children: "Checking login…"
-      }, void 0, false)]
-    }, void 0, true)
-  }, void 0, false);
-  if (!user) return /*#__PURE__*/_jsxDEV(Login, {
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), /*#__PURE__*/React.createElement("div", null, "Checking login…")));
+  if (!user) return /*#__PURE__*/React.createElement(Login, {
     onLogin: setUser
-  }, void 0, false);
-  return /*#__PURE__*/_jsxDEV(Dashboard, {
+  });
+  return /*#__PURE__*/React.createElement(Dashboard, {
     user: user,
     onLogout: logout
-  }, void 0, false);
+  });
 }
-ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/_jsxDEV(Root, {}, void 0, false));
+ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(Root, null));
