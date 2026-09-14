@@ -1101,6 +1101,8 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
   const [savingFollowUp, setSavingFollowUp] = useState(false);
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalError, setPortalError] = useState('');
+  const [showManualLink, setShowManualLink] = useState(false);
+  const [manualUid, setManualUid] = useState('');
 
   const handleCreatePortal = async () => {
     if (!customer.email) { setPortalError('This customer has no email on file — add one first.'); return; }
@@ -1114,11 +1116,34 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
       });
       onToast(`Portal login created — a "set your password" email was sent to ${customer.email}`);
     } catch (err) {
+      // If the Auth account got created on a previous attempt but the
+      // Firestore write that saves authUid failed (network blip, etc.),
+      // retrying lands here every time with no way to recover from the UI.
+      // Surface the manual-link fallback right when that happens.
+      const stuck = err && err.code === 'auth/email-already-in-use';
       setPortalError(
-        err && err.code === 'auth/email-already-in-use'
-          ? 'That email already has a login (maybe an admin/staff account, or a portal login was already created).'
+        stuck
+          ? 'That email already has a Firebase Auth account (likely from a previous attempt that didn\'t finish saving). Use "Link existing account" below instead of creating a new one.'
           : (err && err.message) || 'Could not create the portal login.'
       );
+      if (stuck) setShowManualLink(true);
+    } finally { setPortalBusy(false); }
+  };
+
+  const handleManualLink = async () => {
+    if (!manualUid.trim()) { setPortalError('Paste the Firebase Auth UID first.'); return; }
+    setPortalBusy(true); setPortalError('');
+    try {
+      await window.db.collection('customers').doc(customer._id).update({
+        authUid: manualUid.trim(),
+        portalCreatedAt: Date.now(),
+        portalCreatedBy: (currentUser && currentUser.email) || 'unknown'
+      });
+      onToast('Account linked — customer can now log in.');
+      setShowManualLink(false);
+      setManualUid('');
+    } catch (err) {
+      setPortalError((err && err.message) || 'Could not link the account.');
     } finally { setPortalBusy(false); }
   };
 
@@ -1242,6 +1267,34 @@ function CustomerDetailModal({ customer, currentUser, onClose, onToast }) {
               <div className="val" style={{fontSize:13, color:'var(--ink-3)'}}>No login created yet</div>
             )}
             {portalError && <div style={{fontSize:12, color:'var(--red)', marginTop:4}}>{portalError}</div>}
+            {!customer.authUid && (
+              <div style={{marginTop:6}}>
+                <button
+                  type="button"
+                  onClick={() => setShowManualLink(v => !v)}
+                  style={{background:'none', border:'none', padding:0, fontSize:12, color:'var(--ink-3)', textDecoration:'underline', cursor:'pointer'}}>
+                  {showManualLink ? 'Hide manual link' : 'Already have a Firebase Auth account for this email? Link it manually'}
+                </button>
+                {showManualLink && (
+                  <div style={{marginTop:8, display:'flex', gap:6, alignItems:'flex-start', flexWrap:'wrap'}}>
+                    <div>
+                      <input
+                        type="text"
+                        value={manualUid}
+                        onChange={e => setManualUid(e.target.value)}
+                        placeholder="Paste Firebase Auth UID"
+                        style={{fontSize:12, padding:'6px 8px', border:'1px solid var(--line)', borderRadius:6, minWidth:220}} />
+                      <div style={{fontSize:11, color:'var(--ink-3)', marginTop:4, maxWidth:260}}>
+                        Find it in Firebase console → Authentication → Users tab, search by {customer.email || 'this customer\'s email'}, copy the User UID column.
+                      </div>
+                    </div>
+                    <button className="btn btn-outline btn-sm" disabled={portalBusy} onClick={handleManualLink}>
+                      {portalBusy ? 'Linking…' : 'Link account'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div>
             {customer.authUid ? (
@@ -1764,11 +1817,119 @@ function RecentlyDeleted({ currentUser, canPurge }) {
   );
 }
 
+// ── PendingPayments: review queue for customer-portal GCash submissions ────
+// Customers submit a reference via site.jsx's "Submit a payment reference"
+// form, which lands in customer.paymentSubmissions[] with status:'pending'.
+// It never touches payments[] on its own — a real staff member has to look
+// at it here and either Confirm (which logs it into payments[], the same
+// way the manual "Log payment" form does, so the balance updates) or Reject
+// (which just flags it so the customer sees "Needs attention").
+function PendingPayments({ currentUser }) {
+  const [rows, setRows] = useState(null);
+  const [toast, setToast] = useState('');
+  const [busyKey, setBusyKey] = useState(null);
+
+  useEffect(() => {
+    return window.db.collection('customers').orderBy('createdAt','desc')
+      .onSnapshot(snap => setRows(snap.docs.map(d => ({ _id: d.id, ...d.data() }))));
+  }, []);
+
+  useEffect(() => { if (toast) { const t = setTimeout(()=>setToast(''), 2200); return ()=>clearTimeout(t); } }, [toast]);
+
+  if (!rows) return <div className="loading"><div className="spinner"/><div>Loading pending payments…</div></div>;
+
+  // Flatten every customer's paymentSubmissions into one list, oldest first
+  const pending = [];
+  for (const c of rows) {
+    (c.paymentSubmissions || []).forEach(sub => {
+      if ((sub.status || 'pending') === 'pending') pending.push({ customer: c, sub });
+    });
+  }
+  pending.sort((a, b) => (a.sub.submittedAt || 0) - (b.sub.submittedAt || 0));
+
+  const resolve = async (customer, subToResolve, action) => {
+    const key = customer._id + '_' + subToResolve.submittedAt;
+    setBusyKey(key);
+    try {
+      const nextSubmissions = (customer.paymentSubmissions || []).map(s =>
+        s.submittedAt === subToResolve.submittedAt
+          ? { ...s, status: action === 'confirm' ? 'confirmed' : 'rejected' }
+          : s
+      );
+      const updates = { paymentSubmissions: nextSubmissions };
+      if (action === 'confirm') {
+        updates.payments = firebase.firestore.FieldValue.arrayUnion({
+          date: subToResolve.date,
+          amount: Number(subToResolve.amount),
+          method: subToResolve.method || 'GCash',
+          note: `Ref ${subToResolve.referenceNumber}${subToResolve.mobileNumber ? ' · ' + subToResolve.mobileNumber : ''} — confirmed from customer portal by ${(currentUser && currentUser.email) || 'staff'}`
+        });
+      }
+      await window.db.collection('customers').doc(customer._id).update(updates);
+      setToast(action === 'confirm' ? 'Payment confirmed — balance updated' : 'Marked as needing attention');
+    } catch (err) {
+      setToast((err && err.message) || 'Could not update');
+    } finally { setBusyKey(null); }
+  };
+
+  return (
+    <div>
+      {toast && <Toast msg={toast} onDone={()=>setToast('')} />}
+      <div className="section-hd">
+        <h2>Pending Payments <span style={{color:'var(--ink-3)',fontWeight:400,fontSize:13}}>({pending.length})</span></h2>
+      </div>
+      <div className="table-card">
+        {pending.length === 0 ? (
+          <div className="empty">No pending payment submissions right now. New GCash references from the customer portal will show up here.</div>
+        ) : (
+          <table className="gh-table">
+            <thead>
+              <tr><th>Customer</th><th>Reference</th><th>Amount</th><th>Payment date</th><th>Submitted</th><th></th></tr>
+            </thead>
+            <tbody>
+              {pending.map(({ customer, sub }) => {
+                const key = customer._id + '_' + sub.submittedAt;
+                const isBusy = busyKey === key;
+                return (
+                  <tr key={key}>
+                    <td>
+                      <strong>{customer.fullName || `${customer.firstName||''} ${customer.lastName||''}`}</strong>
+                      <div style={{fontSize:12,color:'var(--ink-3)'}}>{customer.email}</div>
+                    </td>
+                    <td>
+                      {sub.referenceNumber}
+                      {sub.mobileNumber && <div style={{fontSize:12,color:'var(--ink-3)'}}>{sub.mobileNumber}</div>}
+                    </td>
+                    <td>{fmt(sub.amount)}</td>
+                    <td>{sub.date}</td>
+                    <td style={{fontSize:12,color:'var(--ink-3)'}}>{sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '—'}</td>
+                    <td>
+                      <div style={{display:'flex',gap:6}}>
+                        <button className="btn btn-primary btn-sm" disabled={isBusy} onClick={()=>resolve(customer, sub, 'confirm')}>
+                          {isBusy ? '…' : '✓ Confirm'}
+                        </button>
+                        <button className="btn btn-outline btn-sm" disabled={isBusy} onClick={()=>resolve(customer, sub, 'reject')}>
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Dashboard ──────────────────────────────────────────────────────────────
 const TABS = [
   { id:'pipeline',  label:'Pipeline',   ico:'🧭', badge:1 },
   { id:'inquiries', label:'Inquiries',  ico:'📥', badge:5 },
   { id:'customers', label:'Customers',  ico:'👥', badge:2 },
+  { id:'pending',   label:'Pending Payments', ico:'⏳', badge:4 },
   { id:'products',  label:'Products',   ico:'🪦', badge:3 },
   { id:'users',     label:'Users',      ico:'🔐', badge:4 },
   { id:'trash',     label:'Recently Deleted', ico:'🗑️', badge:1 },
@@ -1776,7 +1937,7 @@ const TABS = [
 
 function Dashboard({ user, onLogout }) {
   const [tab, setTab] = useState('pipeline');
-  const [counts, setCounts] = useState({ inquiries:0, customers:0, products:0, users:0, trash:0 });
+  const [counts, setCounts] = useState({ inquiries:0, customers:0, products:0, users:0, trash:0, pending:0 });
   // myRole is looked up from users/{uid} — the doc ID MUST equal the Firebase Auth UID
   // for this (and the Firestore security rules) to work. 'unlinked' means this login
   // has no matching users/{uid} record yet — see the banner on the Users tab.
@@ -1799,7 +1960,17 @@ function Dashboard({ user, onLogout }) {
     const unsubs = ['inquiries','customers','products','users','trash'].map(col =>
       window.db.collection(col).onSnapshot(s => setCounts(c => ({ ...c, [col]: s.size })))
     );
-    return () => unsubs.forEach(u => u());
+    // 'pending' isn't its own collection — it's a count of paymentSubmissions
+    // with status:'pending' nested inside every customer doc, so it needs
+    // its own listener that reduces across all customers.
+    const pendingUnsub = window.db.collection('customers').onSnapshot(snap => {
+      let n = 0;
+      snap.docs.forEach(d => {
+        (d.data().paymentSubmissions || []).forEach(s => { if ((s.status || 'pending') === 'pending') n++; });
+      });
+      setCounts(c => ({ ...c, pending: n }));
+    });
+    return () => { unsubs.forEach(u => u()); pendingUnsub(); };
   }, []);
 
   return (
@@ -1864,6 +2035,7 @@ function Dashboard({ user, onLogout }) {
           {tab==='pipeline'  && <Pipeline currentUser={user}/>}
           {tab==='inquiries' && <Inquiries currentUser={user}/>}
           {tab==='customers' && <Customers currentUser={user}/>}
+          {tab==='pending'   && <PendingPayments currentUser={user}/>}
           {tab==='products'  && isAdminOrHigher && <Products/>}
           {tab==='users'     && isAdminOrHigher && <Users currentUser={user} currentRole={myRole}/>}
           {tab==='trash'     && <RecentlyDeleted currentUser={user} canPurge={isAdminOrHigher}/>}
