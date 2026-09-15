@@ -116,6 +116,29 @@ function Toast({
 }
 
 // ── Login ──────────────────────────────────────────────────────────────────
+// Verifies a 6-digit TOTP code against a base32 secret using the OTPAuth
+// library (loaded via CDN in admin.html). window:1 accepts the previous and
+// next 30-second window too, so a slightly-off phone clock still works.
+function verifyTotpCode(base32Secret, code) {
+  try {
+    const totp = new OTPAuth.TOTP({
+      issuer: 'Golden Harmonic',
+      label: 'GH Admin',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: OTPAuth.Secret.fromBase32(base32Secret)
+    });
+    const delta = totp.validate({
+      token: (code || '').trim(),
+      window: 1
+    });
+    return delta !== null;
+  } catch (ex) {
+    console.error('[GH totp] verify failed', ex);
+    return false;
+  }
+}
 function Login({
   onLogin
 }) {
@@ -123,13 +146,28 @@ function Login({
   const [pass, setPass] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  // Once password sign-in succeeds, if that account has 2FA on we hold here
+  // instead of calling onLogin — pendingUser is signed in to Firebase Auth
+  // already, but the app won't render the Dashboard until the code checks out.
+  const [pendingUser, setPendingUser] = useState(null);
+  const [totpSecret, setTotpSecret] = useState(null);
+  const [code, setCode] = useState('');
+  const [totpErr, setTotpErr] = useState('');
+  const [totpBusy, setTotpBusy] = useState(false);
   const submit = async e => {
     e.preventDefault();
     setBusy(true);
     setErr('');
     try {
       const cred = await window.auth.signInWithEmailAndPassword(email, pass);
-      onLogin(cred.user);
+      const udoc = await window.db.collection('users').doc(cred.user.uid).get();
+      const data = udoc.exists ? udoc.data() : null;
+      if (data && data.totpEnabled && data.totpSecret) {
+        setTotpSecret(data.totpSecret);
+        setPendingUser(cred.user);
+      } else {
+        onLogin(cred.user);
+      }
     } catch (ex) {
       console.error('[GH login]', ex.code, ex.message, ex);
       const map = {
@@ -146,6 +184,82 @@ function Login({
       setBusy(false);
     }
   };
+  const submitTotp = e => {
+    e.preventDefault();
+    setTotpErr('');
+    setTotpBusy(true);
+    // Purely local/synchronous check, but keep the busy state briefly so
+    // rapid repeat taps on "Verify" can't hammer the check in a tight loop.
+    setTimeout(() => {
+      if (verifyTotpCode(totpSecret, code)) {
+        onLogin(pendingUser);
+      } else {
+        setTotpErr('That code is wrong or expired. Check your authenticator app and try again.');
+        setCode('');
+      }
+      setTotpBusy(false);
+    }, 150);
+  };
+  const cancelTotp = () => {
+    window.auth.signOut();
+    setPendingUser(null);
+    setTotpSecret(null);
+    setCode('');
+    setTotpErr('');
+    setPass('');
+  };
+  if (pendingUser) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "login-wrap"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "login-card"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "login-logo"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "login-mark"
+    }, "🔒"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      className: "login-title"
+    }, "Two-factor check"), /*#__PURE__*/React.createElement("div", {
+      className: "login-sub"
+    }, pendingUser.email))), /*#__PURE__*/React.createElement("form", {
+      onSubmit: submitTotp
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "login-field"
+    }, /*#__PURE__*/React.createElement("label", null, "6-digit code from your authenticator app"), /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      inputMode: "numeric",
+      autoComplete: "one-time-code",
+      autoFocus: true,
+      required: true,
+      maxLength: 6,
+      placeholder: "123456",
+      style: {
+        letterSpacing: '4px',
+        fontSize: 18,
+        textAlign: 'center'
+      },
+      value: code,
+      onChange: e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+    })), /*#__PURE__*/React.createElement("button", {
+      className: "login-btn",
+      type: "submit",
+      disabled: totpBusy || code.length !== 6
+    }, totpBusy ? 'Checking…' : 'Verify →'), totpErr && /*#__PURE__*/React.createElement("p", {
+      className: "login-err"
+    }, totpErr), /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: cancelTotp,
+      style: {
+        width: '100%',
+        marginTop: 14,
+        background: 'none',
+        border: 'none',
+        color: 'var(--ink-3)',
+        fontSize: 12,
+        textDecoration: 'underline'
+      }
+    }, "Not you? Sign out and start over"))));
+  }
   return /*#__PURE__*/React.createElement("div", {
     className: "login-wrap"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1948,6 +2062,203 @@ function Products() {
   })));
 }
 
+// ── Security panel (self-service TOTP 2FA enrollment) ───────────────────────
+// Renders a QR code into a plain div using the qrcodejs library (global
+// `QRCode`, loaded via CDN in admin.html). Kept as its own small component so
+// the QR widget can be torn down/recreated cleanly when the secret changes.
+function TotpQr({
+  uri
+}) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.innerHTML = '';
+    new QRCode(ref.current, {
+      text: uri,
+      width: 180,
+      height: 180,
+      colorDark: '#1a2822',
+      colorLight: '#ffffff'
+    });
+  }, [uri]);
+  return /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    style: {
+      display: 'inline-block',
+      padding: 12,
+      background: '#fff',
+      borderRadius: 10,
+      border: '1px solid var(--border)'
+    }
+  });
+}
+function Security({
+  user,
+  myDoc
+}) {
+  const linked = !!(myDoc && !myDoc.unlinked);
+  const enabled = !!(myDoc && myDoc.totpEnabled);
+  const [enrolling, setEnrolling] = useState(false);
+  const [secret, setSecret] = useState(null); // OTPAuth.Secret instance while enrolling
+  const [code, setCode] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState('');
+  const startEnroll = () => {
+    const s = new OTPAuth.Secret({
+      size: 20
+    });
+    setSecret(s);
+    setEnrolling(true);
+    setCode('');
+    setErr('');
+  };
+  const cancelEnroll = () => {
+    setEnrolling(false);
+    setSecret(null);
+    setCode('');
+    setErr('');
+  };
+  const confirmEnroll = async e => {
+    e.preventDefault();
+    setErr('');
+    if (!verifyTotpCode(secret.base32, code)) {
+      setErr("That code didn't match — double-check your authenticator app and try again.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await window.db.collection('users').doc(user.uid).set({
+        totpEnabled: true,
+        totpSecret: secret.base32
+      }, {
+        merge: true
+      });
+      setEnrolling(false);
+      setSecret(null);
+      setCode('');
+      setToast('Two-factor authentication is on for your account.');
+    } catch (ex) {
+      console.error('[GH totp] enroll save failed', ex);
+      setErr(ex.message || 'Could not save — try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const disable = async () => {
+    if (!confirm("Turn off two-factor authentication for your own account? You'll only need your password to sign in after this.")) return;
+    setBusy(true);
+    try {
+      await window.db.collection('users').doc(user.uid).update({
+        totpEnabled: false,
+        totpSecret: firebase.firestore.FieldValue.delete()
+      });
+      setToast('Two-factor authentication turned off.');
+    } catch (ex) {
+      console.error('[GH totp] disable failed', ex);
+      alert(ex.message || 'Could not turn it off — try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const otpUri = secret ? `otpauth://totp/Golden%20Harmonic:${encodeURIComponent(user.email)}?secret=${secret.base32}&issuer=Golden%20Harmonic&algorithm=SHA1&digits=6&period=30` : '';
+  if (!linked) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "table-card"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "empty"
+    }, "Your account isn't linked to a Users record yet, so there's nowhere to save a 2FA secret. Ask a Super Admin to link your account on the Users tab, then come back here."));
+  }
+  return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "section-hd"
+  }, /*#__PURE__*/React.createElement("h2", null, "Two-Factor Authentication")), /*#__PURE__*/React.createElement("div", {
+    className: "table-card",
+    style: {
+      padding: 24
+    }
+  }, !enrolling && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: 'var(--ink-2)',
+      marginBottom: 16,
+      lineHeight: 1.6
+    }
+  }, enabled ? 'Two-factor authentication is on for your account. Each time you sign in, you\'ll also need a 6-digit code from your authenticator app.' : "Add a second step to your login using an authenticator app (Google Authenticator, Authy, etc.) — even if someone gets your password, they can't sign in without your phone too."), enabled ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-danger btn-sm",
+    disabled: busy,
+    onClick: disable
+  }, "Turn off 2FA") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    onClick: startEnroll
+  }, "Set up 2FA")), enrolling && /*#__PURE__*/React.createElement("form", {
+    onSubmit: confirmEnroll
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 12
+    }
+  }, "1. Scan this with your authenticator app"), /*#__PURE__*/React.createElement(TotpQr, {
+    uri: otpUri
+  }), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      marginTop: 10,
+      marginBottom: 20
+    }
+  }, "Can't scan? Enter this key manually: ", /*#__PURE__*/React.createElement("code", {
+    style: {
+      background: '#f8faf9',
+      padding: '2px 6px',
+      borderRadius: 4
+    }
+  }, secret.base32)), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 8
+    }
+  }, "2. Enter the 6-digit code it shows you"), /*#__PURE__*/React.createElement("div", {
+    className: "field",
+    style: {
+      maxWidth: 200
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    autoFocus: true,
+    maxLength: 6,
+    placeholder: "123456",
+    style: {
+      letterSpacing: '4px',
+      fontSize: 18,
+      textAlign: 'center'
+    },
+    value: code,
+    onChange: e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+  })), err && /*#__PURE__*/React.createElement("p", {
+    className: "err-msg"
+  }, err), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 10,
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary btn-sm",
+    type: "submit",
+    disabled: busy || code.length !== 6
+  }, busy ? 'Confirming…' : 'Confirm & turn on'), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    type: "button",
+    onClick: cancelEnroll
+  }, "Cancel")))));
+}
+
 // ── Users panel ────────────────────────────────────────────────────────────
 function Users({
   currentUser,
@@ -1975,6 +2286,17 @@ function Users({
     if (!confirm(`Remove ${email} from the admin list?`)) return;
     await window.db.collection('users').doc(id).delete();
     setToast('User removed from records');
+  };
+  // Lost-phone recovery: turn 2FA back off for someone else's account so they
+  // can sign in with just their password and re-enroll on their own device —
+  // mirrors the manual UID-linking recovery pattern used elsewhere here.
+  const resetTotp = async (id, email) => {
+    if (!confirm(`Turn off two-factor authentication for ${email}? They'll be able to sign in with just their password until they set it up again.`)) return;
+    await window.db.collection('users').doc(id).update({
+      totpEnabled: false,
+      totpSecret: firebase.firestore.FieldValue.delete()
+    });
+    setToast('2FA reset — they can set it up again from the Security tab.');
   };
   return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
     msg: toast,
@@ -2020,12 +2342,26 @@ function Users({
       className: "user-name"
     }, u.name || '(no name)'), /*#__PURE__*/React.createElement("div", {
       className: "user-email"
-    }, u.email, " · ", /*#__PURE__*/React.createElement("em", null, u.role || 'admin')))), /*#__PURE__*/React.createElement("button", {
+    }, u.email, " · ", /*#__PURE__*/React.createElement("em", null, u.role || 'admin'), u.totpEnabled && /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginLeft: 8,
+        color: 'var(--green)',
+        fontWeight: 600
+      }
+    }, "🔒 2FA on")))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8
+      }
+    }, u.totpEnabled && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-outline btn-sm",
+      onClick: () => resetTotp(u._id, u.email)
+    }, "Reset 2FA"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-danger btn-sm",
       disabled: locked,
       title: locked ? 'Only a Super Admin can remove this account' : '',
       onClick: () => removeUser(u._id, u.email, u.role)
-    }, "Remove"));
+    }, "Remove")));
   })));
 }
 function AddUserModal({
@@ -2387,12 +2723,24 @@ const TABS = [{
   label: 'Recently Deleted',
   ico: '🗑️',
   badge: 1
+}, {
+  id: 'security',
+  label: 'Security',
+  ico: '🔒',
+  badge: 5
 }];
 function Dashboard({
   user,
   onLogout
 }) {
   const [tab, setTab] = useState('pipeline');
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Close the mobile drawer whenever a tab is picked, so navigating always
+  // lands back on the content instead of leaving the sidebar hanging open.
+  const selectTab = id => {
+    setTab(id);
+    setMenuOpen(false);
+  };
   const [counts, setCounts] = useState({
     inquiries: 0,
     customers: 0,
@@ -2404,12 +2752,15 @@ function Dashboard({
   // myRole is looked up from users/{uid} — the doc ID MUST equal the Firebase Auth UID
   // for this (and the Firestore security rules) to work. 'unlinked' means this login
   // has no matching users/{uid} record yet — see the banner on the Users tab.
-  const [myRole, setMyRole] = useState(null);
+  const [myDoc, setMyDoc] = useState(null);
   useEffect(() => {
     return window.db.collection('users').doc(user.uid).onSnapshot(doc => {
-      setMyRole(doc.exists ? doc.data().role || 'staff' : 'unlinked');
+      setMyDoc(doc.exists ? doc.data() : {
+        unlinked: true
+      });
     });
   }, [user.uid]);
+  const myRole = myDoc ? myDoc.unlinked ? 'unlinked' : myDoc.role || 'staff' : null;
   const isSuperAdmin = myRole === 'superadmin';
   const isAdminOrHigher = myRole === 'admin' || myRole === 'superadmin';
   const visibleTabs = TABS.filter(t => (t.id !== 'users' || isAdminOrHigher) && (t.id !== 'products' || isAdminOrHigher));
@@ -2438,10 +2789,13 @@ function Dashboard({
       pendingUnsub();
     };
   }, []);
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: `sidebar-backdrop ${menuOpen ? 'open' : ''}`,
+    onClick: () => setMenuOpen(false)
+  }), /*#__PURE__*/React.createElement("div", {
     className: "layout"
   }, /*#__PURE__*/React.createElement("aside", {
-    className: "sidebar"
+    className: `sidebar ${menuOpen ? 'open' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "sidebar-logo"
   }, /*#__PURE__*/React.createElement("img", {
@@ -2466,7 +2820,7 @@ function Dashboard({
   }, visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
     key: t.id,
     className: `nav-item ${tab === t.id ? 'active' : ''}`,
-    onClick: () => setTab(t.id)
+    onClick: () => selectTab(t.id)
   }, /*#__PURE__*/React.createElement("span", {
     className: "ico"
   }, t.ico), /*#__PURE__*/React.createElement("span", null, t.label), counts[t.id] > 0 && /*#__PURE__*/React.createElement("span", {
@@ -2492,8 +2846,19 @@ function Dashboard({
   }, /*#__PURE__*/React.createElement("div", {
     className: "topbar"
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "menu-btn",
+    onClick: () => setMenuOpen(true),
+    "aria-label": "Open menu"
+  }, "☰"), /*#__PURE__*/React.createElement("div", {
     className: "topbar-title"
-  }, TABS.find(t => t.id === tab)?.label), /*#__PURE__*/React.createElement("div", {
+  }, TABS.find(t => t.id === tab)?.label)), /*#__PURE__*/React.createElement("div", {
     className: "topbar-right"
   }, /*#__PURE__*/React.createElement("span", {
     className: "user-badge"
@@ -2501,7 +2866,7 @@ function Dashboard({
     className: "content"
   }, /*#__PURE__*/React.createElement("div", {
     className: "stats-row"
-  }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash').map(t => /*#__PURE__*/React.createElement("div", {
+  }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash' && t.id !== 'security').map(t => /*#__PURE__*/React.createElement("div", {
     key: t.id,
     className: "stat-card",
     style: {
@@ -2532,7 +2897,10 @@ function Dashboard({
   }), tab === 'trash' && /*#__PURE__*/React.createElement(RecentlyDeleted, {
     currentUser: user,
     canPurge: isAdminOrHigher
-  }))));
+  }), tab === 'security' && /*#__PURE__*/React.createElement(Security, {
+    user: user,
+    myDoc: myDoc
+  })))));
 }
 
 // ── Root ───────────────────────────────────────────────────────────────────
