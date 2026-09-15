@@ -36,7 +36,7 @@ const BASE_TIERS = [{
   id: 'regular',
   name: 'Regular Plot',
   category: 'Regular Plots',
-  price: 60000,
+  price: 30000,
   sortOrder: 1,
   desc: 'A standard single-interment lot in our open-lawn sections.',
   features: ['1 interment space', 'Perpetual care included', 'Open-lawn setting']
@@ -44,7 +44,7 @@ const BASE_TIERS = [{
   id: 'premium',
   name: 'Premium Plot',
   category: 'Regular Plots',
-  price: 85000,
+  price: 42500,
   sortOrder: 2,
   desc: 'An upgraded standard plot in one of the park\'s preferred sections.',
   features: ['1 interment space', 'Perpetual care included', 'Preferred section placement']
@@ -52,7 +52,7 @@ const BASE_TIERS = [{
   id: 'corner-premium',
   name: 'Corner Premium Plot',
   category: 'Regular Plots',
-  price: 95000,
+  price: 47500,
   sortOrder: 3,
   desc: 'A corner plot in our most requested standard section.',
   features: ['1 interment space', 'Perpetual care included', 'Corner placement']
@@ -60,7 +60,7 @@ const BASE_TIERS = [{
   id: 'garden-regular',
   name: 'Regular Garden Plot',
   category: 'Garden Plots',
-  price: 75000,
+  price: 37500,
   sortOrder: 4,
   desc: 'A single-interment lot within our landscaped garden sections.',
   features: ['1 interment space', 'Perpetual care included', 'Garden setting']
@@ -68,7 +68,7 @@ const BASE_TIERS = [{
   id: 'garden-premium',
   name: 'Premium Garden Plot',
   category: 'Garden Plots',
-  price: 95000,
+  price: 47500,
   sortOrder: 5,
   desc: 'An upgraded garden plot in a preferred section of the garden.',
   features: ['1 interment space', 'Perpetual care included', 'Preferred garden section']
@@ -76,7 +76,7 @@ const BASE_TIERS = [{
   id: 'garden-corner',
   name: 'Corner Prime Garden Plot',
   category: 'Garden Plots',
-  price: 115000,
+  price: 57500,
   sortOrder: 6,
   desc: 'A corner plot in our most requested garden section.',
   features: ['1 interment space', 'Perpetual care included', 'Prime corner placement']
