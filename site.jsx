@@ -454,7 +454,11 @@ function CountUp({ text }) {
 const LOCAL_PLOT_IMAGES = {
   'regular': '/regular_plot.jpg',
   'premium': '/premium_plot.jpg',
-  'corner-premium': '/corner_premium_plot.jpg'
+  'corner-premium': '/corner_premium_plot.jpg',
+  'garden-regular': '/regular_garden_plot.jpg',
+  'garden-premium': '/premium_garden_plot.jpg',
+  'garden-corner': '/corner_prime_garden_plot.jpg',
+  'family-vault': '/family_vault_package.png'
 };
 
 /* ---------- App ---------- */
