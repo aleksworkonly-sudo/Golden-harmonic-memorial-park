@@ -1,6 +1,32 @@
 /* Golden Harmonic Memorial Park — main site */
 const { useState, useEffect, useMemo, useRef } = React;
 
+/* Locking body scroll with plain `overflow:hidden` doesn't reliably stop touch-scroll
+   on mobile Safari/Chrome and can cause the page to jump — pinning body to `position:
+   fixed` at its current scroll offset (then restoring it on close) is the technique that
+   actually works across mobile browsers. Shared by the Lightbox and the mobile nav drawer. */
+function useBodyScrollLock(active) {
+  useEffect(() => {
+    if (!active) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const prev = { position: body.style.position, top: body.style.top, left: body.style.left, right: body.style.right, width: body.style.width };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    return () => {
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.left = prev.left;
+      body.style.right = prev.right;
+      body.style.width = prev.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [active]);
+}
+
 /* ---------- Palettes ----------
    Keyed by the swatch array so TweakColor can pass the array directly back. */
 const PALETTE_OPTIONS = [
@@ -132,6 +158,8 @@ function LightboxRoot({ children }) {
   const close = () => setState(null);
   const step = (dir) => setState((s) => s && { ...s, index: (s.index + dir + s.items.length) % s.items.length });
 
+  useBodyScrollLock(!!state);
+
   useEffect(() => {
     if (!state) return;
     const onKey = (e) => {
@@ -140,12 +168,7 @@ function LightboxRoot({ children }) {
       if (e.key === 'ArrowLeft') step(-1);
     };
     window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [state]);
 
   return (
@@ -543,16 +566,12 @@ function App() {
 function Header() {
   const [scrolled, setScrolled] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
+  useBodyScrollLock(mobileOpen);
   useEffect(() => {
     if (!mobileOpen) return;
     const onKey = (e) => { if (e.key === 'Escape') setMobileOpen(false); };
     window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [mobileOpen]);
   useEffect(() => {
     const onScroll = () => {
