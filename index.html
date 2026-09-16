@@ -126,27 +126,83 @@
   nav.primary { display: flex; gap: 28px; }
   nav.primary a { text-decoration: none; color: var(--ink-2); font-size: 14px; font-weight: 500; }
   nav.primary a:hover { color: var(--ink); }
-  /* Nav never collapses into a hamburger — on narrow screens it scrolls
-     horizontally instead of wrapping or hiding behind a menu button. */
+  /* Below 860px, the full nav row hides and a hamburger button opens a
+     slide-in drawer from the right instead. */
   @media (max-width: 860px) {
-    nav.primary {
-      flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; -ms-overflow-style: none;
-    }
-    nav.primary::-webkit-scrollbar { display: none; }
+    nav.primary { display: none !important; }
   }
 
-  /* ---------- Mobile navigation (hamburger + slide-down panel) — disabled;
-     the full nav.primary row stays visible and scrolls horizontally instead. ---------- */
-  .mobile-menu-btn { display: none !important; }
-  .mobile-nav-panel { display: none !important; }
-  .mobile-nav-panel .inner { padding: 18px 0; display: flex; flex-direction: column; gap: 4px; }
+  /* ---------- Mobile navigation: hamburger button + slide-in drawer ---------- */
+  .mobile-menu-btn {
+    display: none;
+    position: relative;
+    width: 44px; height: 44px;
+    padding: 0; margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  @media (max-width: 860px) {
+    .mobile-menu-btn { display: inline-flex !important; align-items: center; justify-content: center; }
+  }
+  .mobile-menu-btn span {
+    position: absolute; left: 50%; top: 50%;
+    width: 20px; height: 2px;
+    background: var(--ink);
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    transition: background .2s ease;
+  }
+  .mobile-menu-btn span::before,
+  .mobile-menu-btn span::after {
+    content: '';
+    position: absolute; left: 0;
+    width: 20px; height: 2px;
+    background: var(--ink);
+    border-radius: 2px;
+    transition: transform .3s cubic-bezier(.25,.1,.25,1), top .3s cubic-bezier(.25,.1,.25,1);
+  }
+  .mobile-menu-btn span::before { top: -7px; }
+  .mobile-menu-btn span::after { top: 7px; }
+  .mobile-menu-btn.open span { background: transparent; }
+  .mobile-menu-btn.open span::before { top: 0; transform: rotate(45deg); }
+  .mobile-menu-btn.open span::after { top: 0; transform: rotate(-45deg); }
+
+  /* Full-screen backdrop; .inner is the drawer that actually slides in from
+     the right. Backdrop fades, drawer slides — two separate motions so the
+     close feels like a clean drag-away rather than a hard cut. */
+  .mobile-nav-panel {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(20, 24, 20, .38);
+    opacity: 0; visibility: hidden;
+    transition: opacity .3s ease, visibility 0s linear .3s;
+  }
+  .mobile-nav-panel.open {
+    opacity: 1; visibility: visible;
+    transition: opacity .3s ease, visibility 0s linear 0s;
+  }
+  .mobile-nav-panel .inner {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: min(300px, 82vw);
+    background: var(--bg);
+    box-shadow: -12px 0 34px rgba(0,0,0,.2);
+    transform: translateX(100%);
+    transition: transform .34s cubic-bezier(.22,.68,0,1);
+    padding: 96px 22px 28px;
+    display: flex; flex-direction: column; gap: 4px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-nav-panel.open .inner { transform: translateX(0); }
   .mobile-nav-panel a {
     text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 500;
     padding: 14px 4px; border-radius: 8px; min-height: 44px; display: flex; align-items: center;
   }
   .mobile-nav-panel a:active, .mobile-nav-panel a:hover { background: var(--bg-2); }
   .mobile-nav-panel .btn { margin-top: 8px; width: 100%; justify-content: center; }
+
 
   /* Buttons */
   .btn {
