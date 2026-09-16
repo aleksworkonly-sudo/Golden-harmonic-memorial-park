@@ -539,6 +539,17 @@ function Header() {
   const [scrolled, setScrolled] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileOpen]);
+  useEffect(() => {
     const onScroll = () => {
       // fades from fully opaque at the top down to ~80% opaque over the first 160px of scroll
       const p = Math.min(1, window.scrollY / 160);
@@ -678,8 +689,8 @@ function Header() {
           </button>
         </div>
 
-        <div className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`}>
-          <div className="inner">
+        <div className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`} onClick={() => setMobileOpen(false)}>
+          <div className="inner" onClick={(e) => e.stopPropagation()}>
             {navItems.map(item => (
               <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
                 <span style={{ display: 'inline-flex', marginRight: 10 }}>{item.icon}</span>
