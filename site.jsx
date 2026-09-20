@@ -24,7 +24,7 @@ function useBodyScrollLock(active) {
       body.style.width = prev.width;
       window.scrollTo(0, scrollY);
     };
-  }, [active]);;
+  }, [active]);
 }
 
 /* ---------- Palettes ----------
@@ -573,7 +573,7 @@ function App() {
     }, { threshold: 0.1 });
     document.querySelectorAll('.fade-up').forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [t.showInvestment]);
+  }, []);
 
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
@@ -589,13 +589,11 @@ function App() {
           <Gallery />
           <PaymentPlans tiers={tiers} />
           <Mausoleum />
-          {t.showInvestment && <Investment />}
-          {t.showInvestment && <CliffDivider dark flip />}
           <PrePostNeed />
           <CliffDivider flip />
           <About />
-          <FAQ />
           <Brochure tiers={tiers} />
+          <FAQ />
         </main>
         <Footer />
         <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
@@ -650,9 +648,6 @@ function Header() {
     ) },
     { href: '#mausoleum', label: 'Mausoleum', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 21V9l8-5 8 5v12"/><line x1="9" y1="21" x2="9" y2="13"/><line x1="15" y1="21" x2="15" y2="13"/><line x1="2" y1="21" x2="22" y2="21"/></svg>
-    ) },
-    { href: '#invest', label: 'Investment', icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg>
     ) },
     { href: '#faq', label: 'FAQ', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.8-2.4 2-2.4 3.6"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
@@ -2722,7 +2717,6 @@ function Footer() {
             <h4>Services</h4>
             <ul>
               <li><a href="#plans">Payment Plans</a></li>
-              <li><a href="#invest">Investment</a></li>
               <li><a href="#">Funeral services</a></li>
               <li><a href="#">Venue rental</a></li>
             </ul>
@@ -2770,13 +2764,6 @@ function Tweaks({ t, setTweak, priceMult }) {
           Family Vault · {fmt(105000 * priceMult)}<br />
           Corner Prime Garden · {fmt(57500 * priceMult)}
         </div>
-      </TweakSection>
-      <TweakSection label="Sections">
-        <TweakToggle
-          label="Show investment section"
-          value={t.showInvestment}
-          onChange={(v) => setTweak('showInvestment', v)} />
-
       </TweakSection>
     </TweaksPanel>);
 
