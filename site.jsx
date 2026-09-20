@@ -1468,11 +1468,18 @@ function PaymentPlans({ tiers }) {
                 {guideTier.name} shown at {fmt(guideTier.price)} spot cash · no down payment on any plan.
               </p>
 
-              <div style={{ marginTop: 16 }}>
+              <div style={{ marginTop: 14 }}>
                 <a
                   href="#brochure"
-                  className="btn btn-ghost"
-                  onClick={jumpToBrochure(guideTier.id)}>
+                  className="btn btn-primary"
+                  onClick={jumpToBrochure(guideTier.id)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontWeight: 700,
+                    boxShadow: '0 6px 18px rgba(176,133,68,0.35)'
+                  }}>
                   Get pricing for {cat} →
                 </a>
               </div>
