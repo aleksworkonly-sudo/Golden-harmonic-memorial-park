@@ -737,20 +737,6 @@ function Header() {
               ))}
             </nav>
 
-            <a href="#brochure" className="liquid-metal-btn" style={{
-                position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                overflow: 'hidden', borderRadius: 999, padding: `${btnPadY}px ${btnPadX}px`,
-                order: compact ? 2 : 1,
-                color: '#fffaf0', fontWeight: 700, fontSize: 13, textDecoration: 'none',
-                whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', flexShrink: 0,
-                boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3)',
-                textShadow: '0 1px 2px rgba(0,0,0,.35)',
-                transition: 'padding .35s cubic-bezier(.25,.1,.25,1)'
-              }}>
-              <span className="lm-sweep"></span>
-              <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
-            </a>
-
             <button
               type="button"
               className="nav-link-icon gh-cart-toggle"
@@ -961,7 +947,17 @@ function Hero({ onOpenPortal }) {
           </p>
 
           <div className="cta-row" style={{ marginBottom: 14 }}>
-            <a href="#brochure" className="btn btn-primary">Get the full price list</a>
+            <a href="#brochure" className="btn liquid-metal-btn" style={{
+                position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden', borderRadius: 10, padding: '14px 28px',
+                color: '#fffaf0', fontWeight: 700, fontSize: 15, textDecoration: 'none',
+                whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif',
+                boxShadow: '0 4px 14px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.3)',
+                textShadow: '0 1px 2px rgba(0,0,0,.35)'
+              }}>
+              <span className="lm-sweep"></span>
+              <span style={{ position: 'relative', zIndex: 1 }}>Get the full price list</span>
+            </a>
             <a href="#tiers" className="btn btn-ghost">View plots &amp; pricing →</a>
           </div>
 
