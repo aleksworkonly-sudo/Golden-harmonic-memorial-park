@@ -694,7 +694,7 @@ function Header() {
       `}</style>
       <div className="wrap">
         <div className="header-row" style={{
-            display: 'flex', alignItems: 'center', flexWrap: compact ? 'nowrap' : 'wrap',
+            display: 'flex', alignItems: 'center', flexWrap: 'nowrap',
             justifyContent: 'space-between', gap: rowGap,
             transition: 'gap .35s cubic-bezier(.25,.1,.25,1)'
           }}>
@@ -707,76 +707,84 @@ function Header() {
             </div>
           </a>
 
-          <nav className="primary nav-wrap" style={{
-              display: 'flex', alignItems: 'center', gap: navGap, flexWrap: compact ? 'nowrap' : 'wrap',
-              order: compact ? 1 : 3,
-              flexBasis: compact ? 'auto' : '100%',
-              marginTop: compact ? 0 : 10,
-              overflow: compact ? 'hidden' : 'visible',
-              minWidth: 0,
-              opacity: 1,
-              transition: 'gap .35s cubic-bezier(.25,.1,.25,1), margin-top .35s cubic-bezier(.25,.1,.25,1)'
+          {/* Everything right of the logo lives in one flex group so justify-content:
+              space-between on header-row only opens a single gap (logo <-> group),
+              instead of spreading nav / CTA / cart apart from each other. */}
+          <div className="nav-cta-group" style={{
+              display: 'flex', alignItems: 'center', flexWrap: compact ? 'nowrap' : 'wrap',
+              justifyContent: 'flex-end', gap: 16
             }}>
-            {navItems.map(item => (
-              <a key={item.href} href={item.href} className="nav-link-icon"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
-                  padding: `${navPadY}px ${navPadX}px`, fontSize: navFontSize,
-                  borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
-                  background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)',
-                  transition: 'padding .35s cubic-bezier(.25,.1,.25,1), font-size .35s cubic-bezier(.25,.1,.25,1), background .15s ease, border-color .15s ease' }}>
-                <span style={{ display: 'inline-flex' }}>{item.icon}</span>
-                {item.label}
-              </a>
-            ))}
-          </nav>
+            <nav className="primary nav-wrap" style={{
+                display: 'flex', alignItems: 'center', gap: navGap, flexWrap: compact ? 'nowrap' : 'wrap',
+                order: compact ? 1 : 3,
+                flexBasis: compact ? 'auto' : '100%',
+                marginTop: compact ? 0 : 10,
+                overflow: compact ? 'hidden' : 'visible',
+                minWidth: 0,
+                opacity: 1,
+                transition: 'gap .35s cubic-bezier(.25,.1,.25,1), margin-top .35s cubic-bezier(.25,.1,.25,1)'
+              }}>
+              {navItems.map(item => (
+                <a key={item.href} href={item.href} className="nav-link-icon"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+                    padding: `${navPadY}px ${navPadX}px`, fontSize: navFontSize,
+                    borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
+                    background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)',
+                    transition: 'padding .35s cubic-bezier(.25,.1,.25,1), font-size .35s cubic-bezier(.25,.1,.25,1), background .15s ease, border-color .15s ease' }}>
+                  <span style={{ display: 'inline-flex' }}>{item.icon}</span>
+                  {item.label}
+                </a>
+              ))}
+            </nav>
 
-          <a href="#brochure" className="liquid-metal-btn" style={{
-              position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', borderRadius: 999, padding: `${btnPadY}px ${btnPadX}px`,
-              order: compact ? 2 : 1,
-              color: '#fffaf0', fontWeight: 700, fontSize: 13, textDecoration: 'none',
-              whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', flexShrink: 0,
-              boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3)',
-              textShadow: '0 1px 2px rgba(0,0,0,.35)',
-              transition: 'padding .35s cubic-bezier(.25,.1,.25,1)'
-            }}>
-            <span className="lm-sweep"></span>
-            <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
-          </a>
+            <a href="#brochure" className="liquid-metal-btn" style={{
+                position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden', borderRadius: 999, padding: `${btnPadY}px ${btnPadX}px`,
+                order: compact ? 2 : 1,
+                color: '#fffaf0', fontWeight: 700, fontSize: 13, textDecoration: 'none',
+                whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', flexShrink: 0,
+                boxShadow: '0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3)',
+                textShadow: '0 1px 2px rgba(0,0,0,.35)',
+                transition: 'padding .35s cubic-bezier(.25,.1,.25,1)'
+              }}>
+              <span className="lm-sweep"></span>
+              <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
+            </a>
 
-          <button
-            type="button"
-            className="nav-link-icon gh-cart-toggle"
-            onClick={() => setCartOpen(true)}
-            aria-label={`Open cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
-            style={{
-              order: compact ? 2 : 1, flexShrink: 0, position: 'relative',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 38, height: 38, borderRadius: 9, cursor: 'pointer',
-              background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)', color: 'var(--ink-2)'
-            }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-            {cartCount > 0 && (
-              <span style={{
-                position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 4px',
-                borderRadius: 9, background: 'var(--gold)', color: '#fffaf0',
-                fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'Inter, sans-serif', boxShadow: '0 1px 3px rgba(0,0,0,.3)'
-              }}>{cartCount}</span>
-            )}
-          </button>
+            <button
+              type="button"
+              className="nav-link-icon gh-cart-toggle"
+              onClick={() => setCartOpen(true)}
+              aria-label={`Open cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+              style={{
+                order: compact ? 2 : 1, flexShrink: 0, position: 'relative',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 38, height: 38, borderRadius: 9, cursor: 'pointer',
+                background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)', color: 'var(--ink-2)'
+              }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              {cartCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 4px',
+                  borderRadius: 9, background: 'var(--gold)', color: '#fffaf0',
+                  fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'Inter, sans-serif', boxShadow: '0 1px 3px rgba(0,0,0,.3)'
+                }}>{cartCount}</span>
+              )}
+            </button>
 
-          <button
-            className={`mobile-menu-btn${mobileOpen ? ' open' : ''}`}
-            onClick={() => setMobileOpen(o => !o)}
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileOpen}
-            style={{ order: 4 }}>
-            <span></span>
-          </button>
+            <button
+              className={`mobile-menu-btn${mobileOpen ? ' open' : ''}`}
+              onClick={() => setMobileOpen(o => !o)}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              style={{ order: 4 }}>
+              <span></span>
+            </button>
+          </div>
         </div>
 
         <div className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`} onClick={() => setMobileOpen(false)}>
