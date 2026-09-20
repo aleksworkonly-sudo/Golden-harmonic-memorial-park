@@ -150,8 +150,8 @@ function usePlanSelection() { return React.useContext(PlanSelectionContext); }
 /* ---------- Cart (shared between Tier cards, Header, and the Cart Drawer) ---------- */
 const CART_STORAGE_KEY = 'gh_cart_v1';
 const CartContext = React.createContext({
-  cart: [], addToCart: () => {}, removeFromCart: () => {}, clearCart: () => {},
-  cartOpen: false, setCartOpen: () => {}
+  cart: [], addToCart: () => {}, removeFromCart: () => {}, updateQty: () => {}, clearCart: () => {},
+  cartCount: 0, cartOpen: false, setCartOpen: () => {}
 });
 function useCart() { return React.useContext(CartContext); }
 
@@ -520,14 +520,23 @@ function App() {
     try { window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch (err) { /* ignore */ }
   }, [cart]);
 
-  const addToCart = (tier) => {
-    setCart((prev) => prev.find((i) => i.id === tier.id) ?
-    prev :
-    [...prev, { id: tier.id, name: tier.name, price: tier.price, category: tier.category }]);
+  const addToCart = (tier, qty = 1) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === tier.id);
+      if (existing) {
+        return prev.map((i) => i.id === tier.id ? { ...i, qty: i.qty + qty } : i);
+      }
+      return [...prev, { id: tier.id, name: tier.name, price: tier.price, category: tier.category, qty }];
+    });
     setCartOpen(true);
   };
+  const updateQty = (id, qty) => setCart((prev) => {
+    if (qty <= 0) return prev.filter((i) => i.id !== id);
+    return prev.map((i) => i.id === id ? { ...i, qty } : i);
+  });
   const removeFromCart = (id) => setCart((prev) => prev.filter((i) => i.id !== id));
   const clearCart = () => setCart([]);
+  const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
 
   // Load products from Firestore (falls back to hardcoded BASE_TIERS if DB is empty)
   useEffect(() => {
@@ -568,7 +577,7 @@ function App() {
 
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, cartOpen, setCartOpen }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, cartCount, cartOpen, setCartOpen }}>
       <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12}
         style={{ position: 'fixed', zIndex: 0 }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -602,7 +611,7 @@ function App() {
 function Header() {
   const [scrolled, setScrolled] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { cart, setCartOpen } = useCart();
+  const { cart, cartCount, setCartOpen } = useCart();
   useBodyScrollLock(mobileOpen);
   useEffect(() => {
     if (!mobileOpen) return;
@@ -744,7 +753,7 @@ function Header() {
             type="button"
             className="nav-link-icon gh-cart-toggle"
             onClick={() => setCartOpen(true)}
-            aria-label={`Open cart, ${cart.length} item${cart.length === 1 ? '' : 's'}`}
+            aria-label={`Open cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
             style={{
               order: compact ? 2 : 1, flexShrink: 0, position: 'relative',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -755,13 +764,13 @@ function Header() {
               <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
-            {cart.length > 0 && (
+            {cartCount > 0 && (
               <span style={{
                 position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 4px',
                 borderRadius: 9, background: 'var(--gold)', color: '#fffaf0',
                 fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: 'Inter, sans-serif', boxShadow: '0 1px 3px rgba(0,0,0,.3)'
-              }}>{cart.length}</span>
+              }}>{cartCount}</span>
             )}
           </button>
 
@@ -1216,7 +1225,8 @@ function tierSceneKey(t) {
 function Tier({ tier, i = 0, allTiers = [] }) {
   const { selectedTierId, selectTier } = usePlanSelection();
   const { cart, addToCart } = useCart();
-  const inCart = cart.some((c) => c.id === tier.id);
+  const inCartItem = cart.find((c) => c.id === tier.id);
+  const [qty, setQty] = useState(1);
   const group = allTiers.length ?
   allTiers.map((t) => ({ label: t.label, caption: t.name, image: t.image, scene: t.image ? undefined : tierSceneKey(t) })) :
   [{ label: tier.label, caption: tier.name, image: tier.image, scene: tier.image ? undefined : tierSceneKey(tier) }];
@@ -1258,15 +1268,40 @@ function Tier({ tier, i = 0, allTiers = [] }) {
 
           {isSelected ? '✓ Selected — see your plan below' : 'Choose this plan →'}
         </a>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}
-          disabled={inCart}
-          onClick={() => addToCart(tier)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
+            borderRadius: 8, overflow: 'hidden', flexShrink: 0
+          }}>
+            <button
+              type="button"
+              aria-label="Decrease quantity"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              style={{
+                width: 32, height: 32, border: 'none', background: 'var(--card)',
+                color: 'var(--ink)', fontSize: 16, cursor: 'pointer', lineHeight: 1
+              }}>−</button>
+            <span style={{
+              width: 34, textAlign: 'center', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)'
+            }}>{qty}</span>
+            <button
+              type="button"
+              aria-label="Increase quantity"
+              onClick={() => setQty((q) => q + 1)}
+              style={{
+                width: 32, height: 32, border: 'none', background: 'var(--card)',
+                color: 'var(--ink)', fontSize: 16, cursor: 'pointer', lineHeight: 1
+              }}>+</button>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => { addToCart(tier, qty); setQty(1); }}>
 
-          {inCart ? '✓ In your cart' : 'Add to Cart'}
-        </button>
+            {inCartItem ? `✓ In cart (${inCartItem.qty}) — add more` : 'Add to Cart'}
+          </button>
+        </div>
       </div>
     </div>);
 
@@ -2443,7 +2478,7 @@ function CustomerPortal({ open, onClose }) {
    cart. Payment stays manual: after submitting, staff follow up with
    GCash details the same way they do for every other lead today. */
 function CartDrawer({ open, onClose }) {
-  const { cart, removeFromCart, clearCart } = useCart();
+  const { cart, removeFromCart, updateQty, clearCart } = useCart();
   const [step, setStep] = useState('cart'); // 'cart' | 'checkout' | 'sent'
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [saving, setSaving] = useState(false);
@@ -2470,7 +2505,8 @@ function CartDrawer({ open, onClose }) {
 
   if (!open) return null;
 
-  const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
+  const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const itemCount = cart.reduce((sum, i) => sum + i.qty, 0);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const submit = async (e) => {
@@ -2488,7 +2524,7 @@ function CartDrawer({ open, onClose }) {
           phone: form.phone,
           source: 'website',
           createdAt: ts,
-          items: cart.map((i) => ({ planId: i.id, planName: i.name, planPrice: i.price })),
+          items: cart.map((i) => ({ planId: i.id, planName: i.name, planPrice: i.price, qty: i.qty, lineTotal: i.price * i.qty })),
           totalPrice: subtotal
         };
         // 1. Save the order
@@ -2512,7 +2548,7 @@ function CartDrawer({ open, onClose }) {
           first_name: form.firstName,
           last_name: form.lastName,
           phone: form.phone,
-          plan_name: cart.map((i) => i.name).join(', '),
+          plan_name: cart.map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`).join(', '),
           plan_price: fmt(subtotal)
         }).catch((err) => console.error('[GH] Email send error:', err));
       }
@@ -2593,9 +2629,30 @@ function CartDrawer({ open, onClose }) {
                       <div>
                         <div className="name">{item.name}</div>
                         <div className="cat">{item.category}</div>
-                        <button className="gh-cart-remove" onClick={() => removeFromCart(item.id)}>Remove</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
+                            borderRadius: 7, overflow: 'hidden'
+                          }}>
+                            <button
+                              type="button"
+                              aria-label={`Decrease quantity of ${item.name}`}
+                              onClick={() => updateQty(item.id, item.qty - 1)}
+                              style={{ width: 26, height: 26, border: 'none', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>−</button>
+                            <span style={{ width: 26, textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{item.qty}</span>
+                            <button
+                              type="button"
+                              aria-label={`Increase quantity of ${item.name}`}
+                              onClick={() => updateQty(item.id, item.qty + 1)}
+                              style={{ width: 26, height: 26, border: 'none', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>+</button>
+                          </div>
+                          <button className="gh-cart-remove" style={{ marginTop: 0 }} onClick={() => removeFromCart(item.id)}>Remove</button>
+                        </div>
                       </div>
-                      <div className="price">{fmt(item.price)}</div>
+                      <div className="price">
+                        {fmt(item.price * item.qty)}
+                        {item.qty > 1 && <div style={{ fontSize: 11, color: 'var(--ink-2)', marginTop: 2 }}>{fmt(item.price)} each</div>}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2618,7 +2675,7 @@ function CartDrawer({ open, onClose }) {
                 <label>Email<input type="email" required value={form.email} onChange={set('email')} /></label>
                 <label>Phone<input required value={form.phone} onChange={set('phone')} /></label>
                 <div className="gh-cart-subtotal" style={{ marginTop: 20 }}>
-                  <span className="lbl">Total ({cart.length} {cart.length === 1 ? 'plot' : 'plots'})</span>
+                  <span className="lbl">Total ({itemCount} {itemCount === 1 ? 'plot' : 'plots'})</span>
                   <span className="val">{fmt(subtotal)}</span>
                 </div>
                 <button className="gh-cart-btn" type="submit" disabled={saving}>
