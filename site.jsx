@@ -147,6 +147,14 @@ const fmt = (n) => '₱' + Math.round(n).toLocaleString('en-PH');
 const PlanSelectionContext = React.createContext({ selectedTierId: null, selectTier: () => {} });
 function usePlanSelection() { return React.useContext(PlanSelectionContext); }
 
+/* ---------- Cart (shared between Tier cards, Header, and the Cart Drawer) ---------- */
+const CART_STORAGE_KEY = 'gh_cart_v1';
+const CartContext = React.createContext({
+  cart: [], addToCart: () => {}, removeFromCart: () => {}, clearCart: () => {},
+  cartOpen: false, setCartOpen: () => {}
+});
+function useCart() { return React.useContext(CartContext); }
+
 /* ---------- Lightbox (shared across Gallery, Tiers) ---------- */
 const LightboxContext = React.createContext(() => {});
 function useLightbox() { return React.useContext(LightboxContext); }
@@ -496,6 +504,31 @@ function App() {
   const [selectedTierId, setSelectedTierId] = useState(null);
   const [portalOpen, setPortalOpen] = useState(false);
 
+  // Cart: persisted to localStorage so it survives a refresh, but never
+  // touches Firestore until the customer actually submits an order.
+  const [cart, setCart] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      return [];
+    }
+  });
+  const [cartOpen, setCartOpen] = useState(false);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch (err) { /* ignore */ }
+  }, [cart]);
+
+  const addToCart = (tier) => {
+    setCart((prev) => prev.find((i) => i.id === tier.id) ?
+    prev :
+    [...prev, { id: tier.id, name: tier.name, price: tier.price, category: tier.category }]);
+    setCartOpen(true);
+  };
+  const removeFromCart = (id) => setCart((prev) => prev.filter((i) => i.id !== id));
+  const clearCart = () => setCart([]);
+
   // Load products from Firestore (falls back to hardcoded BASE_TIERS if DB is empty)
   useEffect(() => {
     if (!window.db) return;
@@ -535,6 +568,7 @@ function App() {
 
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, cartOpen, setCartOpen }}>
       <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12}
         style={{ position: 'fixed', zIndex: 0 }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -556,9 +590,11 @@ function App() {
         </main>
         <Footer />
         <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
+        <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
         <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
       </LightboxRoot>
       </div>
+    </CartContext.Provider>
     </PlanSelectionContext.Provider>);
 }
 
@@ -566,6 +602,7 @@ function App() {
 function Header() {
   const [scrolled, setScrolled] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { cart, setCartOpen } = useCart();
   useBodyScrollLock(mobileOpen);
   useEffect(() => {
     if (!mobileOpen) return;
@@ -702,6 +739,31 @@ function Header() {
             <span className="lm-sweep"></span>
             <span style={{ position: 'relative', zIndex: 1 }}>Free price list</span>
           </a>
+
+          <button
+            type="button"
+            className="nav-link-icon gh-cart-toggle"
+            onClick={() => setCartOpen(true)}
+            aria-label={`Open cart, ${cart.length} item${cart.length === 1 ? '' : 's'}`}
+            style={{
+              order: compact ? 2 : 1, flexShrink: 0, position: 'relative',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 38, height: 38, borderRadius: 9, cursor: 'pointer',
+              background: 'rgba(0,0,0,.05)', border: '1px solid var(--line)', color: 'var(--ink-2)'
+            }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+            {cart.length > 0 && (
+              <span style={{
+                position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 4px',
+                borderRadius: 9, background: 'var(--gold)', color: '#fffaf0',
+                fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'Inter, sans-serif', boxShadow: '0 1px 3px rgba(0,0,0,.3)'
+              }}>{cart.length}</span>
+            )}
+          </button>
 
           <button
             className={`mobile-menu-btn${mobileOpen ? ' open' : ''}`}
@@ -1153,6 +1215,8 @@ function tierSceneKey(t) {
 
 function Tier({ tier, i = 0, allTiers = [] }) {
   const { selectedTierId, selectTier } = usePlanSelection();
+  const { cart, addToCart } = useCart();
+  const inCart = cart.some((c) => c.id === tier.id);
   const group = allTiers.length ?
   allTiers.map((t) => ({ label: t.label, caption: t.name, image: t.image, scene: t.image ? undefined : tierSceneKey(t) })) :
   [{ label: tier.label, caption: tier.name, image: tier.image, scene: tier.image ? undefined : tierSceneKey(tier) }];
@@ -1194,6 +1258,15 @@ function Tier({ tier, i = 0, allTiers = [] }) {
 
           {isSelected ? '✓ Selected — see your plan below' : 'Choose this plan →'}
         </a>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}
+          disabled={inCart}
+          onClick={() => addToCart(tier)}>
+
+          {inCart ? '✓ In your cart' : 'Add to Cart'}
+        </button>
       </div>
     </div>);
 
@@ -2362,6 +2435,203 @@ function CustomerPortal({ open, onClose }) {
       </div>
     </div>
   );
+}
+
+/* ---------- Cart Drawer & Checkout ----------
+   Mirrors the submission pattern used by Brochure() (inquiries + customers
+   in Firestore, best-effort EmailJS confirmation) but for a multi-item
+   cart. Payment stays manual: after submitting, staff follow up with
+   GCash details the same way they do for every other lead today. */
+function CartDrawer({ open, onClose }) {
+  const { cart, removeFromCart, clearCart } = useCart();
+  const [step, setStep] = useState('cart'); // 'cart' | 'checkout' | 'sent'
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const cardRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  useBodyScrollLock(open);
+
+  useEffect(() => {
+    if (!open) { setStep('cart'); setError(''); return; }
+    previousFocusRef.current = document.activeElement;
+    const focusTimer = setTimeout(() => { if (cardRef.current) cardRef.current.focus(); }, 0);
+    const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown);
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      if (window.db) {
+        const ts = firebase.firestore.FieldValue.serverTimestamp();
+        const base = {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          fullName: `${form.firstName} ${form.lastName}`,
+          email: form.email,
+          phone: form.phone,
+          source: 'website',
+          createdAt: ts,
+          items: cart.map((i) => ({ planId: i.id, planName: i.name, planPrice: i.price })),
+          totalPrice: subtotal
+        };
+        // 1. Save the order
+        const orderRef = await window.db.collection('orders').add({
+          ...base,
+          type: 'cart_checkout',
+          status: 'pending_payment'
+        });
+        // 2. Save customer / lead, linked to the order
+        await window.db.collection('customers').add({
+          ...base,
+          status: 'lead',
+          orderIds: [orderRef.id]
+        });
+      }
+
+      // Best-effort confirmation email — quietly no-ops if EmailJS isn't configured.
+      if (window.emailjs && window.EMAILJS_CONFIG && window.EMAILJS_CONFIG.PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
+        emailjs.send(window.EMAILJS_CONFIG.SERVICE_ID, window.EMAILJS_CONFIG.TEMPLATE_ID, {
+          to_email: form.email,
+          first_name: form.firstName,
+          last_name: form.lastName,
+          phone: form.phone,
+          plan_name: cart.map((i) => i.name).join(', '),
+          plan_price: fmt(subtotal)
+        }).catch((err) => console.error('[GH] Email send error:', err));
+      }
+
+      clearCart();
+      setStep('sent');
+    } catch (err) {
+      console.error('[GH] Order save error:', err);
+      setError('Could not submit your order. Please call us at +63 917 123 4567.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="gh-cart-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <style>{`
+        .gh-cart-overlay{ position:fixed; inset:0; background:rgba(20,20,18,.5); z-index:200; display:flex; justify-content:flex-end; }
+        .gh-cart-panel{ background:var(--card); width:min(420px,100%); max-width:100%; height:100%;
+          overflow-y:auto; position:relative; box-shadow:-12px 0 40px rgba(0,0,0,.22); border-left:1px solid var(--line);
+          padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); display:flex; flex-direction:column; }
+        .gh-cart-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-2); line-height:1; z-index:2; }
+        .gh-cart-head{ padding:28px 28px 18px; border-bottom:1px solid var(--line); flex-shrink:0; }
+        .gh-cart-head h2{ font-size:20px; font-weight:700; color:var(--ink); margin:0; }
+        .gh-cart-items{ padding:8px 28px; flex:1; overflow-y:auto; }
+        .gh-cart-empty{ font-size:13.5px; color:var(--ink-2); padding:40px 0; text-align:center; line-height:1.6; }
+        .gh-cart-item{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:16px 0; border-bottom:1px solid var(--line); }
+        .gh-cart-item .name{ font-size:14.5px; font-weight:600; color:var(--ink); }
+        .gh-cart-item .cat{ font-size:12px; color:var(--ink-2); margin-top:2px; }
+        .gh-cart-item .price{ font-size:14px; color:var(--ink); white-space:nowrap; }
+        .gh-cart-remove{ font-size:12px; color:var(--ink-2); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; margin-top:8px; }
+        .gh-cart-remove:hover{ color:var(--terracotta); }
+        .gh-cart-foot{ padding:20px 28px 28px; border-top:1px solid var(--line); flex-shrink:0; }
+        .gh-cart-subtotal{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px; }
+        .gh-cart-subtotal .lbl{ font-size:13px; color:var(--ink-2); }
+        .gh-cart-subtotal .val{ font-size:19px; font-weight:700; color:var(--accent); }
+        .gh-cart-btn{ width:100%; background:var(--accent); color:var(--accent-ink); border:none; padding:13px; border-radius:10px; font-weight:600; font-size:14.5px; cursor:pointer; box-shadow:0 6px 14px rgba(47,93,76,.2); }
+        .gh-cart-btn:hover{ opacity:.94; }
+        .gh-cart-btn:disabled{ opacity:.5; cursor:not-allowed; }
+        .gh-cart-note{ font-size:12px; color:var(--ink-2); margin-top:10px; text-align:center; line-height:1.5; }
+        .gh-cart-form{ padding:18px 28px 28px; overflow-y:auto; }
+        .gh-cart-form label{ display:block; font-size:13px; font-weight:500; color:var(--ink); margin-bottom:6px; margin-top:16px; }
+        .gh-cart-form label:first-child{ margin-top:0; }
+        .gh-cart-form input{ width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:10px; font-size:14.5px; font-family:inherit; background:var(--bg); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.04); }
+        .gh-cart-form input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,93,76,.12); }
+        .gh-cart-back{ background:none; border:none; font-size:13px; color:var(--ink-2); cursor:pointer; padding:0; margin-bottom:14px; text-decoration:underline; }
+        .gh-cart-error{ font-size:13px; color:#a85c4b; margin-top:12px; }
+      `}</style>
+      <div className="gh-cart-panel" ref={cardRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Shopping cart" style={{ outline: 'none' }}>
+        <button className="gh-cart-close" onClick={onClose} aria-label="Close cart">✕</button>
+
+        {step === 'sent' ? (
+          <div style={{ padding: '60px 28px', textAlign: 'center' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%', background: 'var(--accent)',
+              color: 'var(--accent-ink)', margin: '0 auto 20px',
+              display: 'grid', placeItems: 'center', fontSize: 26
+            }}>✓</div>
+            <h3 style={{ marginBottom: 10, color: 'var(--ink)' }}>Order request sent.</h3>
+            <p style={{ color: 'var(--ink-2)', fontSize: 13.5, lineHeight: 1.6 }}>
+              Check your inbox for a confirmation. Our staff will reach out with GCash payment details to complete your reservation.
+            </p>
+            <button className="gh-cart-btn" style={{ marginTop: 24 }} onClick={onClose}>Close</button>
+          </div>
+        ) : (
+          <React.Fragment>
+            <div className="gh-cart-head">
+              <h2>{step === 'checkout' ? 'Your details' : 'Your Cart'}</h2>
+            </div>
+
+            {step === 'cart' ? (
+              <React.Fragment>
+                <div className="gh-cart-items">
+                  {cart.length === 0 ? (
+                    <p className="gh-cart-empty">Your cart is empty.<br />Browse our plots and add one to get started.</p>
+                  ) : cart.map((item) => (
+                    <div className="gh-cart-item" key={item.id}>
+                      <div>
+                        <div className="name">{item.name}</div>
+                        <div className="cat">{item.category}</div>
+                        <button className="gh-cart-remove" onClick={() => removeFromCart(item.id)}>Remove</button>
+                      </div>
+                      <div className="price">{fmt(item.price)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="gh-cart-foot">
+                  <div className="gh-cart-subtotal">
+                    <span className="lbl">Subtotal</span>
+                    <span className="val">{fmt(subtotal)}</span>
+                  </div>
+                  <button className="gh-cart-btn" disabled={cart.length === 0} onClick={() => setStep('checkout')}>
+                    Proceed to Checkout
+                  </button>
+                  <p className="gh-cart-note">No payment is taken yet — you'll confirm your details next.</p>
+                </div>
+              </React.Fragment>
+            ) : (
+              <form className="gh-cart-form" onSubmit={submit}>
+                <button type="button" className="gh-cart-back" onClick={() => setStep('cart')}>← Back to cart</button>
+                <label>First name<input required value={form.firstName} onChange={set('firstName')} /></label>
+                <label>Last name<input required value={form.lastName} onChange={set('lastName')} /></label>
+                <label>Email<input type="email" required value={form.email} onChange={set('email')} /></label>
+                <label>Phone<input required value={form.phone} onChange={set('phone')} /></label>
+                <div className="gh-cart-subtotal" style={{ marginTop: 20 }}>
+                  <span className="lbl">Total ({cart.length} {cart.length === 1 ? 'plot' : 'plots'})</span>
+                  <span className="val">{fmt(subtotal)}</span>
+                </div>
+                <button className="gh-cart-btn" type="submit" disabled={saving}>
+                  {saving ? 'Submitting…' : 'Submit Order'}
+                </button>
+                {error && <p className="gh-cart-error">{error}</p>}
+                <p className="gh-cart-note">Our staff will follow up with GCash payment instructions — same as our current process.</p>
+              </form>
+            )}
+          </React.Fragment>
+        )}
+      </div>
+    </div>);
 }
 
 function Footer() {
