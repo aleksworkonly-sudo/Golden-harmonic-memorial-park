@@ -24,7 +24,7 @@ function useBodyScrollLock(active) {
       body.style.width = prev.width;
       window.scrollTo(0, scrollY);
     };
-  }, [active]);
+  }, [active]);;
 }
 
 /* ---------- Palettes ----------
