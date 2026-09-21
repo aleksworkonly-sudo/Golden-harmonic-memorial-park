@@ -2223,7 +2223,7 @@ function PortalDashboard({ customer, onLogout }) {
   const pendingRows = (customer.paymentSubmissions || []).map(p => ({ ...p, _kind: 'submission' }));
   const history = [...confirmedRows, ...pendingRows].sort((a, b) => (a.date < b.date ? 1 : -1));
 
-  const [form, setForm] = useState({ referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
+  const [form, setForm] = useState({ method: 'gcash', referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -2237,14 +2237,14 @@ function PortalDashboard({ customer, onLogout }) {
           referenceNumber: form.referenceNumber.trim(),
           amount: Number(form.amount),
           date: form.date,
-          method: 'GCash',
+          method: form.method === 'bank' ? 'Bank Transfer' : 'GCash',
           mobileNumber: form.mobileNumber.trim(),
           note: form.note.trim(),
           status: 'pending',
           submittedAt: Date.now()
         })
       });
-      setForm({ referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
+      setForm({ method: form.method, referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
       setToast('Submitted — our staff will confirm this against the transaction.');
       setTimeout(() => setToast(''), 6000);
     } catch (ex) {
@@ -2295,11 +2295,12 @@ function PortalDashboard({ customer, onLogout }) {
           <div className="gh-portal-empty">No payments recorded yet.</div>
         ) : (
           <table className="gh-portal-table">
-            <thead><tr><th>Date</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead>
+            <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead>
             <tbody>
               {history.map((p, i) => (
                 <tr key={i}>
                   <td>{p.date}</td>
+                  <td>{p.method || 'GCash'}</td>
                   <td>{p.referenceNumber || '—'}</td>
                   <td>{fmt(p.amount)}</td>
                   <td>
@@ -2318,11 +2319,35 @@ function PortalDashboard({ customer, onLogout }) {
 
       <div className="gh-portal-section">
         <h4>Submit a payment reference</h4>
-        <p className="gh-portal-help">Pay via our GCash for Business QR code, then send us the reference number. Our staff will confirm it against the transaction and update your balance.</p>
+        <p className="gh-portal-help">
+          {form.method === 'bank'
+            ? "Send your payment to our business bank account, then submit the transfer reference below. Our staff will confirm it against the transaction and update your balance."
+            : "Pay via our GCash for Business QR code, then send us the reference number. Our staff will confirm it against the transaction and update your balance."}
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {[
+            { key: 'gcash', label: 'GCash' },
+            { key: 'bank', label: 'Bank Transfer' }
+          ].map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, method: opt.key }))}
+              style={{
+                flex: 1, padding: '10px 12px', borderRadius: 10, fontSize: 13.5, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                border: form.method === opt.key ? '1px solid var(--accent)' : '1px solid var(--line)',
+                background: form.method === opt.key ? 'var(--accent)' : 'var(--bg)',
+                color: form.method === opt.key ? 'var(--accent-ink)' : 'var(--ink)'
+              }}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
         <form onSubmit={submitReference} className="gh-portal-form-grid">
           <div>
-            <label htmlFor="gh-pay-ref">GCash reference number</label>
-            <input id="gh-pay-ref" type="text" required value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder="e.g. GC-99214870" />
+            <label htmlFor="gh-pay-ref">{form.method === 'bank' ? 'Bank transfer reference no.' : 'GCash reference number'}</label>
+            <input id="gh-pay-ref" type="text" required value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder={form.method === 'bank' ? 'e.g. BDO-88213410' : 'e.g. GC-99214870'} />
           </div>
           <div>
             <label htmlFor="gh-pay-amount">Amount paid</label>
@@ -2333,8 +2358,8 @@ function PortalDashboard({ customer, onLogout }) {
             <input id="gh-pay-date" type="date" required value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
           </div>
           <div>
-            <label htmlFor="gh-pay-mobile">Your GCash mobile no. (optional)</label>
-            <input id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))} placeholder="09XX XXX XXXX" />
+            <label htmlFor="gh-pay-mobile">{form.method === 'bank' ? 'Sending bank (optional)' : 'Your GCash mobile no. (optional)'}</label>
+            <input id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))} placeholder={form.method === 'bank' ? 'e.g. BDO, BPI' : '09XX XXX XXXX'} />
           </div>
           <div className="full">
             <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting…' : 'Submit for confirmation'}</button>
