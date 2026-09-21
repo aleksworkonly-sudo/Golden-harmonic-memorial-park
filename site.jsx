@@ -2503,7 +2503,7 @@ function CustomerPortal({ open, onClose }) {
 function CartDrawer({ open, onClose }) {
   const { cart, removeFromCart, updateQty, clearCart } = useCart();
   const [step, setStep] = useState('cart'); // 'cart' | 'checkout' | 'sent'
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', paymentMethod: 'gcash', term: 'cash' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const cardRef = useRef(null);
@@ -2528,7 +2528,10 @@ function CartDrawer({ open, onClose }) {
 
   if (!open) return null;
 
-  const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const selectedTerm = PLAN_TERMS.find((t) => t.key === form.term) || PLAN_TERMS[0];
+  const rawSubtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const subtotal = rawSubtotal * (1 + selectedTerm.surcharge);
+  const monthly = selectedTerm.months ? subtotal / selectedTerm.months : null;
   const itemCount = cart.reduce((sum, i) => sum + i.qty, 0);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -2547,8 +2550,14 @@ function CartDrawer({ open, onClose }) {
           phone: form.phone,
           source: 'website',
           createdAt: ts,
-          items: cart.map((i) => ({ planId: i.id, planName: i.name, planPrice: i.price, qty: i.qty, lineTotal: i.price * i.qty })),
-          totalPrice: subtotal
+          items: cart.map((i) => ({
+            planId: i.id, planName: i.name, planPrice: i.price, qty: i.qty, lineTotal: i.price * i.qty
+          })),
+          totalPrice: subtotal,
+          paymentTerm: selectedTerm.label,
+          termMonths: selectedTerm.months,
+          termSurcharge: selectedTerm.surcharge,
+          paymentMethod: form.paymentMethod === 'bank' ? 'Bank Transfer' : 'GCash'
         };
         // 1. Save the order
         const orderRef = await window.db.collection('orders').add({
@@ -2572,7 +2581,9 @@ function CartDrawer({ open, onClose }) {
           last_name: form.lastName,
           phone: form.phone,
           plan_name: cart.map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`).join(', '),
-          plan_price: fmt(subtotal)
+          plan_price: fmt(subtotal),
+          payment_term: selectedTerm.label,
+          payment_method: form.paymentMethod === 'bank' ? 'Bank Transfer' : 'GCash'
         }).catch((err) => console.error('[GH] Email send error:', err));
       }
 
@@ -2682,7 +2693,7 @@ function CartDrawer({ open, onClose }) {
                 <div className="gh-cart-foot">
                   <div className="gh-cart-subtotal">
                     <span className="lbl">Subtotal</span>
-                    <span className="val">{fmt(subtotal)}</span>
+                    <span className="val">{fmt(rawSubtotal)}</span>
                   </div>
                   <button className="gh-cart-btn" disabled={cart.length === 0} onClick={() => setStep('checkout')}>
                     Proceed to Checkout
@@ -2697,15 +2708,64 @@ function CartDrawer({ open, onClose }) {
                 <label>Last name<input required value={form.lastName} onChange={set('lastName')} /></label>
                 <label>Email<input type="email" required value={form.email} onChange={set('email')} /></label>
                 <label>Phone<input required value={form.phone} onChange={set('phone')} /></label>
+                <label>
+                  How will you pay?
+                  <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                    {[
+                    { key: 'gcash', label: 'GCash' },
+                    { key: 'bank', label: 'Bank Transfer' }].
+                    map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, paymentMethod: opt.key }))}
+                        style={{
+                          flex: 1, padding: '10px 12px', borderRadius: 10, fontSize: 13.5, fontWeight: 600,
+                          cursor: 'pointer', fontFamily: 'inherit',
+                          border: form.paymentMethod === opt.key ? '1px solid var(--accent)' : '1px solid var(--line)',
+                          background: form.paymentMethod === opt.key ? 'var(--accent)' : 'var(--bg)',
+                          color: form.paymentMethod === opt.key ? 'var(--accent-ink)' : 'var(--ink)'
+                        }}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+                <label>
+                  Payment term
+                  <select
+                    value={form.term}
+                    onChange={set('term')}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10, fontSize: 14.5,
+                      border: '1px solid var(--line)', background: 'var(--bg)', color: 'var(--ink)',
+                      fontFamily: 'inherit', boxShadow: '0 1px 2px rgba(0,0,0,.04)'
+                    }}>
+                    {PLAN_TERMS.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.label}{t.surcharge > 0 ? ` (+${Math.round(t.surcharge * 100)}% surcharge)` : ' (no surcharge)'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <div className="gh-cart-subtotal" style={{ marginTop: 20 }}>
                   <span className="lbl">Total ({itemCount} {itemCount === 1 ? 'plot' : 'plots'})</span>
                   <span className="val">{fmt(subtotal)}</span>
                 </div>
+                {monthly &&
+                <p style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: -10, marginBottom: 4, textAlign: 'right' }}>
+                    {fmt(monthly)}/mo · {selectedTerm.months}mo
+                  </p>}
+
                 <button className="gh-cart-btn" type="submit" disabled={saving}>
                   {saving ? 'Submitting…' : 'Submit Order'}
                 </button>
                 {error && <p className="gh-cart-error">{error}</p>}
-                <p className="gh-cart-note">Our staff will follow up with GCash payment instructions — same as our current process.</p>
+                <p className="gh-cart-note">
+                  {form.paymentMethod === 'bank' ?
+                  "Our staff will follow up with our bank account details to complete your reservation." :
+                  "Our staff will follow up with GCash payment instructions — same as our current process."}
+                </p>
               </form>
             )}
           </React.Fragment>
