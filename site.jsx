@@ -2229,7 +2229,8 @@ function PortalDashboard({ customer, onLogout }) {
 
   const submitReference = async (e) => {
     e.preventDefault();
-    if (!form.referenceNumber.trim() || !form.amount || Number(form.amount) <= 0) return;
+    if (form.method !== 'cash' && !form.referenceNumber.trim()) return; // cash payments may not have a reference
+    if (!form.amount || Number(form.amount) <= 0) return;
     setBusy(true);
     try {
       await window.db.collection('customers').doc(customer._id).update({
@@ -2237,7 +2238,7 @@ function PortalDashboard({ customer, onLogout }) {
           referenceNumber: form.referenceNumber.trim(),
           amount: Number(form.amount),
           date: form.date,
-          method: form.method === 'bank' ? 'Bank Transfer' : 'GCash',
+          method: form.method === 'bank' ? 'Bank Transfer' : form.method === 'cash' ? 'Cash' : 'GCash',
           mobileNumber: form.mobileNumber.trim(),
           note: form.note.trim(),
           status: 'pending',
@@ -2322,12 +2323,15 @@ function PortalDashboard({ customer, onLogout }) {
         <p className="gh-portal-help">
           {form.method === 'bank'
             ? "Send your payment to our business bank account, then submit the transfer reference below. Our staff will confirm it against the transaction and update your balance."
+            : form.method === 'cash'
+            ? "If you've paid in cash at our office, let us know here so our staff can confirm it and update your balance."
             : "Pay via our GCash for Business QR code, then send us the reference number. Our staff will confirm it against the transaction and update your balance."}
         </p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           {[
             { key: 'gcash', label: 'GCash' },
-            { key: 'bank', label: 'Bank Transfer' }
+            { key: 'bank', label: 'Bank Transfer' },
+            { key: 'cash', label: 'Cash' }
           ].map((opt) => (
             <button
               key={opt.key}
@@ -2346,8 +2350,13 @@ function PortalDashboard({ customer, onLogout }) {
         </div>
         <form onSubmit={submitReference} className="gh-portal-form-grid">
           <div>
-            <label htmlFor="gh-pay-ref">{form.method === 'bank' ? 'Bank transfer reference no.' : 'GCash reference number'}</label>
-            <input id="gh-pay-ref" type="text" required value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder={form.method === 'bank' ? 'e.g. BDO-88213410' : 'e.g. GC-99214870'} />
+            <label htmlFor="gh-pay-ref">
+              {form.method === 'bank' ? 'Bank transfer reference no.' : form.method === 'cash' ? 'Receipt/OR number (if any)' : 'GCash reference number'}
+            </label>
+            <input
+              id="gh-pay-ref" type="text" required={form.method !== 'cash'}
+              value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))}
+              placeholder={form.method === 'bank' ? 'e.g. BDO-88213410' : form.method === 'cash' ? 'e.g. OR-1042 (optional)' : 'e.g. GC-99214870'} />
           </div>
           <div>
             <label htmlFor="gh-pay-amount">Amount paid</label>
@@ -2358,8 +2367,12 @@ function PortalDashboard({ customer, onLogout }) {
             <input id="gh-pay-date" type="date" required value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
           </div>
           <div>
-            <label htmlFor="gh-pay-mobile">{form.method === 'bank' ? 'Sending bank (optional)' : 'Your GCash mobile no. (optional)'}</label>
-            <input id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))} placeholder={form.method === 'bank' ? 'e.g. BDO, BPI' : '09XX XXX XXXX'} />
+            <label htmlFor="gh-pay-mobile">
+              {form.method === 'bank' ? 'Sending bank (optional)' : form.method === 'cash' ? 'Received by (optional)' : 'Your GCash mobile no. (optional)'}
+            </label>
+            <input
+              id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))}
+              placeholder={form.method === 'bank' ? 'e.g. BDO, BPI' : form.method === 'cash' ? 'e.g. staff name' : '09XX XXX XXXX'} />
           </div>
           <div className="full">
             <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting…' : 'Submit for confirmation'}</button>
