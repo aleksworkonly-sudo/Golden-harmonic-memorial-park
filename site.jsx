@@ -526,7 +526,7 @@ function App() {
       if (existing) {
         return prev.map((i) => i.id === tier.id ? { ...i, qty: i.qty + qty } : i);
       }
-      return [...prev, { id: tier.id, name: tier.name, price: tier.price, category: tier.category, qty }];
+      return [...prev, { id: tier.id, name: tier.name, price: tier.price, category: tier.category, image: tier.image, qty }];
     });
     setCartOpen(true);
   };
@@ -2699,33 +2699,47 @@ function CartDrawer({ open, onClose }) {
                   {cart.length === 0 ? (
                     <p className="gh-cart-empty">Your cart is empty.<br />Browse our plots and add one to get started.</p>
                   ) : cart.map((item) => (
-                    <div className="gh-cart-item" key={item.id}>
-                      <div>
+                    <div className="gh-cart-item" key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      {item.image ?
+                      <img src={item.image} alt={item.name} style={{
+                          width: 56, height: 56, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--line)'
+                        }} /> :
+
+                      <div style={{
+                          width: 56, height: 56, borderRadius: 8, flexShrink: 0, background: 'var(--bg)',
+                          border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
+                        </div>}
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="name">{item.name}</div>
                         <div className="cat">{item.category}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                          <div style={{
-                            display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
-                            borderRadius: 7, overflow: 'hidden'
-                          }}>
-                            <button
-                              type="button"
-                              aria-label={`Decrease quantity of ${item.name}`}
-                              onClick={() => updateQty(item.id, item.qty - 1)}
-                              style={{ width: 26, height: 26, border: 'none', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>−</button>
-                            <span style={{ width: 26, textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{item.qty}</span>
-                            <button
-                              type="button"
-                              aria-label={`Increase quantity of ${item.name}`}
-                              onClick={() => updateQty(item.id, item.qty + 1)}
-                              style={{ width: 26, height: 26, border: 'none', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>+</button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{
+                              display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
+                              borderRadius: 7, overflow: 'hidden'
+                            }}>
+                              <button
+                                type="button"
+                                aria-label={`Decrease quantity of ${item.name}`}
+                                onClick={() => updateQty(item.id, item.qty - 1)}
+                                style={{ width: 26, height: 26, border: 'none', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>−</button>
+                              <span style={{ width: 26, textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{item.qty}</span>
+                              <button
+                                type="button"
+                                aria-label={`Increase quantity of ${item.name}`}
+                                onClick={() => updateQty(item.id, item.qty + 1)}
+                                style={{ width: 26, height: 26, border: 'none', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>+</button>
+                            </div>
+                            <button className="gh-cart-remove" style={{ marginTop: 0 }} onClick={() => removeFromCart(item.id)}>Remove</button>
                           </div>
-                          <button className="gh-cart-remove" style={{ marginTop: 0 }} onClick={() => removeFromCart(item.id)}>Remove</button>
+                          <div className="price" style={{ textAlign: 'right' }}>
+                            {fmt(item.price * item.qty)}
+                            {item.qty > 1 && <div style={{ fontSize: 11, color: 'var(--ink-2)', marginTop: 2 }}>{fmt(item.price)} each</div>}
+                          </div>
                         </div>
-                      </div>
-                      <div className="price">
-                        {fmt(item.price * item.qty)}
-                        {item.qty > 1 && <div style={{ fontSize: 11, color: 'var(--ink-2)', marginTop: 2 }}>{fmt(item.price)} each</div>}
                       </div>
                     </div>
                   ))}
