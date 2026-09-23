@@ -1260,13 +1260,6 @@ function Tier({ tier, i = 0, allTiers = [] }) {
         <ul className="feature-list">
           {tier.features.map((f) => <li key={f}>{f}</li>)}
         </ul>
-        <a
-          href="#plans"
-          className="btn btn-primary"
-          onClick={() => selectTier(tier.id)}>
-
-          {isSelected ? '✓ Selected — see your plan below' : 'Choose this plan →'}
-        </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
           <div style={{
             display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
@@ -1318,6 +1311,15 @@ function Tier({ tier, i = 0, allTiers = [] }) {
 
           </button>
         </div>
+        <a
+          href="#plans"
+          onClick={() => selectTier(tier.id)}
+          style={{
+            display: 'block', textAlign: 'center', marginTop: 10, fontSize: 12.5,
+            color: 'var(--ink-2)', textDecoration: 'underline', textUnderlineOffset: 2
+          }}>
+          {isSelected ? '✓ Selected — see monthly terms below' : 'Not ready yet? See monthly payment options →'}
+        </a>
       </div>
     </div>);
 
