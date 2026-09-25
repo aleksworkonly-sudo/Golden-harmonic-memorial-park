@@ -998,6 +998,7 @@ function Customers({
   const [openId, setOpenId] = useState(null);
   const [toast, setToast] = useState('');
   const [view, setView] = useState('list');
+  const [search, setSearch] = useState('');
   useEffect(() => {
     return window.db.collection('customers').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
       _id: d.id,
@@ -1024,6 +1025,8 @@ function Customers({
     className: "spinner"
   }), /*#__PURE__*/React.createElement("div", null, "Loading customers…"));
   const openCustomer = rows.find(r => r._id === openId) || null;
+  const q = search.trim().toLowerCase();
+  const filteredRows = q ? rows.filter(r => (r.fullName || `${r.firstName || ''} ${r.lastName || ''}`).toLowerCase().includes(q)) : rows;
   return /*#__PURE__*/React.createElement(React.Fragment, null, toast && /*#__PURE__*/React.createElement(Toast, {
     msg: toast,
     onDone: () => setToast('')
@@ -1046,7 +1049,7 @@ function Customers({
       fontWeight: 400,
       fontSize: 13
     }
-  }, "(", rows.length, ")")), /*#__PURE__*/React.createElement("div", {
+  }, "(", q ? `${filteredRows.length} of ${rows.length}` : rows.length, ")")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8
@@ -1060,18 +1063,51 @@ function Customers({
   }, "🖨 Print all"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary btn-sm",
     onClick: () => setShowAdd(true)
-  }, "+ Add customer"))), view === 'plots' && /*#__PURE__*/React.createElement(PlotManagement, {
+  }, "+ Add customer"))), view === 'list' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      maxWidth: 320,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "🔍 Search by client name…",
+    style: {
+      width: '100%',
+      padding: '9px 32px 9px 12px',
+      border: '1.5px solid var(--border)',
+      borderRadius: 8,
+      outline: 'none',
+      fontSize: 13
+    }
+  }), search && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSearch(''),
+    "aria-label": "Clear search",
+    style: {
+      position: 'absolute',
+      right: 8,
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'none',
+      border: 'none',
+      color: 'var(--ink-3)',
+      fontSize: 15,
+      lineHeight: 1,
+      padding: 4
+    }
+  }, "✕")), view === 'plots' && /*#__PURE__*/React.createElement(PlotManagement, {
     currentUser: currentUser,
     customers: rows,
     onOpenCustomer: id => setOpenId(id),
     onToast: setToast
   }), view === 'list' && /*#__PURE__*/React.createElement("div", {
     className: "table-card"
-  }, rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, filteredRows.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "empty"
-  }, "No customers yet. Leads from your website form appear here automatically.") : /*#__PURE__*/React.createElement("table", {
+  }, q ? `No customers match "${search.trim()}".` : "No customers yet. Leads from your website form appear here automatically.") : /*#__PURE__*/React.createElement("table", {
     className: "gh-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Name"), /*#__PURE__*/React.createElement("th", null, "Contact"), /*#__PURE__*/React.createElement("th", null, "Plan"), /*#__PURE__*/React.createElement("th", null, "Balance"), /*#__PURE__*/React.createElement("th", null, "Revenue"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Name"), /*#__PURE__*/React.createElement("th", null, "Contact"), /*#__PURE__*/React.createElement("th", null, "Plan"), /*#__PURE__*/React.createElement("th", null, "Balance"), /*#__PURE__*/React.createElement("th", null, "Revenue"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, filteredRows.map(r => {
     const bal = planBalance(r);
     return /*#__PURE__*/React.createElement("tr", {
       key: r._id
