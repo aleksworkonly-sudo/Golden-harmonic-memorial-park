@@ -532,6 +532,464 @@ async function changeStage(customerId, newStage, actorEmail) {
     })
   });
 }
+// ── Plot Management ──────────────────────────────────────────────────────
+// PLACEHOLDER block list — replace with Golden Harmonic's real blocks,
+// sizes and product tiers once confirmed. `productId` must match an id
+// in the `products` collection (Products tab) so each block's plot type
+// stays tied to the pricing already managed there.
+const PLOT_BLOCKS = [{
+  id: '1',
+  label: 'Block 1',
+  size: 600,
+  productId: 'regular'
+}, {
+  id: '2',
+  label: 'Block 2',
+  size: 450,
+  productId: 'premium'
+}, {
+  id: '3',
+  label: 'Block 3',
+  size: 520,
+  productId: 'garden-regular'
+}, {
+  id: '4',
+  label: 'Block 4',
+  size: 400,
+  productId: 'corner-premium'
+}, {
+  id: '5',
+  label: 'Block 5',
+  size: 480,
+  productId: 'garden-premium'
+}, {
+  id: '6',
+  label: 'Block 6',
+  size: 380,
+  productId: 'garden-corner'
+}, {
+  id: '9',
+  label: 'Block 9',
+  size: 120,
+  productId: 'family-vault',
+  unitLabel: 'Unit'
+}];
+const PLOT_PAGE_SIZE = 200;
+function plotCode(block, n) {
+  return `${block.id}-${String(n).padStart(4, '0')}`;
+}
+// A plot doc only exists once a slot is reserved or sold — anything
+// without a doc is implicitly available, so we never have to seed
+// thousands of "available" rows up front.
+function plotStatus(doc) {
+  return doc ? doc.status === 'occupied' ? 'occupied' : 'reserved' : 'available';
+}
+const plotEl = React.createElement;
+function PlotManagement({
+  currentUser,
+  customers,
+  onOpenCustomer,
+  onToast
+}) {
+  const [products, setProducts] = useState([]);
+  useEffect(() => window.db.collection('products').onSnapshot(snap => setProducts(snap.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  })))), []);
+  const [blockId, setBlockId] = useState(PLOT_BLOCKS[0].id);
+  const [page, setPage] = useState(0);
+  const [plotsByLot, setPlotsByLot] = useState({});
+  const [loadingPlots, setLoadingPlots] = useState(true);
+  const [assignSlot, setAssignSlot] = useState(null);
+  const [detailSlot, setDetailSlot] = useState(null);
+  useEffect(() => {
+    setLoadingPlots(true);
+    return window.db.collection('plots').where('blockId', '==', blockId).onSnapshot(snap => {
+      const map = {};
+      snap.docs.forEach(d => {
+        map[d.data().lotNo] = {
+          _id: d.id,
+          ...d.data()
+        };
+      });
+      setPlotsByLot(map);
+      setLoadingPlots(false);
+    });
+  }, [blockId]);
+  const block = PLOT_BLOCKS.find(b => b.id === blockId);
+  const product = products.find(p => p._id === block.productId);
+  const typeLabel = product ? product.name : block.productId;
+  const unitWord = block.unitLabel || 'Lot';
+  const totalPages = Math.ceil(block.size / PLOT_PAGE_SIZE);
+  const start = page * PLOT_PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PLOT_PAGE_SIZE, block.size);
+  let availableCount = 0,
+    reservedCount = 0,
+    occupiedCount = 0;
+  for (let n = 1; n <= block.size; n++) {
+    const st = plotStatus(plotsByLot[n]);
+    if (st === 'available') availableCount++;else if (st === 'reserved') reservedCount++;else occupiedCount++;
+  }
+  const slots = [];
+  for (let n = start; n <= end; n++) slots.push(n);
+  const detailDoc = detailSlot ? plotsByLot[detailSlot] : null;
+  return plotEl(React.Fragment, null,
+  // block tabs
+  plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginBottom: 16
+    }
+  }, PLOT_BLOCKS.map(b => plotEl("button", {
+    key: b.id,
+    className: `btn btn-sm ${b.id === blockId ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => {
+      setBlockId(b.id);
+      setPage(0);
+      setDetailSlot(null);
+    }
+  }, b.label))),
+  // summary
+  plotEl("div", {
+    className: "stats-row",
+    style: {
+      gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
+      marginBottom: 16
+    }
+  }, plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", {
+    className: "stat-badge",
+    style: {
+      background: 'var(--badge-2)',
+      color: 'var(--badge-2-ic)'
+    }
+  }, "🗺"), plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, block.size), plotEl("div", {
+    className: "stat-lbl"
+  }, block.label, " · ", typeLabel))), plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", {
+    className: "stat-badge",
+    style: {
+      background: '#e8f5e9',
+      color: '#2e7d32'
+    }
+  }, "🟢"), plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, availableCount), plotEl("div", {
+    className: "stat-lbl"
+  }, "Available"))), plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", {
+    className: "stat-badge",
+    style: {
+      background: '#fff3e0',
+      color: '#e65100'
+    }
+  }, "🟡"), plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, reservedCount), plotEl("div", {
+    className: "stat-lbl"
+  }, "Reserved"))), plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", {
+    className: "stat-badge",
+    style: {
+      background: '#e3f2fd',
+      color: '#1565c0'
+    }
+  }, "🔴"), plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, occupiedCount), plotEl("div", {
+    className: "stat-lbl"
+  }, "Occupied")))),
+  // pager
+  plotEl("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10
+    }
+  }, plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 14,
+      fontSize: 12.5,
+      color: 'var(--ink-3)'
+    }
+  }, plotEl("span", null, "🟢 Available"), plotEl("span", null, "🟡 Reserved"), plotEl("span", null, "🔴 Occupied")), totalPages > 1 && plotEl("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 12.5,
+      color: 'var(--ink-3)'
+    }
+  }, plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    disabled: page === 0,
+    onClick: () => setPage(p => p - 1)
+  }, "‹"), plotEl("span", null, plotCode(block, start), "–", plotCode(block, end), " · Page ", page + 1, " of ", totalPages), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    disabled: page >= totalPages - 1,
+    onClick: () => setPage(p => p + 1)
+  }, "›"))),
+  // grid
+  loadingPlots ? plotEl("div", {
+    className: "loading"
+  }, plotEl("div", {
+    className: "spinner"
+  }), plotEl("div", null, "Loading ", block.label, "…")) : plotEl("div", {
+    style: {
+      background: 'var(--card)',
+      borderRadius: 'var(--radius)',
+      boxShadow: 'var(--shadow)',
+      padding: 16
+    }
+  }, plotEl("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(66px, 1fr))',
+      gap: 6
+    }
+  }, slots.map(n => {
+    const st = plotStatus(plotsByLot[n]);
+    const colors = st === 'available' ? {
+      bg: '#e8f5e9',
+      fg: '#2e7d32'
+    } : st === 'reserved' ? {
+      bg: '#fff3e0',
+      fg: '#e65100'
+    } : {
+      bg: '#e3f2fd',
+      fg: '#1565c0'
+    };
+    return plotEl("div", {
+      key: n,
+      onClick: () => st === 'available' ? setAssignSlot(n) : setDetailSlot(n),
+      style: {
+        background: colors.bg,
+        color: colors.fg,
+        borderRadius: 7,
+        padding: '7px 3px',
+        fontSize: 11.5,
+        fontWeight: 700,
+        textAlign: 'center',
+        cursor: 'pointer'
+      }
+    }, plotCode(block, n));
+  }))),
+  // modals
+  assignSlot && plotEl(AssignPlotModal, {
+    block: block,
+    lotNo: assignSlot,
+    typeLabel: typeLabel,
+    customers: customers,
+    currentUser: currentUser,
+    onClose: () => setAssignSlot(null),
+    onSaved: () => {
+      setAssignSlot(null);
+      onToast(`${plotCode(block, assignSlot)} assigned`);
+    }
+  }), detailSlot && detailDoc && plotEl(PlotDetailModal, {
+    block: block,
+    lotNo: detailSlot,
+    typeLabel: typeLabel,
+    plot: detailDoc,
+    customers: customers,
+    onClose: () => setDetailSlot(null),
+    onOpenCustomer: id => {
+      setDetailSlot(null);
+      onOpenCustomer(id);
+    },
+    onUnassign: async () => {
+      if (!confirm(`Remove this assignment? ${plotCode(block, detailSlot)} will become available again.`)) return;
+      await window.db.collection('plots').doc(detailDoc._id).delete();
+      setDetailSlot(null);
+      onToast(`${plotCode(block, detailSlot)} unassigned`);
+    }
+  }));
+}
+function AssignPlotModal({
+  block,
+  lotNo,
+  typeLabel,
+  customers,
+  currentUser,
+  onClose,
+  onSaved
+}) {
+  const [customerId, setCustomerId] = useState('');
+  const [status, setStatus] = useState('reserved');
+  const [hold, setHold] = useState(false);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const save = async e => {
+    e.preventDefault();
+    if (!customerId) {
+      setErr('Pick a customer first.');
+      return;
+    }
+    setBusy(true);
+    setErr('');
+    try {
+      const id = `${block.id}_${lotNo}`;
+      await window.db.collection('plots').doc(id).set({
+        blockId: block.id,
+        lotNo,
+        customerId,
+        status,
+        hold,
+        note: note.trim(),
+        createdAt: Date.now(),
+        createdBy: currentUser && currentUser.email || 'unknown'
+      });
+      onSaved();
+    } catch (err2) {
+      setErr(err2 && err2.message || 'Could not save this assignment.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return plotEl("div", {
+    className: "modal-bg",
+    onClick: e => e.target === e.currentTarget && onClose()
+  }, plotEl("div", {
+    className: "modal"
+  }, plotEl("h3", null, plotCode(block, lotNo), " · ", block.label, " · ", typeLabel), plotEl("form", {
+    onSubmit: save
+  }, plotEl("div", {
+    className: "field"
+  }, plotEl("label", null, "Customer"), plotEl("select", {
+    value: customerId,
+    onChange: e => setCustomerId(e.target.value)
+  }, plotEl("option", {
+    value: ""
+  }, "Select a customer…"), customers.map(c => plotEl("option", {
+    key: c._id,
+    value: c._id
+  }, c.fullName || `${c.firstName} ${c.lastName}`)))), plotEl("div", {
+    className: "field"
+  }, plotEl("label", null, "Status"), plotEl("select", {
+    value: status,
+    onChange: e => setStatus(e.target.value)
+  }, plotEl("option", {
+    value: "reserved"
+  }, "Reserved"), plotEl("option", {
+    value: "occupied"
+  }, "Occupied / Sold"))), plotEl("div", {
+    className: "field",
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8
+    }
+  }, plotEl("input", {
+    type: "checkbox",
+    id: "plot-hold",
+    checked: hold,
+    onChange: e => setHold(e.target.checked),
+    style: {
+      width: 'auto'
+    }
+  }), plotEl("label", {
+    htmlFor: "plot-hold",
+    style: {
+      margin: 0
+    }
+  }, "On hold")), plotEl("div", {
+    className: "field"
+  }, plotEl("label", null, "Note (optional)"), plotEl("input", {
+    value: note,
+    onChange: e => setNote(e.target.value),
+    placeholder: "e.g. reserved during site visit"
+  })), err && plotEl("div", {
+    className: "err-msg"
+  }, err), plotEl("div", {
+    className: "modal-actions"
+  }, plotEl("button", {
+    type: "button",
+    className: "btn btn-outline",
+    onClick: onClose
+  }, "Cancel"), plotEl("button", {
+    type: "submit",
+    className: "btn btn-primary",
+    disabled: busy
+  }, busy ? 'Saving…' : 'Assign')))));
+}
+function PlotDetailModal({
+  block,
+  lotNo,
+  typeLabel,
+  plot,
+  customers,
+  onClose,
+  onOpenCustomer,
+  onUnassign
+}) {
+  const status = plotStatus(plot);
+  const customer = customers.find(c => c._id === plot.customerId);
+  const bal = customer ? planBalance(customer) : null;
+  return plotEl("div", {
+    className: "modal-bg",
+    onClick: e => e.target === e.currentTarget && onClose()
+  }, plotEl("div", {
+    className: "modal"
+  }, plotEl("h3", null, plotCode(block, lotNo), " · ", block.label, " · ", typeLabel), plotEl("span", {
+    className: status === 'occupied' ? 'badge badge-converted' : 'badge badge-contacted'
+  }, status === 'occupied' ? 'Occupied' : 'Reserved'), plot.hold && plotEl("span", {
+    className: "badge badge-closed",
+    style: {
+      marginLeft: 6
+    }
+  }, "On hold"), plotEl("div", {
+    className: "field",
+    style: {
+      marginTop: 16
+    }
+  }, plotEl("label", null, "Customer"), customer ? plotEl("div", {
+    style: {
+      fontWeight: 700
+    }
+  }, customer.fullName || `${customer.firstName} ${customer.lastName}`) : plotEl("div", {
+    style: {
+      color: 'var(--ink-3)'
+    }
+  }, "Linked customer record not found (may have been deleted).")), customer && bal && plotEl("div", {
+    className: "plan-summary"
+  }, plotEl("div", null, plotEl("div", {
+    className: "lbl"
+  }, "Plan"), plotEl("div", {
+    className: "val"
+  }, customer.plan ? customer.plan.tierName : '—')), plotEl("div", null, plotEl("div", {
+    className: "lbl"
+  }, "Paid"), plotEl("div", {
+    className: "val"
+  }, fmt(bal.paid))), plotEl("div", null, plotEl("div", {
+    className: "lbl"
+  }, "Balance"), plotEl("div", {
+    className: "val"
+  }, fmt(bal.balance)))), plot.note && plotEl("div", {
+    className: "field"
+  }, plotEl("label", null, "Note"), plotEl("div", null, plot.note)), plotEl("div", {
+    className: "modal-actions"
+  }, plotEl("button", {
+    className: "btn btn-danger btn-sm",
+    onClick: onUnassign
+  }, "Unassign"), plotEl("button", {
+    className: "btn btn-outline",
+    onClick: onClose
+  }, "Close"), customer && plotEl("button", {
+    className: "btn btn-primary",
+    onClick: () => onOpenCustomer(customer._id)
+  }, "View Full Customer Record"))));
+}
 function Customers({
   currentUser
 }) {
@@ -539,6 +997,7 @@ function Customers({
   const [showAdd, setShowAdd] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [toast, setToast] = useState('');
+  const [view, setView] = useState('list');
   useEffect(() => {
     return window.db.collection('customers').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
       _id: d.id,
@@ -593,12 +1052,20 @@ function Customers({
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
+    className: `btn btn-sm ${view === 'plots' ? 'btn-gold' : 'btn-outline'}`,
+    onClick: () => setView(view === 'plots' ? 'list' : 'plots')
+  }, view === 'plots' ? '👥 Customer list' : '🗺️ Plot management'), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline btn-sm",
     onClick: () => window.print()
   }, "🖨 Print all"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary btn-sm",
     onClick: () => setShowAdd(true)
-  }, "+ Add customer"))), /*#__PURE__*/React.createElement("div", {
+  }, "+ Add customer"))), view === 'plots' && /*#__PURE__*/React.createElement(PlotManagement, {
+    currentUser: currentUser,
+    customers: rows,
+    onOpenCustomer: id => setOpenId(id),
+    onToast: setToast
+  }), view === 'list' && /*#__PURE__*/React.createElement("div", {
     className: "table-card"
   }, rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "empty"
