@@ -533,43 +533,58 @@ async function changeStage(customerId, newStage, actorEmail) {
   });
 }
 // ── Plot Management ──────────────────────────────────────────────────────
-// PLACEHOLDER block list — replace with Golden Harmonic's real blocks,
-// sizes and product tiers once confirmed. `productId` must match an id
-// in the `products` collection (Products tab) so each block's plot type
-// stays tied to the pricing already managed there.
+// Block layout from Golden Harmonic's master site plan: lettered lawn
+// blocks A–H (H is smaller — clipped by the park boundary) plus a
+// separate Mausoleum block. `productId` must match an id in the
+// `products` collection (Products tab) — defaulted to 'regular' for
+// A–H since the site plan doesn't call out per-block plot tiers; adjust
+// any block that's actually Premium/Corner Premium once confirmed.
+// NOTE: the site plan also shows separate "Garden Plots" and "Valor
+// Plots" areas near the center — not included here yet since it's
+// unclear whether those should be their own blocks in this grid.
 const PLOT_BLOCKS = [{
-  id: '1',
-  label: 'Block 1',
-  size: 600,
+  id: 'A',
+  label: 'Block A',
+  size: 2000,
   productId: 'regular'
 }, {
-  id: '2',
-  label: 'Block 2',
-  size: 450,
-  productId: 'premium'
+  id: 'B',
+  label: 'Block B',
+  size: 2000,
+  productId: 'regular'
 }, {
-  id: '3',
-  label: 'Block 3',
-  size: 520,
-  productId: 'garden-regular'
+  id: 'C',
+  label: 'Block C',
+  size: 2000,
+  productId: 'regular'
 }, {
-  id: '4',
-  label: 'Block 4',
-  size: 400,
-  productId: 'corner-premium'
+  id: 'D',
+  label: 'Block D',
+  size: 2000,
+  productId: 'regular'
 }, {
-  id: '5',
-  label: 'Block 5',
-  size: 480,
-  productId: 'garden-premium'
+  id: 'E',
+  label: 'Block E',
+  size: 2000,
+  productId: 'regular'
 }, {
-  id: '6',
-  label: 'Block 6',
-  size: 380,
-  productId: 'garden-corner'
+  id: 'F',
+  label: 'Block F',
+  size: 2000,
+  productId: 'regular'
 }, {
-  id: '9',
-  label: 'Block 9',
+  id: 'G',
+  label: 'Block G',
+  size: 2000,
+  productId: 'regular'
+}, {
+  id: 'H',
+  label: 'Block H',
+  size: 978,
+  productId: 'regular'
+}, {
+  id: 'M',
+  label: 'Mausoleum',
   size: 120,
   productId: 'family-vault',
   unitLabel: 'Unit'
@@ -589,7 +604,9 @@ function PlotManagement({
   currentUser,
   customers,
   onOpenCustomer,
-  onToast
+  onToast,
+  jumpTo,
+  onJumpHandled
 }) {
   const [products, setProducts] = useState([]);
   useEffect(() => window.db.collection('products').onSnapshot(snap => setProducts(snap.docs.map(d => ({
@@ -602,6 +619,15 @@ function PlotManagement({
   const [loadingPlots, setLoadingPlots] = useState(true);
   const [assignSlot, setAssignSlot] = useState(null);
   const [detailSlot, setDetailSlot] = useState(null);
+  // Jumping here from a customer row: land on their block/page and open
+  // the slot detail as soon as that block's plots have loaded.
+  useEffect(() => {
+    if (!jumpTo) return;
+    setBlockId(jumpTo.blockId);
+    setPage(Math.floor((jumpTo.lotNo - 1) / PLOT_PAGE_SIZE));
+    setDetailSlot(jumpTo.lotNo);
+    onJumpHandled && onJumpHandled();
+  }, [jumpTo]);
   useEffect(() => {
     setLoadingPlots(true);
     return window.db.collection('plots').where('blockId', '==', blockId).onSnapshot(snap => {
@@ -999,12 +1025,33 @@ function Customers({
   const [toast, setToast] = useState('');
   const [view, setView] = useState('list');
   const [search, setSearch] = useState('');
+  const [plotsIndex, setPlotsIndex] = useState({});
+  const [jumpTo, setJumpTo] = useState(null);
   useEffect(() => {
     return window.db.collection('customers').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
       _id: d.id,
       ...d.data()
     }))));
   }, []);
+  // Sparse collection (only assigned slots have a doc), so reading it in
+  // full here is cheap and lets each customer row show its plot, if any.
+  useEffect(() => {
+    return window.db.collection('plots').onSnapshot(snap => {
+      const map = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (data.customerId) map[data.customerId] = data;
+      });
+      setPlotsIndex(map);
+    });
+  }, []);
+  const goToPlot = plot => {
+    setView('plots');
+    setJumpTo({
+      blockId: plot.blockId,
+      lotNo: plot.lotNo
+    });
+  };
   const updateStatus = async (id, status) => {
     await changeStage(id, status, currentUser && currentUser.email);
     setToast('Customer updated');
@@ -1100,7 +1147,9 @@ function Customers({
     currentUser: currentUser,
     customers: rows,
     onOpenCustomer: id => setOpenId(id),
-    onToast: setToast
+    onToast: setToast,
+    jumpTo: jumpTo,
+    onJumpHandled: () => setJumpTo(null)
   }), view === 'list' && /*#__PURE__*/React.createElement("div", {
     className: "table-card"
   }, filteredRows.length === 0 ? /*#__PURE__*/React.createElement("div", {
@@ -1197,7 +1246,11 @@ function Customers({
     }, /*#__PURE__*/React.createElement("button", {
       className: "btn btn-outline btn-sm",
       onClick: () => setOpenId(r._id)
-    }, "View"), /*#__PURE__*/React.createElement("button", {
+    }, "View"), plotsIndex[r._id] && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold btn-sm",
+      title: `Block ${plotsIndex[r._id].blockId}, Lot ${plotsIndex[r._id].lotNo}`,
+      onClick: () => goToPlot(plotsIndex[r._id])
+    }, "📍 ", plotsIndex[r._id].blockId, "-", String(plotsIndex[r._id].lotNo).padStart(4, '0')), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-danger btn-sm",
       onClick: () => deleteCustomer(r._id, r.fullName)
     }, "Delete"))));
