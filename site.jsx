@@ -937,6 +937,17 @@ function Hero({ onOpenPortal }) {
     <section className="hero" style={{ position: 'relative', overflow: 'hidden' }}>
       <style>{`
         .hero-account-badge:hover{ background: #9c7443; }
+        .hero-btn-ghost{
+          border: 2px solid var(--accent);
+          background: rgba(255,255,255,0.55);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          color: var(--accent);
+        }
+        .hero-btn-ghost:hover{
+          background: var(--accent);
+          color: var(--accent-ink);
+        }
       `}</style>
       <div className="wrap hero-grid" style={{ position: 'relative', zIndex: 1 }}>
         <div className="fade-up in">
@@ -958,7 +969,7 @@ function Hero({ onOpenPortal }) {
               <span className="lm-sweep"></span>
               <span style={{ position: 'relative', zIndex: 1 }}>Get the full price list</span>
             </a>
-            <a href="#tiers" className="btn btn-ghost">View plots &amp; pricing →</a>
+            <a href="#tiers" className="btn btn-ghost hero-btn-ghost">View plots &amp; pricing →</a>
           </div>
 
           <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--ink-2)', maxWidth: 460, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
