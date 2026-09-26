@@ -1006,7 +1006,6 @@ function Hero({ onOpenPortal }) {
 /* ---------- Trust strip ---------- */
 function Trust() {
   const items = [
-  { big: '28 yrs', lbl: 'Family-owned & operated' },
   { big: 'DHSUD', lbl: 'Licensed & permit-cleared' },
   { big: '100%', lbl: 'Perpetual care fund' },
   { big: '8–12%', lbl: 'Annual lot appreciation' }];
