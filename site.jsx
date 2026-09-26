@@ -985,16 +985,12 @@ function Hero({ onOpenPortal }) {
 
           <div className="meta">
             <div>
-              <div className="label">Family-owned since</div>
-              <div className="value">1998</div>
-            </div>
-            <div>
               <div className="label">Total hectares</div>
-              <div className="value">25 ha</div>
+              <div className="value">4.9 ha</div>
             </div>
             <div>
               <div className="label">Plots under perpetual care</div>
-              <div className="value">12,400+</div>
+              <div className="value">14,978</div>
             </div>
           </div>
         </div>
