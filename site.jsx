@@ -2850,7 +2850,7 @@ function Footer() {
               </div>
             </div>
             <p style={{ fontSize: 14, color: '#b6ad97', maxWidth: 320 }}>
-              A family-owned memorial park in Palawan — caring for families since 1998.
+              A memorial park in Palawan — caring for families for generations.
             </p>
           </div>
           <div>
@@ -2873,7 +2873,7 @@ function Footer() {
           <div>
             <h4>Visit</h4>
             <ul>
-              <li><a href="#brochure">Palawan · 25 ha</a></li>
+              <li><a href="#brochure">Palawan · 4.9 ha</a></li>
               <li><a href="tel:+639171234567">+63 917 123 4567</a></li>
               <li><a href="mailto:hello@goldenharmonic.ph">hello@goldenharmonic.ph</a></li>
             </ul>
