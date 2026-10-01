@@ -246,24 +246,6 @@ function Photo({ label, caption, items, index, aspect = '', className = '', styl
 
 }
 
-/* ---------- Signature motif: rainforest ridgeline divider ---------- */
-function CliffDivider({ flip = false, dark = false }) {
-  return (
-    <div className={`cliff-divider ${flip ? 'flip' : ''} ${dark ? 'on-dark' : ''}`}>
-      <svg viewBox="0 0 1200 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M0,60 L0,38 L60,20 L110,34 L170,12 L230,30 L300,8 L360,26 L430,4 L500,22 L560,10 L630,28 L700,6 L770,24 L840,14 L910,30 L980,10 L1050,26 L1120,16 L1200,30 L1200,60 Z"
-          fill="var(--accent)" opacity="0.14" />
-
-        <path
-          d="M0,60 L0,46 L70,30 L140,42 L210,24 L280,40 L350,20 L420,36 L490,18 L560,34 L630,22 L700,38 L770,20 L840,34 L910,24 L980,38 L1050,26 L1120,36 L1200,44 L1200,60 Z"
-          fill="var(--accent)" opacity="0.32" />
-
-      </svg>
-    </div>);
-
-}
-
 /* ---------- Illustrated scenes (stand-in artwork until real photos are ready) ---------- */
 const FOLIAGE = '#7c8a63';
 const FOLIAGE_DARK = '#5e6c49';
@@ -590,7 +572,6 @@ function App() {
           <PaymentPlans tiers={tiers} />
           <Mausoleum />
           <PrePostNeed />
-          <CliffDivider flip />
           <About />
           <Brochure tiers={tiers} />
           <FAQ />
