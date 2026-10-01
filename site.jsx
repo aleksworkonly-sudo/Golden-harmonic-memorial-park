@@ -1797,7 +1797,7 @@ function Gallery() {
             <h2 style={{ marginTop: 18 }}>4.9 hectares of quiet gardens in Taytay, Palawan.</h2>
           </div>
           <div className="side">
-            Designed by landscape architect Maria Suarez (Manila, 1998). Every block opens to either the lake, the chapel, or the western treeline.
+            Browse our lawn blocks A to H and the Mausoleum, then book a free site visit to see them in person. We're open 7 days a week, with pickup included within Palawan.
           </div>
         </div>
         <div className="gallery-grid">
