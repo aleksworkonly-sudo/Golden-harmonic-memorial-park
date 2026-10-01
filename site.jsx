@@ -1794,7 +1794,7 @@ function Gallery() {
         <div className="section-head fade-up">
           <div>
             <span className="eyebrow">The park</span>
-            <h2 style={{ marginTop: 18 }}>25 hectares between the river and the gardens.</h2>
+            <h2 style={{ marginTop: 18 }}>4.9 hectares of quiet gardens in Taytay, Palawan.</h2>
           </div>
           <div className="side">
             Designed by landscape architect Maria Suarez (Manila, 1998). Every block opens to either the lake, the chapel, or the western treeline.
