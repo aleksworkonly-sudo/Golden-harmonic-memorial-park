@@ -579,9 +579,9 @@ function App() {
           <main>
             <Hero onOpenPortal={() => setPortalOpen(true)} />
           <Tiers tiers={tiers} />
+          <Mausoleum />
           <Gallery />
           <PaymentPlans tiers={tiers} />
-          <Mausoleum />
           <PrePostNeed />
           <About />
           <Brochure tiers={tiers} />
@@ -635,11 +635,11 @@ function Header() {
     { href: '#tiers', label: 'Plots & Pricing', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     ) },
-    { href: '#plans', label: 'Payment Plans', icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
-    ) },
     { href: '#mausoleum', label: 'Mausoleum', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 21V9l8-5 8 5v12"/><line x1="9" y1="21" x2="9" y2="13"/><line x1="15" y1="21" x2="15" y2="13"/><line x1="2" y1="21" x2="22" y2="21"/></svg>
+    ) },
+    { href: '#plans', label: 'Payment Plans', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
     ) },
     { href: '#faq', label: 'FAQ', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.8-2.4 2-2.4 3.6"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
