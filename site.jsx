@@ -123,12 +123,6 @@ const BASE_TIERS = [
 // Mausoleum: land and construction are priced as ranges (they depend on the
 // exact size and design), so these live outside the fixed-price calculator
 // above and are presented as request-a-quote items instead.
-const MAUSOLEUM_PLOTS = [
-{ size: 'Small Plot', area: '12–20 sqm', low: 300000, high: 400000, desc: 'Suitable for a small family mausoleum or single-chamber vault.' },
-{ size: 'Medium Plot', area: '30–50 sqm', low: 700000, high: 900000, desc: 'Ideal for a medium-sized family mausoleum with multiple chambers.' },
-{ size: 'Large Plot', area: '70–100+ sqm', low: 1800000, high: 2500000, desc: 'A spacious plot for a large mausoleum or community memorial.' }];
-
-
 const MAUSOLEUM_PACKAGES = [
 { size: 'Small Mausoleum Package', area: '12–20 sqm', low: 500000, high: 700000, desc: 'Plot, design, and construction of a small mausoleum.' },
 { size: 'Medium Mausoleum Package', area: '30–50 sqm', low: 1200000, high: 1800000, desc: 'Plot, design, and construction of a medium mausoleum.' },
@@ -1539,35 +1533,7 @@ function Mausoleum() {
           </div>
         </div>
 
-        <h3 className="cat-head fade-up">Plot only</h3>
-        <div className="tiers">
-          {MAUSOLEUM_PLOTS.map((m, i) =>
-          <div className="tier fade-up" key={m.size} style={{ '--stagger': i }}>
-              <div className="tier-cine-card">
-                <div className="cine-frame">
-                  <div className="cine-zoom">
-                    <Photo label={`${m.size} — land only`} scene="mausoleum" items={[{ label: m.size, caption: m.size }]} />
-                  </div>
-                  <div className="cine-vignette"></div>
-                  <div className="cine-glow"></div>
-                </div>
-                <div>
-                  <h3>{m.size}</h3>
-                  <div className="desc">{m.desc}</div>
-                </div>
-                <div className="price-row">
-                  <div>
-                    <div className="from">{m.area}</div>
-                    <div className="price" style={{ fontSize: 26 }}>{fmtRange(m.low, m.high)}</div>
-                  </div>
-                </div>
-                <a href="#brochure" className="btn btn-primary">Request a quote →</a>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <h3 className="cat-head fade-up" style={{ marginTop: 36 }}>All-inclusive construction packages</h3>
+        <h3 className="cat-head fade-up">All-inclusive construction packages</h3>
         <div className="tiers">
           {MAUSOLEUM_PACKAGES.map((m, i) =>
           <div className="tier fade-up" key={m.size} style={{ '--stagger': i }}>
