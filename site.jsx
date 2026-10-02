@@ -114,7 +114,7 @@ const BASE_TIERS = [
   // Live price comes from Firestore 'products' (id: 'valor'); this is the fallback
   id: 'valor', name: 'Valor Plot', category: 'Family Vault', price: 40000,
   desc: 'A dignified resting place honoring those who served — veterans and service members.',
-  features: ['1 interment space', 'Perpetual care included', 'Memorial marker with laurel emblem'],
+  features: ['2 interment spaces', 'Perpetual care included', 'Memorial marker with laurel emblem'],
   label: 'valor plot — memorial marker', image: '/valor_plot.png'
 }];const PLOT_MESSAGES = {
   'regular': 'A peaceful, standard resting place in our open-lawn section — a simple and dignified choice for your loved one.',
