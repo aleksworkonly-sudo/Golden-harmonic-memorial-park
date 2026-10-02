@@ -109,6 +109,13 @@ const BASE_TIERS = [
   desc: 'An apartment-style below-ground vault holding 3 coffins in one plot.',
   features: ['3 coffins in one plot', 'Apartment-style below-ground vault', 'Payment plans available (surcharge applies)'],
   label: 'family vault — apartment-style'
+},
+{
+  // Live price comes from Firestore 'products' (id: 'valor'); this is the fallback
+  id: 'valor', name: 'Valor Plot', category: 'Family Vault', price: 40000,
+  desc: 'A dignified resting place honoring those who served — veterans and service members.',
+  features: ['1 interment space', 'Perpetual care included', 'Memorial marker with laurel emblem'],
+  label: 'valor plot — memorial marker', image: '/valor_plot.png'
 }];const PLOT_MESSAGES = {
   'regular': 'A peaceful, standard resting place in our open-lawn section — a simple and dignified choice for your loved one.',
   'premium': 'A preferred-section resting place offering a quieter, more intimate setting within the park.',
@@ -116,7 +123,8 @@ const BASE_TIERS = [
   'garden-regular': 'A resting place surrounded by landscaped gardens, offering a serene and naturally beautiful setting.',
   'garden-premium': 'An upgraded garden placement in one of our most sought-after sections, combining beauty and tranquility.',
   'garden-corner': 'Our most exclusive garden placement — a prime corner spot in the most requested section of the park.',
-  'family-vault': 'A shared resting place for up to three loved ones in one apartment-style vault — ideal for keeping family together.'
+  'family-vault': 'A shared resting place for up to three loved ones in one apartment-style vault — ideal for keeping family together.',
+  'valor': 'A dignified resting place honoring those who served — a fitting tribute to a veteran or service member.'
 }
 
 
@@ -470,7 +478,8 @@ const LOCAL_PLOT_IMAGES = {
   'garden-regular': '/regular_garden_plot.jpg',
   'garden-premium': '/premium_garden_plot.jpg',
   'garden-corner': '/corner_prime_garden_plot.jpg',
-  'family-vault': '/family_vault.png'
+  'family-vault': '/family_vault.png',
+  'valor': '/valor_plot.png'
 };
 
 /* ---------- App ---------- */
@@ -1162,7 +1171,7 @@ function Tiers({ tiers }) {
         <div className="section-head fade-up">
           <div>
             <span className="eyebrow">Plots & Pricing</span>
-            <h2 style={{ marginTop: 18 }}>Seven ways to plan ahead — from ₱30,000.</h2>
+            <h2 style={{ marginTop: 18 }}>Eight ways to plan ahead — from ₱30,000.</h2>
           </div>
           <div className="side">
             Every plot includes perpetual care and all-faiths welcome. No down payment on any installment plan — pay spot cash, or spread the (surcharged) total over 1, 2, 3, or 5 years.
