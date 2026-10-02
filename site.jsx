@@ -132,9 +132,9 @@ const BASE_TIERS = [
 // exact size and design), so these live outside the fixed-price calculator
 // above and are presented as request-a-quote items instead.
 const MAUSOLEUM_PACKAGES = [
-{ size: 'Small Mausoleum Package', area: '12–20 sqm', low: 500000, high: 700000, desc: 'Plot, design, and construction of a small mausoleum.' },
-{ size: 'Medium Mausoleum Package', area: '30–50 sqm', low: 1200000, high: 1800000, desc: 'Plot, design, and construction of a medium mausoleum.' },
-{ size: 'Large Mausoleum Package', area: '70–100+ sqm', low: 3000000, high: null, desc: 'Plot, design, and construction of a large mausoleum.' }];
+{ size: 'Serenity Glass Mausoleum', area: '12–20 sqm', low: 500000, high: 700000, desc: 'A modern and elegant design for a peaceful remembrance.', image: '/mausoleum_serenity.jpg' },
+{ size: 'Elysian Mausoleum', area: '30–50 sqm', low: 1200000, high: 1800000, desc: 'A timeless sanctuary of faith, love and remembrance.', image: '/mausoleum_elysian.jpg' },
+{ size: 'Solace Mausoleum', area: '70–100+ sqm', low: 3000000, high: null, desc: 'A serene and intimate space for your loved ones.', image: '/mausoleum_solace.jpg' }];
 
 
 const TWO_STORY_MAUSOLEUM = {
@@ -1557,7 +1557,7 @@ function Mausoleum() {
               <div className="tier-cine-card">
                 <div className="cine-frame">
                   <div className="cine-zoom">
-                    <Photo label={m.size} scene="mausoleum-row" items={[{ label: m.size, caption: m.size }]} />
+                    <Photo label={m.size} image={m.image} items={[{ label: m.size, caption: m.size }]} />
                   </div>
                   <div className="cine-vignette"></div>
                   <div className="cine-glow"></div>
