@@ -529,7 +529,15 @@ function App() {
     window.db.collection('products').orderBy('sortOrder').get()
       .then(snap => {
         if (!snap.empty) {
-          setBaseTiers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+          const fromDb = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          // Valor Plot always shows, even before it's added to Firestore.
+          // Once a 'valor' product exists in Firestore, that one wins.
+          if (!fromDb.some(t => t.id === 'valor')) {
+            const valor = BASE_TIERS.find(t => t.id === 'valor');
+            const at = fromDb.findIndex(t => t.id === 'family-vault');
+            if (valor) fromDb.splice(at >= 0 ? at + 1 : fromDb.length, 0, valor);
+          }
+          setBaseTiers(fromDb);
         }
       })
       .catch(err => console.warn('[GH] Using default products (DB not set up yet):', err));
