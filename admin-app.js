@@ -88,6 +88,15 @@ const BASE_TIERS = [{
   sortOrder: 7,
   desc: 'An apartment-style below-ground vault holding 3 coffins in one plot.',
   features: ['3 coffins in one plot', 'Apartment-style below-ground vault', 'Payment plans available (surcharge applies)']
+}, {
+  id: 'valor',
+  name: 'Valor Plot',
+  category: 'Family Vault',
+  price: 40000,
+  sortOrder: 8,
+  desc: 'A dignified resting place honoring those who served — veterans and service members.',
+  features: ['1 interment space', 'Perpetual care included', 'Memorial marker with laurel emblem'],
+  label: 'valor plot — memorial marker'
 }];
 const fmt = n => '₱' + Math.round(n).toLocaleString('en-PH');
 const initials = name => name ? name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2) : '??';
@@ -2478,7 +2487,7 @@ function Products() {
     });
   }, []);
   const seedProducts = async () => {
-    if (!confirm('This will reset prices/descriptions to the default 7 plot types. Photo URLs you\'ve already set will be kept. Continue?')) return;
+    if (!confirm('This will reset prices/descriptions to the default 8 plot types. Photo URLs you\'ve already set will be kept. Continue?')) return;
     const batch = window.db.batch();
     BASE_TIERS.forEach(tier => {
       const ref = window.db.collection('products').doc(tier.id);
@@ -2542,7 +2551,7 @@ function Products() {
     className: "table-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "empty"
-  }, "No products in database yet.", /*#__PURE__*/React.createElement("br", null), "Click \"Seed default products\" to push your 7 standard plot types to Firestore.", /*#__PURE__*/React.createElement("br", null), "After seeding, price changes here will reflect live on your website.")) : /*#__PURE__*/React.createElement("div", {
+  }, "No products in database yet.", /*#__PURE__*/React.createElement("br", null), "Click \"Seed default products\" to push your 8 standard plot types to Firestore.", /*#__PURE__*/React.createElement("br", null), "After seeding, price changes here will reflect live on your website.")) : /*#__PURE__*/React.createElement("div", {
     className: "products-grid"
   }, products.map(p => {
     const ed = local[p._id] || {
