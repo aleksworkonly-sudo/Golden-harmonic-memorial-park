@@ -470,7 +470,7 @@ const LOCAL_PLOT_IMAGES = {
   'garden-regular': '/regular_garden_plot.jpg',
   'garden-premium': '/premium_garden_plot.jpg',
   'garden-corner': '/corner_prime_garden_plot.jpg',
-  'family-vault': '/family_vault_package.png'
+  'family-vault': '/family_vault.png'
 };
 
 /* ---------- App ---------- */
