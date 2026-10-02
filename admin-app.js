@@ -95,7 +95,7 @@ const BASE_TIERS = [{
   price: 40000,
   sortOrder: 8,
   desc: 'A dignified resting place honoring those who served — veterans and service members.',
-  features: ['1 interment space', 'Perpetual care included', 'Memorial marker with laurel emblem'],
+  features: ['2 interment spaces', 'Perpetual care included', 'Memorial marker with laurel emblem'],
   label: 'valor plot — memorial marker'
 }];
 const fmt = n => '₱' + Math.round(n).toLocaleString('en-PH');
