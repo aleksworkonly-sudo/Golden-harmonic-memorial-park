@@ -1443,7 +1443,8 @@ function PaymentPlans({ tiers }) {
             <div key={cat} style={{ marginBottom: 44 }}>
               <h3 className="cat-head fade-up">{cat}</h3>
 
-              <table className="plan-table fade-up">
+              <div className="plan-table-wrap fade-up">
+                <table className="plan-table">
                 <thead>
                   <tr>
                     <th>Plot Type</th>
@@ -1486,6 +1487,7 @@ function PaymentPlans({ tiers }) {
                   )}
                 </tbody>
               </table>
+              </div>
               <p className="small" style={{ marginTop: 10 }}>
                 {guideTier.name} shown at {fmt(guideTier.price)} spot cash · no down payment on any plan.
               </p>
@@ -2116,6 +2118,107 @@ function customerPlanBalance(c) {
   };
 }
 
+// ── Customer self-registration (blueprint.md §6) ──────────────────────────
+// Creates a Firebase Auth account, sets the display name, sends a
+// verification email, and either links to an existing Firestore customer
+// record (if one with the same email already exists from an offline
+// purchase / inquiry) or creates a brand-new one.
+async function registerCustomerAccount({
+  firstName,
+  middleName,
+  lastName,
+  phone,
+  email,
+  sex,
+  password,
+  confirmPassword,
+  agreeTerms
+}) {
+  // 1. Client-side validation
+  if (!agreeTerms) {
+    throw new Error('You must agree to the Terms of Service and Privacy Policy.');
+  }
+  if (password !== confirmPassword) {
+    throw new Error('Passwords do not match.');
+  }
+  if (password.length < 8) {
+    throw new Error('Password must be at least 8 characters long.');
+  }
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+    throw new Error('Password must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number.');
+  }
+  if (!firstName.trim() || firstName.trim().length < 2) {
+    throw new Error('First name is required (at least 2 characters).');
+  }
+  if (!lastName.trim() || lastName.trim().length < 2) {
+    throw new Error('Last name is required (at least 2 characters).');
+  }
+  const phoneRegex = /^(\+639|09)\d{9}$/;
+  if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+    throw new Error('Please enter a valid Philippine phone number (e.g. 09171234567).');
+  }
+  if (!sex) {
+    throw new Error('Please select your sex.');
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPhone = phone.replace(/\s/g, '').trim();
+  const fullName = [firstName.trim(), middleName.trim(), lastName.trim()]
+    .filter(Boolean)
+    .join(' ');
+
+  // 2. Create Firebase Auth user
+  const cred = await window.auth.createUserWithEmailAndPassword(cleanEmail, password);
+  const user = cred.user;
+
+  // 3. Set displayName and send verification email
+  await user.updateProfile({ displayName: fullName });
+  await user.sendEmailVerification();
+
+  // 4. Query Firestore customers collection for existing record
+  const existingSnap = await window.db.collection('customers')
+    .where('email', '==', cleanEmail)
+    .limit(1)
+    .get();
+
+  if (!existingSnap.empty) {
+    // Auto-link to existing customer record (e.g. from walk-in inquiry or offline purchase)
+    const targetDoc = existingSnap.docs[0];
+    await window.db.collection('customers').doc(targetDoc.id).update({
+      authUid: user.uid,
+      firstName: firstName.trim(),
+      middleName: middleName ? middleName.trim() : '',
+      lastName: lastName.trim(),
+      fullName: fullName,
+      phone: cleanPhone,
+      sex: sex,
+      termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } else {
+    // Create new customer profile document
+    await window.db.collection('customers').add({
+      authUid: user.uid,
+      firstName: firstName.trim(),
+      middleName: middleName ? middleName.trim() : '',
+      lastName: lastName.trim(),
+      fullName: fullName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      sex: sex,
+      role: 'customer',
+      status: 'active',
+      termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  return user;
+}
+
 function PortalLogin({ onForgot }) {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
@@ -2190,6 +2293,199 @@ function PortalForgot({ initialEmail, onBack }) {
   );
 }
 
+// ── Registration form component (blueprint.md §8) ─────────────────────────
+function PortalRegister({ onBack, onRegistered }) {
+  const [reg, setReg] = useState({
+    firstName: '', middleName: '', lastName: '',
+    phone: '', email: '', sex: '',
+    password: '', confirmPassword: '',
+    agreeTerms: false
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setBusy(true); setError('');
+    try {
+      await registerCustomerAccount(reg);
+      if (onRegistered) onRegistered();
+    } catch (ex) {
+      console.error('[GH portal register]', ex.code || '', ex.message, ex);
+      const map = {
+        'auth/email-already-in-use': 'An account with this email address already exists. Please sign in or reset your password.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/weak-password': 'Password should be at least 8 characters long and contain both letters and numbers.',
+        'auth/too-many-requests': 'Too many attempts. Please wait a few minutes before trying again.',
+        'auth/network-request-failed': 'Network error. Please check your internet connection and try again.'
+      };
+      setError(map[ex.code] || ex.message || 'Could not create account.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <form onSubmit={handleRegister} className="gh-portal-form">
+      <div className="gh-portal-form-grid">
+        <div>
+          <label htmlFor="gh-reg-first-name">First Name *</label>
+          <input id="gh-reg-first-name" type="text" value={reg.firstName}
+            onChange={e => setReg({...reg, firstName: e.target.value})}
+            required minLength={2} maxLength={50} placeholder="e.g. Maria" />
+        </div>
+        <div>
+          <label htmlFor="gh-reg-last-name">Last Name *</label>
+          <input id="gh-reg-last-name" type="text" value={reg.lastName}
+            onChange={e => setReg({...reg, lastName: e.target.value})}
+            required minLength={2} maxLength={50} placeholder="e.g. Santos" />
+        </div>
+        <div>
+          <label htmlFor="gh-reg-middle-name">Middle Name</label>
+          <input id="gh-reg-middle-name" type="text" value={reg.middleName}
+            onChange={e => setReg({...reg, middleName: e.target.value})}
+            maxLength={50} placeholder="Optional" />
+        </div>
+        <div>
+          <label htmlFor="gh-reg-sex">Sex *</label>
+          <select id="gh-reg-sex" value={reg.sex}
+            onChange={e => setReg({...reg, sex: e.target.value})} required>
+            <option value="" disabled>Select</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="gh-reg-phone">Contact Number *</label>
+          <input id="gh-reg-phone" type="tel" value={reg.phone}
+            onChange={e => setReg({...reg, phone: e.target.value})}
+            required placeholder="0917 123 4567" />
+        </div>
+        <div>
+          <label htmlFor="gh-reg-email">Email Address *</label>
+          <input id="gh-reg-email" type="email" value={reg.email}
+            onChange={e => setReg({...reg, email: e.target.value})}
+            required placeholder="name@example.com" />
+        </div>
+        <div>
+          <label htmlFor="gh-reg-password">Password *</label>
+          <div style={{ position: 'relative' }}>
+            <input id="gh-reg-password" type={showPass ? 'text' : 'password'}
+              value={reg.password}
+              onChange={e => setReg({...reg, password: e.target.value})}
+              minLength={8} required placeholder="Min 8 characters"
+              style={{ paddingRight: 38 }} />
+            <button type="button" onClick={() => setShowPass(!showPass)}
+              style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)',
+                background:'none', border:'none', cursor:'pointer', color:'var(--ink-2)',
+                fontSize:'13px', padding:'2px 4px' }}
+              tabIndex={-1} aria-label={showPass ? 'Hide password' : 'Show password'}>
+              {showPass ? '🙈' : '👁'}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label htmlFor="gh-reg-confirm-password">Confirm Password *</label>
+          <div style={{ position: 'relative' }}>
+            <input id="gh-reg-confirm-password" type={showConfirm ? 'text' : 'password'}
+              value={reg.confirmPassword}
+              onChange={e => setReg({...reg, confirmPassword: e.target.value})}
+              minLength={8} required placeholder="Re-enter password"
+              style={{ paddingRight: 38 }} />
+            <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+              style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)',
+                background:'none', border:'none', cursor:'pointer', color:'var(--ink-2)',
+                fontSize:'13px', padding:'2px 4px' }}
+              tabIndex={-1} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
+              {showConfirm ? '🙈' : '👁'}
+            </button>
+          </div>
+        </div>
+        <div className="full">
+          <label htmlFor="gh-reg-terms" className="gh-reg-terms-label">
+            <input id="gh-reg-terms" type="checkbox" checked={reg.agreeTerms}
+              onChange={e => setReg({...reg, agreeTerms: e.target.checked})}
+              required />
+            <span>
+              I agree to the <a href="#terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and{' '}
+              <a href="#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+            </span>
+          </label>
+        </div>
+      </div>
+      {error && <div className="gh-portal-err" role="alert">{error}</div>}
+      <button type="submit" className="gh-portal-btn-primary" disabled={busy}>
+        {busy ? 'Creating Account…' : 'Create Account'}
+      </button>
+    </form>
+  );
+}
+
+// ── Email verification gate (blueprint.md §7) ─────────────────────────────
+// NOTE: onAuthStateChanged does NOT re-fire after user.reload() — the user
+// object is mutated in place but React never sees a new reference.
+// We accept onVerified() so CustomerPortal can force-refresh its authUser state.
+function PortalVerifyEmail({ user, onLogout, onVerified }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [err, setErr] = useState('');
+
+  const resend = async () => {
+    setSending(true); setErr(''); setSent(false);
+    try {
+      await user.sendEmailVerification();
+      setSent(true);
+    } catch (ex) {
+      setErr(ex.code === 'auth/too-many-requests'
+        ? 'Too many requests — please wait a few minutes.'
+        : (ex.message || 'Could not send verification email.'));
+    } finally { setSending(false); }
+  };
+
+  const checkNow = async () => {
+    setChecking(true); setErr('');
+    try {
+      // reload() refreshes the token/claims from Firebase servers
+      await user.reload();
+      // After reload(), user.emailVerified is updated in-place but
+      // onAuthStateChanged won't fire. We call onVerified() to let
+      // CustomerPortal re-read the current user and trigger a re-render.
+      if (user.emailVerified) {
+        if (onVerified) onVerified(user);
+      } else {
+        setErr('Email not verified yet — please check your inbox and click the link, then try again.');
+      }
+    } catch (ex) {
+      setErr(ex.message || 'Could not refresh status.');
+    } finally { setChecking(false); }
+  };
+
+  return (
+    <div className="gh-portal-dashboard-pad" style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+      <h2 className="gh-portal-title" style={{ marginBottom: 8 }}>Verify your email</h2>
+      <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: '1.55', marginBottom: 24 }}>
+        We sent a verification link to <strong style={{ color: 'var(--ink)' }}>{user.email}</strong>.<br />
+        Please check your inbox (and spam folder) and click the link to activate your account.
+      </p>
+      {sent && <div className="gh-portal-toast" style={{ marginBottom: 14 }}>✓ Verification email re-sent!</div>}
+      {err && <div className="gh-portal-err" role="alert" style={{ marginBottom: 14 }}>{err}</div>}
+      <button type="button" className="gh-portal-btn-primary" onClick={checkNow} disabled={checking}
+        style={{ marginBottom: 10 }}>
+        {checking ? 'Checking…' : 'I\'ve verified my email'}
+      </button>
+      <button type="button" className="gh-portal-link-btn" onClick={resend} disabled={sending}>
+        {sending ? 'Sending…' : 'Resend verification email'}
+      </button>
+      <button type="button" className="gh-portal-link-btn" onClick={onLogout}>
+        Log out
+      </button>
+    </div>
+  );
+}
+
 function PortalDashboard({ customer, onLogout }) {
   const bal = customerPlanBalance(customer);
   const confirmedRows = (customer.payments || []).map(p => ({ ...p, _kind: 'confirmed' }));
@@ -2229,8 +2525,20 @@ function PortalDashboard({ customer, onLogout }) {
   return (
     <div>
       <div className="gh-portal-topbar">
-        <span>Hello, {customer.firstName || customer.fullName || 'there'}</span>
-        <button className="gh-portal-link-btn" style={{ marginTop: 0 }} onClick={onLogout}>Log out</button>
+        <div className="gh-portal-user-meta">
+          <div className="gh-portal-avatar">
+            {(customer.firstName || customer.fullName || 'U')[0].toUpperCase()}
+          </div>
+          <div>
+            <div className="gh-portal-greeting-label">Welcome back,</div>
+            <div className="gh-portal-user-name">
+              {customer.firstName ? `${customer.firstName} ${customer.lastName || ''}`.trim() : (customer.fullName || 'Valued Client')}
+            </div>
+          </div>
+        </div>
+        <button type="button" className="gh-portal-logout-btn" onClick={onLogout}>
+          Log out
+        </button>
       </div>
 
       {!customer.plan ? (
@@ -2268,26 +2576,28 @@ function PortalDashboard({ customer, onLogout }) {
         {history.length === 0 ? (
           <div className="gh-portal-empty">No payments recorded yet.</div>
         ) : (
-          <table className="gh-portal-table">
-            <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead>
-            <tbody>
-              {history.map((p, i) => (
-                <tr key={i}>
-                  <td>{p.date}</td>
-                  <td>{p.method || 'GCash'}</td>
-                  <td>{p.referenceNumber || '—'}</td>
-                  <td>{fmt(p.amount)}</td>
-                  <td>
-                    {p._kind === 'confirmed'
-                      ? <span className="gh-pill confirmed">Confirmed</span>
-                      : <span className={`gh-pill ${p.status === 'rejected' ? 'rejected' : p.status === 'confirmed' ? 'confirmed' : 'pending'}`}>
-                          {p.status === 'rejected' ? 'Needs attention' : p.status === 'confirmed' ? 'Confirmed' : 'Awaiting confirmation'}
-                        </span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="gh-portal-table-wrap">
+            <table className="gh-portal-table">
+              <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody>
+                {history.map((p, i) => (
+                  <tr key={i}>
+                    <td>{p.date}</td>
+                    <td>{p.method || 'GCash'}</td>
+                    <td>{p.referenceNumber || '—'}</td>
+                    <td>{fmt(p.amount)}</td>
+                    <td>
+                      {p._kind === 'confirmed'
+                        ? <span className="gh-pill confirmed">Confirmed</span>
+                        : <span className={`gh-pill ${p.status === 'rejected' ? 'rejected' : p.status === 'confirmed' ? 'confirmed' : 'pending'}`}>
+                            {p.status === 'rejected' ? 'Needs attention' : p.status === 'confirmed' ? 'Confirmed' : 'Awaiting confirmation'}
+                          </span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -2341,14 +2651,16 @@ function PortalDashboard({ customer, onLogout }) {
           </div>
           <div>
             <label htmlFor="gh-pay-mobile">
-              {form.method === 'bank' ? 'Sending bank (optional)' : form.method === 'cash' ? 'Received by (optional)' : 'Your GCash mobile no. (optional)'}
+              {form.method === 'bank' ? 'Sending bank (optional)' : form.method === 'cash' ? 'Received by (optional)' : 'GCash mobile no. (optional)'}
             </label>
             <input
               id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))}
               placeholder={form.method === 'bank' ? 'e.g. BDO, BPI' : form.method === 'cash' ? 'e.g. staff name' : '09XX XXX XXXX'} />
           </div>
           <div className="full">
-            <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting…' : 'Submit for confirmation'}</button>
+            <button type="submit" className="gh-portal-btn-gold" disabled={busy} style={{ width: '100%', padding: '12px 18px', borderRadius: '10px', fontSize: '14px' }}>
+              {busy ? 'Submitting…' : 'Submit for confirmation'}
+            </button>
           </div>
         </form>
         {toast && <div className="gh-portal-toast">{toast}</div>}
@@ -2360,7 +2672,7 @@ function PortalDashboard({ customer, onLogout }) {
 function CustomerPortal({ open, onClose }) {
   const [authUser, setAuthUser] = useState(undefined); // undefined = checking, null = logged out
   const [customer, setCustomer] = useState(undefined); // undefined = loading, null = no match found
-  const [mode, setMode] = useState('login'); // 'login' | 'forgot'
+  const [mode, setMode] = useState('login'); // 'login' | 'forgot' | 'register'
   const [forgotEmail, setForgotEmail] = useState('');
   const cardRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -2397,6 +2709,15 @@ function CustomerPortal({ open, onClose }) {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const logout = () => window.auth.signOut();
@@ -2404,29 +2725,62 @@ function CustomerPortal({ open, onClose }) {
   return (
     <div className="gh-portal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <style>{`
-        .gh-portal-overlay{ position:fixed; inset:0; background:rgba(20,20,18,.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
-        .gh-portal-card{ background:var(--card); border-radius:16px; max-width:420px; width:100%; max-height:88vh;
-          overflow-y:auto; position:relative; box-shadow:0 20px 50px rgba(0,0,0,.28); border:1px solid var(--line); }
-        .gh-portal-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-2); line-height:1; z-index:2; }
+        .gh-portal-overlay, .gh-portal-overlay * { box-sizing: border-box; }
+        .gh-portal-overlay{ position:fixed; inset:0; background:rgba(20,20,18,.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; overflow:hidden; }
+        .gh-portal-card{ background:var(--card); border-radius:16px; max-width:440px; width:100%; max-height:88vh;
+          overflow-y:auto; overflow-x:hidden; position:relative; box-shadow:0 20px 50px rgba(0,0,0,.28); border:1px solid var(--line); transition:max-width .3s ease;
+          scrollbar-width:none; -ms-overflow-style:none; }
+        .gh-portal-card::-webkit-scrollbar{ display:none; width:0; height:0; }
+        .gh-portal-card.gh-portal-card--wide{ max-width:540px; }
+        .gh-portal-close{ position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--bg); border:1px solid var(--line); font-size:14px; cursor:pointer; color:var(--ink-2); line-height:1; z-index:10; transition:all .15s ease; }
+        .gh-portal-close:hover{ background:var(--line); color:var(--ink); transform:scale(1.05); }
         .gh-portal-header-block{ padding:32px 32px 30px; background:var(--card); }
-        .gh-portal-brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+        .gh-portal-brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; padding-right:36px; }
         .gh-portal-brand img{ width:32px; height:32px; object-fit:contain; flex-shrink:0; }
         .gh-portal-brand span{ font-size:12.5px; color:var(--ink-2); letter-spacing:.02em; }
         .gh-portal-title{ font-size:24px; font-weight:700; color:var(--ink); margin:0 0 6px; }
         .gh-portal-subtitle{ font-size:14px; color:var(--ink-2); margin:0 0 24px; }
-        .gh-portal-form label, .gh-portal-form-grid label{ display:block; font-size:13px; font-weight:500; color:var(--ink); margin-bottom:6px; margin-top:16px; }
+        .gh-portal-form label{ display:block; font-size:13px; font-weight:500; color:var(--ink); margin-bottom:6px; margin-top:16px; }
         .gh-portal-form label:first-child{ margin-top:0; }
-        .gh-portal-form input, .gh-portal-form-grid input{ width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:10px; font-size:14.5px; font-family:inherit; background:var(--bg); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.04); }
-        .gh-portal-form input:focus, .gh-portal-form-grid input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,93,76,.12); }
-        .gh-portal-btn-primary{ width:100%; margin-top:24px; background:var(--accent); color:var(--accent-ink); border:none; padding:13px; border-radius:10px; font-weight:600; font-size:14.5px; cursor:pointer; box-shadow:0 6px 14px rgba(47,93,76,.2); }
+        .gh-portal-form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; align-items:stretch; }
+        .gh-portal-form-grid > div{ display:flex; flex-direction:column; justify-content:space-between; }
+        .gh-portal-form-grid > div > label{ margin-top:0; margin-bottom:6px; font-size:13px; font-weight:500; color:var(--ink); line-height:1.3; }
+        .gh-portal-form-grid > div > input, .gh-portal-form-grid > div > select, .gh-portal-form-grid > div > div{ margin-top:auto; width:100%; }
+        .gh-portal-form-grid .full{ grid-column:1/-1; }
+        .gh-portal-form input:not([type="checkbox"]):not([type="radio"]), .gh-portal-form-grid input:not([type="checkbox"]):not([type="radio"]), .gh-portal-form select, .gh-portal-form-grid select{
+          width:100%; height:42px; padding:0 14px; border:1px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; background:var(--bg); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.04); box-sizing:border-box;
+        }
+        .gh-portal-form input:not([type="checkbox"]):not([type="radio"]):focus, .gh-portal-form-grid input:not([type="checkbox"]):not([type="radio"]):focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,93,76,.12); }
+        .gh-portal-form select, .gh-portal-form-grid select{
+          appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; cursor:pointer;
+        }
+        .gh-portal-form select:focus, .gh-portal-form-grid select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,93,76,.12); }
+        .gh-portal-form input[type="date"], .gh-portal-form-grid input[type="date"]{ display:flex; align-items:center; line-height:normal; padding:0 12px; }
+        .gh-reg-terms-label{ display:flex !important; align-items:flex-start !important; gap:10px !important; cursor:pointer !important; margin-top:14px !important; margin-bottom:0 !important; font-weight:400 !important; font-size:13px !important; line-height:1.45 !important; color:var(--ink-2) !important; user-select:none; }
+        .gh-reg-terms-label input[type="checkbox"]{ width:17px !important; height:17px !important; min-width:17px !important; max-width:17px !important; margin:2px 0 0 0 !important; padding:0 !important; border:1.5px solid var(--line) !important; border-radius:4px !important; cursor:pointer !important; accent-color:var(--accent) !important; box-shadow:none !important; background:var(--bg) !important; flex-shrink:0 !important; }
+        .gh-reg-terms-label a{ color:var(--accent); text-decoration:underline; font-weight:500; }
+        .gh-reg-terms-label a:hover{ text-decoration:none; }
+        .gh-portal-btn-primary{ width:100%; margin-top:24px; background:var(--accent); color:var(--accent-ink); border:none; padding:13px; border-radius:10px; font-weight:600; font-size:14.5px; cursor:pointer; box-shadow:0 6px 14px rgba(47,93,76,.2); transition:opacity .15s, transform .1s; }
         .gh-portal-btn-primary:hover{ opacity:.94; }
-        .gh-portal-btn-gold{ background:var(--gold); color:#fff; border:none; padding:10px 20px; border-radius:8px; font-weight:700; font-size:13.5px; cursor:pointer; }
+        .gh-portal-btn-primary:active{ transform:scale(0.99); }
+        .gh-portal-btn-gold{ background:var(--gold); color:#fff; border:none; padding:11px 20px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; transition:opacity .15s, transform .1s; }
+        .gh-portal-btn-gold:hover{ opacity:.92; }
+        .gh-portal-btn-gold:active{ transform:scale(0.99); }
         .gh-portal-link-btn{ background:none; border:none; color:var(--ink-2); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:14px; padding:0; display:block; text-align:center; width:100%; }
         .gh-portal-link-btn:hover{ color:var(--accent); }
         .gh-portal-err{ color:var(--terracotta); font-size:13px; margin-top:12px; }
         .gh-portal-footer-strip{ background:var(--bg); border-top:1px solid var(--line); padding:16px 32px; text-align:center; font-size:13px; color:var(--ink-2); }
         .gh-portal-footer-strip button{ background:none; border:none; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; margin-left:4px; padding:0; text-decoration:underline; }
-        .gh-portal-topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; font-size:14px; color:var(--ink-2); }
+        
+        /* User bar & top navigation in portal dashboard */
+        .gh-portal-topbar{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:22px; padding-right:36px; }
+        .gh-portal-user-meta{ display:flex; align-items:center; gap:10px; min-width:0; }
+        .gh-portal-avatar{ width:36px; height:36px; border-radius:50%; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; flex-shrink:0; }
+        .gh-portal-greeting-label{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-2); line-height:1.2; }
+        .gh-portal-user-name{ font-size:15px; font-weight:700; color:var(--ink); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .gh-portal-logout-btn{ background:var(--bg); border:1px solid var(--line); color:var(--ink-2); font-size:12.5px; font-weight:600; cursor:pointer; padding:6px 14px; border-radius:8px; white-space:nowrap; transition:all .15s ease; font-family:inherit; flex-shrink:0; }
+        .gh-portal-logout-btn:hover{ color:var(--accent); border-color:var(--accent); background:rgba(47,93,76,.06); }
+
         .gh-portal-hero{ background:var(--accent); color:var(--accent-ink); border-radius:10px; padding:22px 24px; margin-bottom:16px; }
         .gh-portal-hero-label{ font-size:12.5px; opacity:.8; margin-bottom:4px; }
         .gh-portal-hero-amount{ font-size:32px; font-weight:700; }
@@ -2441,22 +2795,26 @@ function CustomerPortal({ open, onClose }) {
         .gh-portal-stats .v{ font-size:15px; font-weight:700; color:var(--ink); }
         .gh-portal-section{ margin-bottom:28px; }
         .gh-portal-section h4{ font-size:15px; margin:0 0 10px; color:var(--ink); border-bottom:1px solid var(--line); padding-bottom:8px; }
-        .gh-portal-table{ width:100%; border-collapse:collapse; font-size:13px; }
-        .gh-portal-table th{ text-align:left; font-size:11px; color:var(--ink-2); padding:6px 8px; border-bottom:1px solid var(--line); }
-        .gh-portal-table td{ padding:9px 8px; border-bottom:1px solid var(--line); }
+        
+        .gh-portal-table-wrap{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; -ms-overflow-style:none; border-radius:8px; }
+        .gh-portal-table-wrap::-webkit-scrollbar{ display:none; width:0; height:0; }
+        .gh-portal-table{ width:100%; border-collapse:collapse; font-size:13px; min-width:380px; }
+        .gh-portal-table th{ text-align:left; font-size:11px; color:var(--ink-2); padding:8px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+        .gh-portal-table td{ padding:10px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
         .gh-pill{ font-size:11px; padding:3px 9px; border-radius:20px; }
         .gh-pill.confirmed{ background:#e4ede6; color:#2f5d4c; }
         .gh-pill.pending{ background:#f3e9d8; color:#8a6a2e; }
         .gh-pill.rejected{ background:#f5e3df; color:#a85c4b; }
         .gh-portal-help{ font-size:13px; color:var(--ink-2); margin:0 0 14px; }
-        .gh-portal-form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
-        .gh-portal-form-grid .full{ grid-column:1/-1; margin-top:16px; }
         .gh-portal-toast{ margin-top:14px; font-size:13px; color:var(--accent); background:var(--card); border:1px solid var(--line); padding:10px 12px; border-radius:8px; }
         .gh-portal-empty{ font-size:13.5px; color:var(--ink-2); padding:14px 0; }
-        .gh-portal-dashboard-pad{ padding:32px; }
-        @media (max-width:520px){ .gh-portal-form-grid{ grid-template-columns:1fr; } }
+        .gh-portal-dashboard-pad{ padding:28px 28px 32px; }
+        @media (max-width:540px){
+          .gh-portal-form-grid{ grid-template-columns:1fr; gap:12px; }
+          .gh-portal-topbar{ padding-right:32px; }
+        }
       `}</style>
-      <div className="gh-portal-card" ref={cardRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Golden Harmonic Memorial Park customer portal" style={{ outline: 'none' }}>
+      <div className={`gh-portal-card${mode === 'register' ? ' gh-portal-card--wide' : ''}`} ref={cardRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Golden Harmonic Memorial Park customer portal" style={{ outline: 'none' }}>
         <button className="gh-portal-close" onClick={onClose} aria-label="Close">✕</button>
 
         {authUser === undefined ? (
@@ -2474,19 +2832,37 @@ function CustomerPortal({ open, onClose }) {
                   <p className="gh-portal-subtitle">Sign in to view your balance and payment history.</p>
                   <PortalLogin onForgot={(email) => { setForgotEmail(email); setMode('forgot'); }} />
                 </React.Fragment>
-              ) : (
+              ) : mode === 'forgot' ? (
                 <React.Fragment>
                   <h2 className="gh-portal-title">Reset your password</h2>
                   <p className="gh-portal-subtitle">We'll email you a link to set a new one.</p>
                   <PortalForgot initialEmail={forgotEmail} onBack={() => setMode('login')} />
                 </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <h2 className="gh-portal-title">Create your account</h2>
+                  <p className="gh-portal-subtitle">Sign up to view your balance, payment history, and manage your memorial park account.</p>
+                  <PortalRegister onBack={() => setMode('login')} />
+                </React.Fragment>
               )}
             </div>
             <div className="gh-portal-footer-strip">
-              Don't have portal access yet?
-              <button onClick={() => { /* informational only */ }} style={{ cursor: 'default', textDecoration: 'none' }}>Ask our staff to set it up</button>
+              {mode === 'register' ? (
+                <React.Fragment>
+                  Already have an account?
+                  <button onClick={() => setMode('login')}>Sign in</button>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  Don't have an account yet?
+                  <button onClick={() => setMode('register')}>Create one here</button>
+                </React.Fragment>
+              )}
             </div>
           </React.Fragment>
+        ) : !authUser.emailVerified ? (
+          <PortalVerifyEmail user={authUser} onLogout={logout}
+            onVerified={(refreshedUser) => setAuthUser(refreshedUser)} />
         ) : customer === undefined ? (
           <div style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>Loading your account…</div>
         ) : customer === null ? (
