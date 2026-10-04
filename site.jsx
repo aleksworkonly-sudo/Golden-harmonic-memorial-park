@@ -1930,22 +1930,23 @@ function Brochure({ tiers = [] }) {
         });
       }
 
-      // 3. Send the customer a confirmation email (best-effort — if EmailJS
-      // isn't configured yet, this just quietly does nothing so the form
-      // still works while you're setting it up).
-      if (window.emailjs && window.EMAILJS_CONFIG && window.EMAILJS_CONFIG.PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
-        emailjs.send(window.EMAILJS_CONFIG.SERVICE_ID, window.EMAILJS_CONFIG.TEMPLATE_ID, {
+      // 3. Send the customer a confirmation email (best-effort — if the
+      // Brevo API endpoint isn't configured yet, this just quietly logs
+      // an error so the form still works while you're setting it up).
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type:       'inquiry',
           to_email:   form.email,
           first_name: form.firstName,
           last_name:  form.lastName,
           interest:   form.interest,
           phone:      form.phone,
           plan_name:  chosenPlan ? chosenPlan.name : 'Not chosen yet',
-          plan_price: chosenPlan ? fmt(chosenPlan.price) : '—',
-          plan_image: chosenPlan ? `${window.location.origin}/${planImageFile(chosenPlan.id)}` : '',
-          plot_message: chosenPlan ? (PLOT_MESSAGES[chosenPlan.id] || '') : ''
-        }).catch(err => console.error('[GH] Email send error:', err));
-      }
+          plan_price: chosenPlan ? fmt(chosenPlan.price) : '—'
+        })
+      }).catch(err => console.error('[GH] Email send error:', err));
 
       setSent(true);
     } catch (err) {
@@ -2884,7 +2885,7 @@ function CustomerPortal({ open, onClose }) {
 
 /* ---------- Cart Drawer & Checkout ----------
    Mirrors the submission pattern used by Brochure() (inquiries + customers
-   in Firestore, best-effort EmailJS confirmation) but for a multi-item
+   in Firestore, best-effort Brevo confirmation) but for a multi-item
    cart. Payment stays manual: after submitting, staff follow up with
    GCash details the same way they do for every other lead today. */
 function CartDrawer({ open, onClose }) {
@@ -2960,19 +2961,22 @@ function CartDrawer({ open, onClose }) {
         });
       }
 
-      // Best-effort confirmation email — quietly no-ops if EmailJS isn't configured.
-      if (window.emailjs && window.EMAILJS_CONFIG && window.EMAILJS_CONFIG.PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
-        emailjs.send(window.EMAILJS_CONFIG.SERVICE_ID, window.EMAILJS_CONFIG.TEMPLATE_ID, {
-          to_email: form.email,
-          first_name: form.firstName,
-          last_name: form.lastName,
-          phone: form.phone,
-          plan_name: cart.map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`).join(', '),
-          plan_price: fmt(subtotal),
-          payment_term: selectedTerm.label,
+      // Best-effort confirmation email via Brevo server-side endpoint.
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type:           'order',
+          to_email:       form.email,
+          first_name:     form.firstName,
+          last_name:      form.lastName,
+          phone:          form.phone,
+          plan_name:      cart.map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`).join(', '),
+          plan_price:     fmt(subtotal),
+          payment_term:   selectedTerm.label,
           payment_method: form.paymentMethod === 'bank' ? 'Bank Transfer' : 'GCash'
-        }).catch((err) => console.error('[GH] Email send error:', err));
-      }
+        })
+      }).catch((err) => console.error('[GH] Email send error:', err));
 
       clearCart();
       setStep('sent');

@@ -1,20 +1,15 @@
 // emailjs-config.js
 //
-// PLACEHOLDER — you need to fill these in from your own EmailJS account
-// (emailjs.com). This powers the automatic "Brochure on its way" email
-// sent to customers when they submit the price-list form.
+// ⚠️  DEPRECATED — EmailJS has been replaced by Brevo (server-side).
 //
-// Where to find each value:
-//   PUBLIC_KEY  → Account → General → Public Key
-//   SERVICE_ID  → Email Services → (your connected service) → Service ID
-//   TEMPLATE_ID → Email Templates → (your template) → Template ID
-
-window.EMAILJS_CONFIG = {
-  PUBLIC_KEY:  "jzX1DClL1H1hQWFGT",
-  SERVICE_ID:  "service_wdr2i7a",
-  TEMPLATE_ID: "template_q0lutxf"
-};
-
-if (window.emailjs && window.EMAILJS_CONFIG.PUBLIC_KEY !== "YOUR_PUBLIC_KEY") {
-  emailjs.init({ publicKey: window.EMAILJS_CONFIG.PUBLIC_KEY });
-}
+// This file is no longer loaded by any HTML page.  It is kept temporarily
+// so the git diff clearly shows the migration.  You can safely delete this
+// file once you've confirmed Brevo is working.
+//
+// The Brevo API key is stored as an environment variable (BREVO_API_KEY)
+// in Vercel — NOT in any client-side file.
+//
+// Old EmailJS keys (now unused):
+//   PUBLIC_KEY:  "jzX1DClL1H1hQWFGT"
+//   SERVICE_ID:  "service_wdr2i7a"
+//   TEMPLATE_ID: "template_q0lutxf"
