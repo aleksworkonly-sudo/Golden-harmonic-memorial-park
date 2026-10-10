@@ -3253,6 +3253,238 @@ function PendingPayments({
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
+// ── Presale applications (Blocks B, C, D) ──────────────────────────────────
+// Buyers reserve through /api/presale, which writes presaleApplications/{ref}
+// and plots/{block}_{lot}. Staff verify by phone, then confirm payment here.
+const PRESALE_METHOD_LABEL = {
+  cash: 'Cash',
+  gcash: 'GCash',
+  bank: 'Bank transfer',
+  cheque: 'Cheque'
+};
+const PRESALE_TYPE_LABEL = {
+  'regular': 'Regular',
+  'premium': 'Premium',
+  'corner-premium': 'Corner Premium'
+};
+function presalePlanText(a) {
+  return a.plan === 'cash' ? 'Spot cash' : `${a.years} years · ${fmt(a.monthly)}/mo`;
+}
+function PresaleApplications({
+  currentUser
+}) {
+  const [rows, setRows] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [open, setOpen] = useState(null);
+  const [refText, setRefText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState('');
+  useEffect(() => window.db.collection('presaleApplications').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  })))), []);
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(''), 2400);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
+  if (!rows) return plotEl("div", {
+    className: "loading"
+  }, plotEl("div", {
+    className: "spinner"
+  }), plotEl("div", null, "Loading presale applications…"));
+  const sel = open ? rows.find(r => r._id === open) : null;
+  const actor = currentUser && currentUser.email || 'staff';
+  const update = async (a, patch, msg) => {
+    setBusy(true);
+    try {
+      await window.db.collection('presaleApplications').doc(a._id).update(patch);
+      setToast(msg);
+    } catch (err) {
+      setToast(err && err.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const confirmPaid = async a => {
+    if (!refText.trim()) {
+      setToast('Please write the receipt, cheque or GCash reference first.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await window.db.collection('presaleApplications').doc(a._id).update({
+        status: 'paid',
+        paymentReference: refText.trim(),
+        paymentConfirmedAt: Date.now(),
+        confirmedBy: actor
+      });
+      await window.db.collection('plots').doc(`${a.blockId}_${a.lotNo}`).update({
+        hold: false
+      }).catch(() => {});
+      setToast('Payment confirmed');
+    } catch (err) {
+      setToast(err && err.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const cancelApp = async a => {
+    if (!window.confirm(`Cancel ${a.ref} and free plot ${a.plotCode}? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      await window.db.collection('presaleApplications').doc(a._id).update({
+        status: 'cancelled',
+        cancelledAt: Date.now(),
+        cancelledBy: actor
+      });
+      await window.db.collection('plots').doc(`${a.blockId}_${a.lotNo}`).delete();
+      setToast(`${a.plotCode} is free again`);
+      setOpen(null);
+    } catch (err) {
+      setToast(err && err.message || 'Could not cancel');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const live = rows.filter(r => r.status !== 'cancelled');
+  const stat = (n, label) => plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, n), plotEl("div", {
+    className: "stat-lbl"
+  }, label)));
+  const shown = rows.filter(r => filter === 'all' ? true : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : r.status === filter);
+  const statusBadge = s => plotEl("span", {
+    className: s === 'paid' ? 'badge badge-converted' : s === 'cancelled' ? 'badge' : s === 'verified' ? 'badge badge-contacted' : 'badge badge-new'
+  }, s === 'new' ? 'New' : s === 'verified' ? 'Verified' : s === 'paid' ? 'Paid' : 'Cancelled');
+  return plotEl("div", null, toast && plotEl(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), plotEl("div", {
+    className: "section-hd"
+  }, plotEl("h2", null, "Presale applications")), plotEl("div", {
+    className: "stats-row",
+    style: {
+      gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
+      marginBottom: 16
+    }
+  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed')), plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginBottom: 14
+    }
+  }, [['all', 'All'], ['new', 'New'], ['verified', 'Verified'], ['paid', 'Paid'], ['cash', 'Spot cash'], ['installment', 'Monthly'], ['cancelled', 'Cancelled']].map(([id, label]) => plotEl("button", {
+    key: id,
+    className: `btn btn-sm ${filter === id ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setFilter(id)
+  }, label))), plotEl("div", {
+    className: "table-card"
+  }, shown.length === 0 ? plotEl("div", {
+    style: {
+      padding: 24
+    }
+  }, "No presale applications here yet.") : plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status'].map(h => plotEl("th", {
+    key: h
+  }, h)))), plotEl("tbody", null, shown.map(r => plotEl("tr", {
+    key: r._id,
+    style: {
+      cursor: 'pointer'
+    },
+    onClick: () => {
+      setOpen(r._id);
+      setRefText(r.paymentReference || '');
+    }
+  }, plotEl("td", null, r.ref), plotEl("td", null, r.name, plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, r.mobile)), plotEl("td", null, r.plotCode, plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status))))))), sel && plotEl("div", {
+    className: "modal-bg",
+    onClick: e => e.target === e.currentTarget && setOpen(null)
+  }, plotEl("div", {
+    className: "modal"
+  }, plotEl("h3", null, sel.ref, " · ", sel.plotCode, " · ", PRESALE_TYPE_LABEL[sel.typeId]), statusBadge(sel.status), plotEl("div", {
+    style: {
+      margin: '12px 0',
+      padding: 12,
+      borderRadius: 8,
+      background: sel.plan === 'cash' ? '#e8f5e9' : '#fff3e0'
+    }
+  }, plotEl("b", null, sel.plan === 'cash' ? 'SPOT CASH' : 'MONTHLY INSTALLMENT'), plotEl("div", null, sel.plan === 'cash' ? `Pays ${fmt(sel.totalPrice)} in full` : `${sel.years} years · ${fmt(sel.monthly)} a month · total ${fmt(sel.totalPrice)}`), plotEl("div", null, "Pays by: ", plotEl("b", null, PRESALE_METHOD_LABEL[sel.method] || sel.method))), plotEl("div", {
+    style: {
+      lineHeight: 1.7
+    }
+  }, plotEl("div", null, plotEl("b", null, "Name: "), sel.name), plotEl("div", null, plotEl("b", null, "Address: "), sel.address), plotEl("div", null, plotEl("b", null, "Mobile: "), sel.mobile), plotEl("div", null, plotEl("b", null, "Email: "), sel.email), plotEl("div", null, plotEl("b", null, "Sent: "), fmtDate(sel.createdAt)), sel.status === 'paid' && plotEl("div", null, plotEl("b", null, "Payment ref: "), sel.paymentReference, " · confirmed by ", sel.confirmedBy)), plotEl("div", {
+    style: {
+      marginTop: 12,
+      padding: 10,
+      borderRadius: 8,
+      background: '#f6f1e8',
+      fontSize: 13
+    }
+  }, "Identity check: call the buyer, or meet at the office, and confirm the name and address above."), sel.status !== 'paid' && sel.status !== 'cancelled' && plotEl("div", {
+    style: {
+      marginTop: 12
+    }
+  }, sel.status === 'new' && plotEl("button", {
+    className: "btn btn-outline",
+    disabled: busy,
+    style: {
+      marginBottom: 10
+    },
+    onClick: () => update(sel, {
+      status: 'verified',
+      verifiedBy: actor,
+      verifiedAt: Date.now()
+    }, 'Marked as verified')
+  }, "✔ Name and address checked"), plotEl("label", {
+    style: {
+      display: 'block',
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 4
+    }
+  }, sel.method === 'cheque' ? 'Cheque number' : sel.method === 'cash' ? 'Official receipt number' : sel.method === 'gcash' ? 'GCash reference number' : 'Bank reference number'), plotEl("input", {
+    style: {
+      width: '100%',
+      boxSizing: 'border-box',
+      padding: 8,
+      marginBottom: 10
+    },
+    value: refText,
+    onChange: e => setRefText(e.target.value)
+  }), plotEl("button", {
+    className: "btn btn-primary",
+    disabled: busy,
+    onClick: () => confirmPaid(sel)
+  }, "Confirm payment received")), plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginTop: 16,
+      justifyContent: 'space-between'
+    }
+  }, sel.status !== 'cancelled' && sel.status !== 'paid' ? plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    disabled: busy,
+    onClick: () => cancelApp(sel)
+  }, "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setOpen(null)
+  }, "Close")))));
+}
+
 const TABS = [{
   id: 'pipeline',
   label: 'Pipeline',
@@ -3273,6 +3505,11 @@ const TABS = [{
   label: 'Pending Payments',
   ico: '⏳',
   badge: 4
+}, {
+  id: 'presale',
+  label: 'Presale',
+  ico: '📋',
+  badge: 2
 }, {
   id: 'products',
   label: 'Products',
@@ -3312,7 +3549,8 @@ function Dashboard({
     products: 0,
     users: 0,
     trash: 0,
-    pending: 0
+    pending: 0,
+    presale: 0
   });
   // myRole is looked up from users/{uid} — the doc ID MUST equal the Firebase Auth UID
   // for this (and the Firestore security rules) to work. 'unlinked' means this login
@@ -3337,6 +3575,10 @@ function Dashboard({
     // 'pending' isn't its own collection — it's a count of paymentSubmissions
     // with status:'pending' nested inside every customer doc, so it needs
     // its own listener that reduces across all customers.
+    const presaleUnsub = window.db.collection('presaleApplications').onSnapshot(snap => setCounts(c => ({
+      ...c,
+      presale: snap.docs.filter(d => d.data().status === 'new').length
+    })), () => {});
     const pendingUnsub = window.db.collection('customers').onSnapshot(snap => {
       let n = 0;
       snap.docs.forEach(d => {
@@ -3352,6 +3594,7 @@ function Dashboard({
     return () => {
       unsubs.forEach(u => u());
       pendingUnsub();
+      presaleUnsub();
     };
   }, []);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -3455,6 +3698,8 @@ function Dashboard({
   }), tab === 'customers' && /*#__PURE__*/React.createElement(Customers, {
     currentUser: user
   }), tab === 'pending' && /*#__PURE__*/React.createElement(PendingPayments, {
+    currentUser: user
+  }), tab === 'presale' && /*#__PURE__*/React.createElement(PresaleApplications, {
     currentUser: user
   }), tab === 'products' && isAdminOrHigher && /*#__PURE__*/React.createElement(Products, null), tab === 'users' && isAdminOrHigher && /*#__PURE__*/React.createElement(Users, {
     currentUser: user,

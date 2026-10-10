@@ -488,6 +488,7 @@ function App() {
   const [baseTiers, setBaseTiers] = useState(BASE_TIERS);
   const [selectedTierId, setSelectedTierId] = useState(null);
   const [portalOpen, setPortalOpen] = useState(false);
+  const [presale, setPresale] = useState(null); // null = closed, otherwise { type }
 
   // Cart: persisted to localStorage so it survives a refresh, but never
   // touches Firestore until the customer actually submits an order.
@@ -570,6 +571,7 @@ function App() {
 
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
+    <window.PresaleContext.Provider value={{ openPresale: (type) => setPresale({ type }) }}>
     <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, cartCount, cartOpen, setCartOpen }}>
       <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12}
         style={{ position: 'fixed', zIndex: 0 }} />
@@ -591,9 +593,11 @@ function App() {
         <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
         <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
         <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
+        {presale && <window.PresaleFlow tiers={tiers} startType={presale.type} onClose={() => setPresale(null)} />}
       </LightboxRoot>
       </div>
     </CartContext.Provider>
+    </window.PresaleContext.Provider>
     </PlanSelectionContext.Provider>);
 }
 
@@ -1222,6 +1226,8 @@ function tierSceneKey(t) {
 function Tier({ tier, i = 0, allTiers = [] }) {
   const { selectedTierId, selectTier } = usePlanSelection();
   const { cart, addToCart } = useCart();
+  const { openPresale } = React.useContext(window.PresaleContext);
+  const isPresale = (window.PRESALE_TYPE_IDS || []).includes(tier.id);
   const inCartItem = cart.find((c) => c.id === tier.id);
   const [qty, setQty] = useState(1);
   const group = allTiers.length ?
@@ -1258,6 +1264,18 @@ function Tier({ tier, i = 0, allTiers = [] }) {
         <ul className="feature-list">
           {tier.features.map((f) => <li key={f}>{f}</li>)}
         </ul>
+        {isPresale ?
+        <button
+          type="button"
+          className="btn"
+          style={{
+            width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10,
+            background: 'var(--gold)', color: '#1f1607', border: 'none', fontWeight: 700, fontSize: 15,
+            padding: '10px 14px', minHeight: 44, boxShadow: '0 2px 8px rgba(0,0,0,.15)'
+          }}
+          onClick={() => openPresale(tier.id)}>
+          Choose my plot →
+        </button> :
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
           <div style={{
             display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
@@ -1309,7 +1327,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
               </>}
 
           </button>
-        </div>
+        </div>}
         <a
           href="#plans"
           onClick={() => selectTier(tier.id)}
