@@ -9,12 +9,42 @@
   /* ---- Payment details shown to buyers. Fill these in when you have them;
      an empty value simply shows the generic "our staff will call you" line. ---- */
   const PAY_INFO = {
+    phone: '',    // e.g. '0917 123 4567'  (shown on the "Need help? Call us" button)
     office: '',   // e.g. 'Golden Harmonic office, Poblacion, Taytay, Palawan'
     hours: '',    // e.g. 'Monday to Saturday, 8:00 AM to 5:00 PM'
     gcash: '',    // e.g. 'Juan Dela Cruz · 09XX XXX XXXX'
     bank: '',     // e.g. 'BPI · Golden Harmonic Memorial Park · 0000-0000-00'
     cheque: ''    // e.g. 'Golden Harmonic Memorial Park'
   };
+
+
+  /* ---- Site plan: where the blocks sit on the aerial picture (percent of the picture) ---- */
+  const MAP_SRC = '/site_plan.jpg';
+  const DIM = [
+    'left:70.74%;top:18.88%;width:13.19%;height:5.73%;clip-path:polygon(0% 0%,97.7% 0%,100% 100%,0% 100%)',
+    'left:26.38%;top:30.22%;width:20.08%;height:10.60%;clip-path:polygon(4.5% 0%,100% 0%,97% 100%,0% 100%)',
+    'left:5.70%;top:28.63%;width:20.98%;height:10.07%;clip-path:polygon(0% 0%,100% 0%,82.9% 100%,1.4% 86.3%)',
+    'left:14.09%;top:21.21%;width:18.29%;height:6.57%;clip-path:polygon(0% 0%,100% 0%,82% 100%,0% 100%)',
+    'left:19.78%;top:16.12%;width:15.59%;height:4.56%;clip-path:polygon(5.8% 0%,100% 0%,88.5% 100%,0% 100%)'
+  ];
+  const GEO = {
+    B: 'left:66.85%;top:25.66%;width:23.38%;height:7.21%;clip-path:polygon(0% 0%,85.9% 0%,100% 100%,2.6% 100%)',
+    C: 'left:68.94%;top:33.51%;width:23.08%;height:10.50%;clip-path:polygon(0% 0%,96.1% 0%,100% 100%,2.6% 100%)',
+    D: 'left:71.34%;top:44.75%;width:20.08%;height:15.69%;clip-path:polygon(0% 0%,100% 5.4%,92.5% 79.7%,62.7% 100%,17.9% 93.2%)'
+  };
+  const TAGPOS = { B: 'left:67.5%;top:25.8%', C: 'left:69.6%;top:33.7%', D: 'left:72%;top:44.9%' };
+  const ZOOM = { B: { cx: 78.5, cy: 29.3, s: 2.6 }, C: { cx: 80.5, cy: 38.8, s: 2.4 }, D: { cx: 81.4, cy: 52.6, s: 2.1 } };
+  const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  function cssObj(str) {
+    const o = {};
+    str.split(';').forEach((p) => {
+      const i = p.indexOf(':');
+      if (i < 1) return;
+      const k = p.slice(0, i).trim().replace(/-([a-z])/g, (m, c) => c.toUpperCase());
+      o[k] = p.slice(i + 1).trim();
+    });
+    return o;
+  }
 
   const BLOCKS = ['B', 'C', 'D'];
   const COLS = 40;
@@ -77,7 +107,7 @@
 
   const S = {
     overlay: { position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(20,28,24,.55)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' },
-    sheet: { maxWidth: 980, margin: '0 auto', minHeight: '100%', background: 'var(--bg, #f6f1e8)', padding: '0 0 40px' },
+    sheet: { maxWidth: 1280, margin: '0 auto', minHeight: '100%', background: 'var(--bg, #f6f1e8)', padding: '0 0 40px' },
     bar: { position: 'sticky', top: 0, zIndex: 2, background: '#2f5d4c', color: '#fffaf0', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 },
     wrap: { padding: '22px 20px' },
     h2: { fontSize: 26, margin: '0 0 6px', lineHeight: 1.2 },
@@ -92,14 +122,123 @@
   function Steps({ step }) {
     const names = ['Block', 'Plot type', 'Your details'];
     return (
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-        {names.map((n, i) => (
-          <div key={n} style={{
-            padding: '7px 14px', borderRadius: 999, fontSize: 15, fontWeight: 700,
-            background: step === i + 1 ? '#2f5d4c' : step > i + 1 ? '#d8e6dc' : '#ece4d2',
-            color: step === i + 1 ? '#fffaf0' : '#1f2a26'
-          }}>{i + 1}. {n}</div>
-        ))}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
+        {names.map((n, i) => {
+          const k = i + 1, cur = k === step, done = k < step;
+          return (
+            <div key={n} style={{
+              display: 'flex', alignItems: 'center', gap: 10, minHeight: 48, padding: '0 18px 0 8px', borderRadius: 24, fontSize: 19, fontWeight: 700,
+              background: cur ? '#0f2a21' : done ? '#e2efdf' : '#fff', color: cur ? '#f6e7b4' : done ? '#174d2f' : '#44534c',
+              border: '2px solid ' + (cur ? '#0f2a21' : done ? '#2f7d4f' : '#c9c2ae')
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 16, fontSize: 18, fontWeight: 800,
+                background: cur ? '#f6e7b4' : done ? '#2f7d4f' : '#e9e4d4', color: cur ? '#0f2a21' : done ? '#fff' : '#44534c' }}>{k}</span>
+              <span>{n}</span>
+            </div>);
+        })}
+      </div>);
+  }
+
+  /* ---------- steps 1 and 2: the aerial site plan, with zoom ---------- */
+  function SitePlan({ block, setBlock, freeCounts, priceOf, descOf, onChooseType, phone }) {
+    const isBlock = !!block;
+    let sc = 1, tx = 0, ty = 0;
+    if (isBlock) {
+      const c = ZOOM[block];
+      sc = c.s;
+      tx = clampN(50 - sc * c.cx, 100 * (1 - sc), 0);
+      ty = clampN(50 - sc * c.cy, 100 * (1 - sc), 0);
+    }
+    const fc = isBlock ? freeCounts(block) : { 'regular': TYPE_TOTALS['regular'], 'premium': TYPE_TOTALS['premium'], 'corner-premium': TYPE_TOTALS['corner-premium'] };
+    return (
+      <div style={{ ...S.wrap, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 44, lineHeight: 1.1, fontWeight: 800, color: '#0f2a21' }}>Choose your plot</h1>
+            <div style={{ fontSize: 20, lineHeight: 1.5, color: '#2f3f38', maxWidth: 640, marginTop: 8 }}>Blocks B, C and D are now open for sale. We will guide you step by step.</div>
+          </div>
+          {phone ? (
+            <a href={'tel:' + phone.replace(/[^0-9+]/g, '')} style={{ display: 'flex', flexDirection: 'column', minHeight: 64, padding: '10px 22px', border: '2px solid #0f2a21', borderRadius: 12, background: '#fff', textDecoration: 'none', color: '#0f2a21' }}>
+              <span style={{ fontSize: 17, fontWeight: 600 }}>Need help? Call us</span>
+              <span style={{ fontSize: 24, fontWeight: 800 }}>{phone}</span>
+            </a>) : null}
+        </div>
+
+        <Steps step={isBlock ? 2 : 1} />
+
+        <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.35, background: '#fff3c9', border: '2px solid #d9a62e', borderRadius: 12, padding: '16px 20px', color: '#3b2a05' }}>
+          {isBlock ? 'Step 2 of 3: Choose the type of plot you want, below the map.' : 'Step 1 of 3: Touch a gold block on the map, or a button on the right.'}
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
+          <div style={{ flex: '999 1 560px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#0f2a21' }}>
+              <div style={{ position: 'relative', transformOrigin: '0 0', transform: 'translate(' + tx.toFixed(2) + '%,' + ty.toFixed(2) + '%) scale(' + sc + ')', transition: 'transform 0.7s ease' }}>
+                <img src={MAP_SRC} alt="Aerial site development plan of Golden Harmonic Memorial Park" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                {DIM.map((d, i) => <div key={i} style={{ position: 'absolute', background: 'rgba(12,26,21,0.62)', ...cssObj(d) }}></div>)}
+                {BLOCKS.map((id) => (
+                  <button key={id} type="button" aria-label={'Block ' + id + ', open for sale'} aria-pressed={id === block} onClick={() => setBlock(id)}
+                    style={{ position: 'absolute', border: 0, padding: 0, margin: 0, cursor: 'pointer', background: 'rgba(232,184,56,' + (id === block ? '0.30' : '0.40') + ')', ...cssObj(GEO[id]) }}></button>))}
+                {BLOCKS.map((id) => (
+                  <div key={'t' + id} style={{ position: 'absolute', pointerEvents: 'none', transformOrigin: '0 0', transform: 'scale(' + (1 / sc).toFixed(3) + ')', transition: 'transform 0.7s ease', fontSize: 17, fontWeight: 800, color: '#0f2a21', background: '#f4cf6a', padding: '4px 10px', borderRadius: 5, ...cssObj(TAGPOS[id]) }}>Block {id}</div>))}
+              </div>
+            </div>
+            {!isBlock ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: 18, color: '#2f3f38' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#d9a62e' }}></span>Open for sale now</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#2f3b36' }}></span>Coming soon</div>
+              </div>) : null}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
+              <h2 style={{ margin: 0, fontSize: 30, lineHeight: 1.2, fontWeight: 800, color: '#0f2a21' }}>{isBlock ? 'Block ' + block + ': choose your plot type' : 'Plot types in every block'}</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
+                {TYPE_IDS.map((id) => (
+                  <div key={id} style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, padding: 18, borderRadius: 12, border: isBlock ? '2px solid #0f2a21' : '2px solid #c9c2ae', background: isBlock ? '#fbf9f3' : '#fff' }}>
+                    <img src={TYPES[id].photo} alt={'Photo of a ' + TYPES[id].short + ' plot'} style={{ width: '100%', aspectRatio: '2.1 / 1', objectFit: 'cover', borderRadius: 8 }} />
+                    <div style={{ fontSize: 28, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
+                    <div style={{ fontSize: 19, lineHeight: 1.45, color: '#2f3f38' }}>{descOf(id)}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{peso(priceOf(id))}</span>
+                      <span style={{ fontSize: 17, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
+                      <span style={{ fontSize: 18, color: '#44534c' }}>{isBlock ? fc[id].toLocaleString('en-PH') + ' plots available in Block ' + block : fc[id].toLocaleString('en-PH') + ' plots in each block'}</span>
+                    </div>
+                    {isBlock ? (
+                      <button type="button" disabled={fc[id] < 1} onClick={() => onChooseType(id)}
+                        style={{ boxSizing: 'border-box', minHeight: 64, marginTop: 'auto', borderRadius: 12, border: 'none', background: '#0f2a21', color: '#f6e7b4', fontSize: 22, fontWeight: 800, cursor: 'pointer', opacity: fc[id] < 1 ? 0.5 : 1 }}>
+                        {fc[id] < 1 ? 'Sold out' : 'Choose ' + TYPES[id].short}
+                      </button>) : null}
+                  </div>))}
+              </div>
+              {!isBlock ? <div style={{ fontSize: 19, lineHeight: 1.5, color: '#16251f', background: '#f6f0dc', borderRadius: 12, padding: '14px 18px' }}>Every block has all three plot types. Touch a block on the map first, then choose your plot type here.</div> : null}
+            </div>
+          </div>
+
+          <aside style={{ flex: '1 1 360px', minWidth: 0, boxSizing: 'border-box', background: '#fff', borderRadius: 14, padding: 28, display: 'flex', flexDirection: 'column', gap: 22, border: '2px solid #e3dccb' }}>
+            {!isBlock ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+                <h2 style={{ margin: 0, fontSize: 34, lineHeight: 1.15, fontWeight: 800, color: '#0f2a21' }}>Which block would you like?</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {BLOCKS.map((id) => (
+                    <button key={id} type="button" onClick={() => setBlock(id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, minHeight: 84, padding: '14px 20px', borderRadius: 12, border: '2px solid #0f2a21', background: '#fbf9f3', textAlign: 'left', cursor: 'pointer', color: '#0f2a21' }}>
+                      <span style={{ fontSize: 30, fontWeight: 800 }}>Block {id}</span>
+                      <span style={{ fontSize: 18, color: '#2f3f38' }}>3 plot types to choose from</span>
+                    </button>))}
+                </div>
+              </div>) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+                <button type="button" onClick={() => setBlock('')} style={{ minHeight: 56, padding: '0 20px', borderRadius: 12, border: '2px solid #0f2a21', background: '#fff', color: '#0f2a21', fontSize: 20, fontWeight: 700, textAlign: 'left', cursor: 'pointer' }}>← Go back to the full map</button>
+                <h2 style={{ margin: 0, fontSize: 34, lineHeight: 1.15, fontWeight: 800, color: '#0f2a21' }}>Block {block}</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#2f3f38' }}>Where this is in the park</div>
+                  <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: '#0f2a21' }}>
+                    <img src={MAP_SRC} alt="Park map with the chosen block marked" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                    <div style={{ position: 'absolute', boxSizing: 'border-box', left: (-tx / sc).toFixed(2) + '%', top: (-ty / sc).toFixed(2) + '%', width: (100 / sc).toFixed(2) + '%', height: (100 / sc).toFixed(2) + '%', border: '3px solid #f4cf6a', background: 'rgba(244,207,106,0.22)', borderRadius: 3 }}></div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 19, lineHeight: 1.5, color: '#16251f', background: '#f6f0dc', borderRadius: 12, padding: '16px 18px' }}>You will choose your exact plot on the next screen. We serve buyers in the order they apply.</div>
+              </div>)}
+          </aside>
+        </div>
       </div>);
   }
 
@@ -231,7 +370,13 @@
       return t && t.price > 0 ? Math.round(t.price) : TYPES[id].fallback;
     };
 
-    const [step, setStep] = useState(1);
+    const descOf = (id) => {
+      const t = (tiers || []).find((x) => x.id === id);
+      const raw = t && t.desc ? t.desc : '';
+      return raw.replace(/\s*Priced per crypt\/share\.?\s*$/i, '') || TYPES[id].short + ' plot';
+    };
+
+    const [step, setStep] = useState(1); // 1 = site plan (block and type), 3 = details
     const [block, setBlock] = useState('');
     const [typeId, setTypeId] = useState(startType && TYPES[startType] ? startType : '');
     const [takenByBlock, setTakenByBlock] = useState({});
@@ -267,7 +412,6 @@
       return out;
     };
 
-    const chooseBlock = (b) => { setBlock(b); setStep(2); };
     const chooseType = (id) => {
       setTypeId(id);
       const first = nearestFree(START_POINT[id], id, taken);
@@ -333,7 +477,7 @@
       }
     };
 
-    const back = () => { if (step > 1) setStep(step - 1); else onClose(); };
+    const back = () => { if (step === 3) setStep(1); else if (block) setBlock(''); else onClose(); };
 
     /* ---------- screens ---------- */
     let body;
@@ -360,58 +504,12 @@
             <button type="button" style={{ ...S.big, marginTop: 18 }} onClick={onClose}>Close</button>
           </div>
         </div>);
-    } else if (step === 1) {
-      body = (
-        <div style={S.wrap}>
-          <Steps step={1} />
-          <h2 style={S.h2}>Choose your block</h2>
-          <p style={S.lead}>Presale is open for Blocks B, C and D. One plot for each buyer, first come, first served.</p>
-          {loadErr ? <div style={{ ...S.note, marginBottom: 14 }}>We could not check which plots are free right now. You can still continue; we will check again before you send.</div> : null}
-          <div style={{ display: 'grid', gap: 12 }}>
-            {BLOCKS.map((b) => {
-              const fc = freeCounts(b);
-              const free = fc['regular'] + fc['premium'] + fc['corner-premium'];
-              return (
-                <button key={b} type="button" onClick={() => chooseBlock(b)} style={{ ...S.card, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16, minHeight: 80 }}>
-                  <span style={{ fontSize: 38, fontWeight: 800, color: '#2f5d4c', width: 56 }}>{b}</span>
-                  <span style={{ flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 22, fontWeight: 700 }}>Block {b}</span>
-                    <span style={{ display: 'block', fontSize: 16, color: '#4a564f' }}>{free.toLocaleString('en-PH')} plots still free</span>
-                  </span>
-                  <span style={{ fontSize: 28 }}>→</span>
-                </button>);
-            })}
-          </div>
-        </div>);
-    } else if (step === 2) {
-      const fc = freeCounts(block);
-      body = (
-        <div style={S.wrap}>
-          <Steps step={2} />
-          <h2 style={S.h2}>Block {block}: choose your plot type</h2>
-          <p style={S.lead}>Spot cash prices are shown. Monthly plans come next.</p>
-          <div style={{ display: 'grid', gap: 14 }}>
-            {TYPE_IDS.map((id) => {
-              const left = fc[id];
-              return (
-                <div key={id} style={{ ...S.card, display: 'grid', gridTemplateColumns: 'minmax(0,150px) minmax(0,1fr)', gap: 16, alignItems: 'center', outline: typeId === id ? '3px solid #b08544' : 'none' }}>
-                  <img src={TYPES[id].photo} alt={TYPES[id].name} style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 10 }} />
-                  <div>
-                    <div style={{ fontSize: 22, fontWeight: 700 }}>{TYPES[id].name}</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#2f5d4c', margin: '4px 0' }}>{peso(priceOf(id))}</div>
-                    <div style={{ fontSize: 15, color: '#4a564f', marginBottom: 10 }}>{left.toLocaleString('en-PH')} plots available in Block {block}</div>
-                    <button type="button" disabled={left < 1} style={{ ...S.big, minHeight: 50, fontSize: 17, opacity: left < 1 ? 0.5 : 1 }} onClick={() => chooseType(id)}>
-                      {left < 1 ? 'Sold out' : 'Choose ' + TYPES[id].short}
-                    </button>
-                  </div>
-                </div>);
-            })}
-          </div>
-        </div>);
+    } else if (step !== 3) {
+      body = <SitePlan block={block} setBlock={setBlock} freeCounts={freeCounts} priceOf={priceOf} descOf={descOf} onChooseType={chooseType} phone={PAY_INFO.phone} />;
     } else {
       const t = TYPES[typeId];
       body = (
-        <form onSubmit={submit} style={S.wrap}>
+        <form onSubmit={submit} style={{ ...S.wrap, maxWidth: 980, margin: '0 auto' }}>
           <Steps step={3} />
           <h2 style={S.h2}>Your plot and your details</h2>
           <div style={{ ...S.card, marginBottom: 16, display: 'flex', gap: 14, alignItems: 'center' }}>
