@@ -489,6 +489,19 @@ function App() {
   const [selectedTierId, setSelectedTierId] = useState(null);
   const [portalOpen, setPortalOpen] = useState(false);
   const [presale, setPresale] = useState(null); // null = closed, otherwise { type }
+  // Direct link: opening the site at /#presale shows the presale site plan straight away.
+  useEffect(() => {
+    const check = () => { if (window.location.hash === '#presale') setPresale((cur) => cur || { type: '' }); };
+    check();
+    window.addEventListener('hashchange', check);
+    return () => window.removeEventListener('hashchange', check);
+  }, []);
+  const closePresale = () => {
+    setPresale(null);
+    if (window.location.hash === '#presale') {
+      try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch (err) { /* ignore */ }
+    }
+  };
 
   // Cart: persisted to localStorage so it survives a refresh, but never
   // touches Firestore until the customer actually submits an order.
@@ -593,7 +606,7 @@ function App() {
         <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
         <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
         <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
-        {presale && <window.PresaleFlow tiers={tiers} startType={presale.type} onClose={() => setPresale(null)} />}
+        {presale && <window.PresaleFlow tiers={tiers} startType={presale.type} onClose={closePresale} />}
       </LightboxRoot>
       </div>
     </CartContext.Provider>
