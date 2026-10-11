@@ -1,4 +1,4 @@
-/* Golden Harmonic Memorial Park — Blocks B, C, D presale flow.
+/* Golden Harmonic Memorial Park — Blocks A, B, C, D presale flow.
    Loaded as its own babel script. Everything is wrapped in a function so it
    shares no top-level names with site.jsx; it exposes window.PresaleFlow and
    window.PresaleContext. Reservations go through /api/presale (a Firestore
@@ -21,19 +21,19 @@
   /* ---- Site plan: where the blocks sit on the aerial picture (percent of the picture) ---- */
   const MAP_SRC = '/site_plan.jpg';
   const DIM = [
-    'left:70.74%;top:18.88%;width:13.19%;height:5.73%;clip-path:polygon(0% 0%,97.7% 0%,100% 100%,0% 100%)',
     'left:26.38%;top:30.22%;width:20.08%;height:10.60%;clip-path:polygon(4.5% 0%,100% 0%,97% 100%,0% 100%)',
     'left:5.70%;top:28.63%;width:20.98%;height:10.07%;clip-path:polygon(0% 0%,100% 0%,82.9% 100%,1.4% 86.3%)',
     'left:14.09%;top:21.21%;width:18.29%;height:6.57%;clip-path:polygon(0% 0%,100% 0%,82% 100%,0% 100%)',
     'left:19.78%;top:16.12%;width:15.59%;height:4.56%;clip-path:polygon(5.8% 0%,100% 0%,88.5% 100%,0% 100%)'
   ];
   const GEO = {
+    A: 'left:70.74%;top:18.88%;width:13.19%;height:5.73%;clip-path:polygon(0% 0%,97.7% 0%,100% 100%,0% 100%)',
     B: 'left:66.85%;top:25.66%;width:23.38%;height:7.21%;clip-path:polygon(0% 0%,85.9% 0%,100% 100%,2.6% 100%)',
     C: 'left:68.94%;top:33.51%;width:23.08%;height:10.50%;clip-path:polygon(0% 0%,96.1% 0%,100% 100%,2.6% 100%)',
     D: 'left:71.34%;top:44.75%;width:20.08%;height:15.69%;clip-path:polygon(0% 0%,100% 5.4%,92.5% 79.7%,62.7% 100%,17.9% 93.2%)'
   };
-  const TAGPOS = { B: 'left:67.5%;top:25.8%', C: 'left:69.6%;top:33.7%', D: 'left:72%;top:44.9%' };
-  const ZOOM = { B: { cx: 78.5, cy: 29.3, s: 2.6 }, C: { cx: 80.5, cy: 38.8, s: 2.4 }, D: { cx: 81.4, cy: 52.6, s: 2.1 } };
+  const TAGPOS = { A: 'left:71.3%;top:19%', B: 'left:67.5%;top:25.8%', C: 'left:69.6%;top:33.7%', D: 'left:72%;top:44.9%' };
+  const ZOOM = { A: { cx: 77.3, cy: 21.7, s: 3.2 }, B: { cx: 78.5, cy: 29.3, s: 2.6 }, C: { cx: 80.5, cy: 38.8, s: 2.4 }, D: { cx: 81.4, cy: 52.6, s: 2.1 } };
   const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   function cssObj(str) {
     const o = {};
@@ -46,7 +46,7 @@
     return o;
   }
 
-  const BLOCKS = ['B', 'C', 'D'];
+  const BLOCKS = ['A', 'B', 'C', 'D'];
   const COLS = 40;
   const ROWS = 50;
   const TOTAL = COLS * ROWS;
@@ -155,7 +155,7 @@
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 44, lineHeight: 1.1, fontWeight: 800, color: '#0f2a21' }}>Choose your plot</h1>
-            <div style={{ fontSize: 20, lineHeight: 1.5, color: '#2f3f38', maxWidth: 640, marginTop: 8 }}>Blocks B, C and D are now open for sale. We will guide you step by step.</div>
+            <div style={{ fontSize: 20, lineHeight: 1.5, color: '#2f3f38', maxWidth: 640, marginTop: 8 }}>Blocks A, B, C and D are now open for sale. We will guide you step by step.</div>
           </div>
           {phone ? (
             <a href={'tel:' + phone.replace(/[^0-9+]/g, '')} style={{ display: 'flex', flexDirection: 'column', minHeight: 64, padding: '10px 22px', border: '2px solid #0f2a21', borderRadius: 12, background: '#fff', textDecoration: 'none', color: '#0f2a21' }}>
@@ -590,7 +590,7 @@
         <div style={S.sheet}>
           <div ref={topRef} style={S.bar}>
             {done ? null : <button type="button" onClick={back} style={{ background: 'transparent', border: '1.5px solid #fffaf0', color: '#fffaf0', borderRadius: 8, fontSize: 16, padding: '8px 14px', cursor: 'pointer' }}>← Back</button>}
-            <div style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>Presale · Blocks B, C, D</div>
+            <div style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>Presale · Blocks A, B, C, D</div>
             <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: '#fffaf0', fontSize: 28, cursor: 'pointer', lineHeight: 1 }}>×</button>
           </div>
           {body}

@@ -3253,7 +3253,7 @@ function PendingPayments({
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
-// ── Presale applications (Blocks B, C, D) ──────────────────────────────────
+// ── Presale applications (Blocks A, B, C, D) ──────────────────────────────────
 // Buyers reserve through /api/presale, which writes presaleApplications/{ref}
 // and plots/{block}_{lot}. Staff verify by phone, then confirm payment here.
 const PRESALE_METHOD_LABEL = {

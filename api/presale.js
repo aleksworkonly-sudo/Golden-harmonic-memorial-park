@@ -1,6 +1,6 @@
 // /api/presale.js
 //
-// Vercel serverless function for the Blocks B, C and D presale.
+// Vercel serverless function for the Blocks A, B, C and D presale.
 //
 //   GET  /api/presale?block=B   -> { taken: [lot numbers already reserved/sold] }
 //   POST /api/presale           -> reserves ONE plot, first come first served
@@ -28,7 +28,7 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-const PRESALE_BLOCKS = ['B', 'C', 'D'];
+const PRESALE_BLOCKS = ['A', 'B', 'C', 'D'];
 const COLS = 40;
 const ROWS = 50;
 const TOTAL = COLS * ROWS; // 2,000 plots per block
@@ -88,7 +88,7 @@ module.exports = async function handler(req, res) {
   const mobile = clean(b.mobile, 30);
   const email = clean(b.email, 120);
 
-  if (!PRESALE_BLOCKS.includes(block)) return res.status(400).json({ error: 'Please choose Block B, C or D.' });
+  if (!PRESALE_BLOCKS.includes(block)) return res.status(400).json({ error: 'Please choose Block A, B, C or D.' });
   if (!Number.isInteger(lot) || lot < 1 || lot > TOTAL) return res.status(400).json({ error: 'That plot number is not valid.' });
   if (plan === 'installment' && !SURCHARGE[years]) return res.status(400).json({ error: 'Please choose 1, 2, 3 or 5 years.' });
   if (!METHODS.includes(method)) return res.status(400).json({ error: 'Please choose how you will pay.' });
