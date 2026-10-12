@@ -385,6 +385,7 @@
     const [notice, setNotice] = useState('');
     const [plan, setPlan] = useState('cash');
     const [years, setYears] = useState(3);
+    const [custom, setCustom] = useState(''); // optional: pay more than the monthly installment
     const [method, setMethod] = useState('cash');
     const [form, setForm] = useState(() => {
       const base = { name: '', address: '', mobile: '', email: '', consent: false, website: '' };
@@ -444,6 +445,8 @@
     const totalFor = (t) => Math.round(spot * (1 + t.surcharge));
     const monthlyFor = (t) => Math.round(totalFor(t) / (t.years * 12));
     const total = plan === 'cash' ? spot : totalFor(term);
+    const customNum = Math.round(Number(String(custom).replace(/[^0-9.]/g, '')) || 0);
+    const customMonths = customNum > 0 ? Math.ceil(total / customNum) : 0;
     const monthly = plan === 'cash' ? 0 : monthlyFor(term);
     const methodInfo = METHODS.find((m) => m.id === method);
 
@@ -457,6 +460,7 @@
       if (form.mobile.replace(/\D/g, '').length < 10) return setError('Please write your mobile number (11 digits).');
       if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) return setError('Please write a correct email address.');
       if (!form.consent) return setError('Please tick the box so our staff may contact you.');
+      if (plan === 'installment' && customNum > 0 && customNum < monthlyFor(term)) return setError('Your own monthly amount cannot be less than ' + peso(monthlyFor(term)) + '. Please write that amount or more, or leave it empty.');
       setBusy(true);
       try {
         const res = await fetch('/api/presale', {
@@ -464,6 +468,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             block, lot, plan, years: plan === 'cash' ? 0 : years, method,
+            customMonthly: plan === 'installment' && customNum > 0 ? customNum : 0,
             name: form.name, address: form.address, mobile: form.mobile, email: form.email,
             consent: form.consent, website: form.website
           })
@@ -589,6 +594,13 @@
                       <br /><span style={{ fontSize: 15, color: '#4a564f' }}>Total {peso(totalFor(tm))} (+{Math.round(tm.surcharge * 100)}%)</span>
                     </span>
                   </label>))}
+                <div style={{ marginTop: 10, padding: 12, borderRadius: 10, border: '1px dashed #b08544', background: '#fffdf6' }}>
+                  <label htmlFor="ps-custom" style={{ display: 'block', fontSize: 17, fontWeight: 700, marginBottom: 6 }}>Want to pay more each month? (optional)</label>
+                  <div style={{ fontSize: 15, color: '#4a564f', marginBottom: 8 }}>You may pay more than {peso(monthlyFor(term))} a month. It cannot be less. Paying more finishes your payments sooner.</div>
+                  <input id="ps-custom" inputMode="numeric" placeholder={'At least ' + peso(monthlyFor(term))} value={custom} onChange={(e) => setCustom(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', fontSize: 20, padding: '12px 14px', borderRadius: 10, border: '1.5px solid #c9bd9f' }} />
+                  {customNum > 0 && customNum < monthlyFor(term) ? <div style={{ marginTop: 8, color: '#a33', fontSize: 16, fontWeight: 600 }}>Please write {peso(monthlyFor(term))} or more.</div> : null}
+                  {customNum >= monthlyFor(term) ? <div style={{ marginTop: 8, fontSize: 16, color: '#1f4a39', fontWeight: 600 }}>At {peso(customNum)} a month you finish in about {customMonths} {customMonths === 1 ? 'month' : 'months'} instead of {term.years * 12}.</div> : null}
+                </div>
               </div>) : null}
 
             <div style={{ fontSize: 16, fontWeight: 600, margin: '14px 0 8px' }}>{plan === 'cash' ? 'How will you pay the full amount?' : 'How will you pay each month?'}</div>

@@ -86,6 +86,7 @@ module.exports = async function handler(req, res) {
   const name = clean(b.name, 120);
   const address = clean(b.address, 240);
   const mobile = clean(b.mobile, 30);
+  const customMonthly = Math.round(Number(b.customMonthly) || 0);
   const email = clean(b.email, 120);
 
   if (!PRESALE_BLOCKS.includes(block)) return res.status(400).json({ error: 'Please choose Block A, B, C or D.' });
@@ -97,11 +98,19 @@ module.exports = async function handler(req, res) {
   }
   if (b.consent !== true) return res.status(400).json({ error: 'Please tick the box to let us contact you.' });
 
+  // Optional: the buyer may promise to pay MORE than the monthly, never less.
+  // (checked after the monthly is worked out below)
+
   // The server decides type and price. The browser's numbers are never trusted.
   const typeId = typeOfLot(lot);
   const spot = await priceFor(typeId);
   const total = plan === 'installment' ? Math.round(spot * (1 + SURCHARGE[years])) : spot;
   const monthly = plan === 'installment' ? Math.round(total / (years * 12)) : 0;
+
+  if (plan === 'installment' && customMonthly > 0 && (customMonthly < monthly || customMonthly > total)) {
+    return res.status(400).json({ error: 'Your own monthly amount cannot be less than the monthly installment.' });
+  }
+  const intended = plan === 'installment' && customMonthly >= monthly ? customMonthly : 0;
 
   const mobileKey = mobile.replace(/\D/g, '').slice(-10);
   const plotRef = db.collection('plots').doc(`${block}_${lot}`);
@@ -141,7 +150,7 @@ module.exports = async function handler(req, res) {
         ref, status: 'new', // new -> verified -> paid (or cancelled)
         blockId: block, lotNo: lot, plotCode, typeId,
         plan, years, method,
-        spotPrice: spot, totalPrice: total, monthly,
+        spotPrice: spot, totalPrice: total, monthly, customMonthly: intended,
         name, address, mobile, mobileKey, email,
         paymentReference: '', paymentConfirmedAt: null,
         createdAt: now

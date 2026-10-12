@@ -3476,7 +3476,7 @@ function PresaleApplications({
       borderRadius: 8,
       background: sel.plan === 'cash' ? '#e8f5e9' : '#fff3e0'
     }
-  }, plotEl("b", null, sel.plan === 'cash' ? 'SPOT CASH' : 'MONTHLY INSTALLMENT'), plotEl("div", null, sel.plan === 'cash' ? `Pays ${fmt(sel.totalPrice)} in full` : `${sel.years} years · ${fmt(sel.monthly)} a month · total ${fmt(sel.totalPrice)}`), plotEl("div", null, "Pays by: ", plotEl("b", null, PRESALE_METHOD_LABEL[sel.method] || sel.method))), plotEl("div", {
+  }, plotEl("b", null, sel.plan === 'cash' ? 'SPOT CASH' : 'MONTHLY INSTALLMENT'), plotEl("div", null, sel.plan === 'cash' ? `Pays ${fmt(sel.totalPrice)} in full` : `${sel.years} years · ${fmt(sel.monthly)} a month · total ${fmt(sel.totalPrice)}` + (sel.customMonthly > 0 ? ` · buyer plans to pay ${fmt(sel.customMonthly)} a month` : '')), plotEl("div", null, "Pays by: ", plotEl("b", null, PRESALE_METHOD_LABEL[sel.method] || sel.method))), plotEl("div", {
     style: {
       lineHeight: 1.7
     }
