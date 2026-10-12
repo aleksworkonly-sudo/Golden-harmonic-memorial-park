@@ -3270,6 +3270,31 @@ const PRESALE_TYPE_LABEL = {
 function presalePlanText(a) {
   return a.plan === 'cash' ? 'Spot cash' : `${a.years} years · ${fmt(a.monthly)}/mo`;
 }
+// Payment ledger: every payment staff receive is added to a.payments. Extra money
+// automatically covers the next months, so the months left go down on their own.
+function presaleLedger(a) {
+  const total = a.totalPrice || 0;
+  const monthly = a.plan === 'cash' ? total : a.monthly || 0;
+  let list = Array.isArray(a.payments) ? a.payments : [];
+  if (!list.length && a.status === 'paid') list = [{
+    amount: a.plan === 'cash' ? total : monthly,
+    date: a.paymentConfirmedAt,
+    ref: a.paymentReference
+  }];
+  const paid = list.reduce((n, x) => n + (Number(x.amount) || 0), 0);
+  const balance = Math.max(0, total - paid);
+  const monthsPaid = monthly > 0 ? Math.min(a.years * 12 || 1, Math.floor((paid + 0.5) / monthly)) : 0;
+  const monthsLeft = balance <= 0 ? 0 : monthly > 0 ? Math.ceil((balance - 0.5) / monthly) : 0;
+  const first = list.length ? list[0].date : null;
+  let nextDue = null;
+  if (a.plan === 'installment' && first && balance > 0) {
+    nextDue = new Date(first);
+    nextDue.setMonth(nextDue.getMonth() + monthsPaid);
+  }
+  return {
+    list, paid, balance, monthly, monthsPaid, monthsLeft, nextDue, full: total > 0 && balance <= 0
+  };
+}
 function PresaleApplications({
   currentUser
 }) {
@@ -3277,6 +3302,7 @@ function PresaleApplications({
   const [filter, setFilter] = useState('all');
   const [open, setOpen] = useState(null);
   const [refText, setRefText] = useState('');
+  const [amtText, setAmtText] = useState('');
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
   useEffect(() => window.db.collection('presaleApplications').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
@@ -3308,22 +3334,43 @@ function PresaleApplications({
     }
   };
   const confirmPaid = async a => {
+    const amount = Math.round(Number(String(amtText).replace(/[^0-9.]/g, '')));
+    if (!(amount > 0)) {
+      setToast('Please write the amount received.');
+      return;
+    }
     if (!refText.trim()) {
       setToast('Please write the receipt, cheque or GCash reference first.');
       return;
     }
+    const L = presaleLedger(a);
+    if (amount > L.balance + 0.5) {
+      if (!window.confirm(`${fmt(amount)} is more than the balance of ${fmt(L.balance)}. Record it anyway?`)) return;
+    }
     setBusy(true);
     try {
-      await window.db.collection('presaleApplications').doc(a._id).update({
+      const now = Date.now();
+      const entry = {
+        amount,
+        date: now,
+        ref: refText.trim(),
+        method: a.method,
+        by: actor
+      };
+      const patch = {
+        payments: firebase.firestore.FieldValue.arrayUnion(entry),
         status: 'paid',
         paymentReference: refText.trim(),
-        paymentConfirmedAt: Date.now(),
+        paymentConfirmedAt: a.paymentConfirmedAt || now,
         confirmedBy: actor
-      });
+      };
+      await window.db.collection('presaleApplications').doc(a._id).update(patch);
       await window.db.collection('plots').doc(`${a.blockId}_${a.lotNo}`).update({
         hold: false
       }).catch(() => {});
-      setToast('Payment confirmed');
+      setRefText('');
+      setAmtText('');
+      setToast('Payment recorded');
     } catch (err) {
       setToast(err && err.message || 'Could not save');
     } finally {
@@ -3357,9 +3404,9 @@ function PresaleApplications({
     className: "stat-lbl"
   }, label)));
   const shown = rows.filter(r => filter === 'all' ? true : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : r.status === filter);
-  const statusBadge = s => plotEl("span", {
+  const statusBadge = (s, r) => plotEl("span", {
     className: s === 'paid' ? 'badge badge-converted' : s === 'cancelled' ? 'badge' : s === 'verified' ? 'badge badge-contacted' : 'badge badge-new'
-  }, s === 'new' ? 'New' : s === 'verified' ? 'Verified' : s === 'paid' ? 'Paid' : 'Cancelled');
+  }, s === 'new' ? 'New' : s === 'verified' ? 'Verified' : s === 'paid' ? r && r.plan === 'installment' && !presaleLedger(r).full ? `Paying · ${presaleLedger(r).monthsLeft} mo left` : 'Paid in full' : 'Cancelled');
   return plotEl("div", null, toast && plotEl(Toast, {
     msg: toast,
     onDone: () => setToast('')
@@ -3397,7 +3444,8 @@ function PresaleApplications({
     },
     onClick: () => {
       setOpen(r._id);
-      setRefText(r.paymentReference || '');
+      setRefText('');
+      setAmtText(String(Math.min(presaleLedger(r).balance || r.totalPrice, r.plan === 'cash' ? r.totalPrice : r.monthly)));
     }
   }, plotEl("td", null, r.ref), plotEl("td", null, r.name, plotEl("div", {
     style: {
@@ -3409,12 +3457,12 @@ function PresaleApplications({
       fontSize: 12,
       color: '#777'
     }
-  }, PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status))))))), sel && plotEl("div", {
+  }, PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r))))))), sel && plotEl("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && setOpen(null)
   }, plotEl("div", {
     className: "modal"
-  }, plotEl("h3", null, sel.ref, " · ", sel.plotCode, " · ", PRESALE_TYPE_LABEL[sel.typeId]), statusBadge(sel.status), plotEl("div", {
+  }, plotEl("h3", null, sel.ref, " · ", sel.plotCode, " · ", PRESALE_TYPE_LABEL[sel.typeId]), statusBadge(sel.status, sel), plotEl("div", {
     style: {
       margin: '12px 0',
       padding: 12,
@@ -3425,7 +3473,25 @@ function PresaleApplications({
     style: {
       lineHeight: 1.7
     }
-  }, plotEl("div", null, plotEl("b", null, "Name: "), sel.name), plotEl("div", null, plotEl("b", null, "Address: "), sel.address), plotEl("div", null, plotEl("b", null, "Mobile: "), sel.mobile), plotEl("div", null, plotEl("b", null, "Email: "), sel.email), plotEl("div", null, plotEl("b", null, "Sent: "), fmtDate(sel.createdAt)), sel.status === 'paid' && plotEl("div", null, plotEl("b", null, "Payment ref: "), sel.paymentReference, " · confirmed by ", sel.confirmedBy)), plotEl("div", {
+  }, plotEl("div", null, plotEl("b", null, "Name: "), sel.name), plotEl("div", null, plotEl("b", null, "Address: "), sel.address), plotEl("div", null, plotEl("b", null, "Mobile: "), sel.mobile), plotEl("div", null, plotEl("b", null, "Email: "), sel.email), plotEl("div", null, plotEl("b", null, "Sent: "), fmtDate(sel.createdAt))), sel.status !== 'cancelled' && (() => {
+    const L = presaleLedger(sel);
+    return plotEl("div", {
+      style: {
+        marginTop: 12,
+        padding: 12,
+        borderRadius: 8,
+        background: L.full ? '#e8f5e9' : '#f6f1e8'
+      }
+    }, plotEl("b", null, "Payments"), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("table", {
+      style: {
+        width: '100%',
+        fontSize: 13,
+        marginTop: 8
+      }
+    }, plotEl("tbody", null, L.list.map((x, i) => plotEl("tr", {
+      key: i
+    }, plotEl("td", null, fmtDate(x.date)), plotEl("td", null, fmt(x.amount)), plotEl("td", null, x.ref || ''), plotEl("td", null, x.by || ''))))));
+  })(), plotEl("div", {
     style: {
       marginTop: 12,
       padding: 10,
@@ -3433,7 +3499,7 @@ function PresaleApplications({
       background: '#f6f1e8',
       fontSize: 13
     }
-  }, "Identity check: call the buyer, or meet at the office, and confirm the name and address above."), sel.status !== 'paid' && sel.status !== 'cancelled' && plotEl("div", {
+  }, "Identity check: call the buyer, or meet at the office, and confirm the name and address above."), sel.status !== 'cancelled' && !presaleLedger(sel).full && plotEl("div", {
     style: {
       marginTop: 12
     }
@@ -3455,6 +3521,23 @@ function PresaleApplications({
       fontWeight: 600,
       marginBottom: 4
     }
+  }, "Amount received (₱)"), plotEl("input", {
+    style: {
+      width: '100%',
+      boxSizing: 'border-box',
+      padding: 8,
+      marginBottom: 10
+    },
+    inputMode: "numeric",
+    value: amtText,
+    onChange: e => setAmtText(e.target.value)
+  }), plotEl("label", {
+    style: {
+      display: 'block',
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 4
+    }
   }, sel.method === 'cheque' ? 'Cheque number' : sel.method === 'cash' ? 'Official receipt number' : sel.method === 'gcash' ? 'GCash reference number' : 'Bank reference number'), plotEl("input", {
     style: {
       width: '100%',
@@ -3468,7 +3551,7 @@ function PresaleApplications({
     className: "btn btn-primary",
     disabled: busy,
     onClick: () => confirmPaid(sel)
-  }, "Confirm payment received")), plotEl("div", {
+  }, "Record payment received")), plotEl("div", {
     style: {
       display: 'flex',
       gap: 8,
