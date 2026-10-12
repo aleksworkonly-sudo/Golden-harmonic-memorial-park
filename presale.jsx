@@ -386,11 +386,21 @@
     const [plan, setPlan] = useState('cash');
     const [years, setYears] = useState(3);
     const [method, setMethod] = useState('cash');
-    const [form, setForm] = useState({ name: '', address: '', mobile: '', email: '', consent: false, website: '' });
+    const [form, setForm] = useState(() => {
+      const base = { name: '', address: '', mobile: '', email: '', consent: false, website: '' };
+      try { return { ...base, ...JSON.parse(sessionStorage.getItem('ghmp-presale-form') || '{}') }; } catch (e) { return base; }
+    });
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [done, setDone] = useState(null);
     const topRef = useRef(null);
+    // Keep what the buyer typed, so an accidental close does not lose it.
+    useEffect(() => {
+      try {
+        if (done) sessionStorage.removeItem('ghmp-presale-form');
+        else sessionStorage.setItem('ghmp-presale-form', JSON.stringify({ name: form.name, address: form.address, mobile: form.mobile, email: form.email }));
+      } catch (e) {}
+    }, [form.name, form.address, form.mobile, form.email, done]);
 
     const loadTaken = useCallback((b) => {
       setLoadErr(false);
@@ -417,6 +427,7 @@
       const first = nearestFree(START_POINT[id], id, taken);
       setLot(first);
       setNotice('');
+      pushNav();
       setStep(3);
     };
 
@@ -477,7 +488,38 @@
       }
     };
 
-    const back = () => { if (step === 3) setStep(1); else if (block) setBlock(''); else onClose(); };
+    /* ---- Browser / phone Back button: step back inside the presale instead of leaving it ---- */
+    const closing = useRef(false);
+    const depth = useRef(0);          // history entries this flow has added
+    const live = useRef({});          // latest state for the popstate handler
+    live.current = { step, block, done, onClose };
+    const pushNav = () => { try { window.history.pushState({ presale: depth.current + 1 }, ''); depth.current += 1; } catch (e) {} };
+
+    useEffect(() => {
+      pushNav(); // entry for the first screen, so the first Back press stays inside the presale
+      const onPop = () => {
+        if (closing.current) return;
+        depth.current = Math.max(0, depth.current - 1);
+        const c = live.current;
+        if (c.done) { closing.current = true; const n = depth.current; depth.current = 0; c.onClose(); if (n > 0) { try { window.history.go(-n); } catch (e) {} } }
+        else if (c.step === 3) { setStep(1); }
+        else if (c.block) { setBlock(''); }
+        else { c.onClose(); }
+      };
+      window.addEventListener('popstate', onPop);
+      return () => window.removeEventListener('popstate', onPop);
+    }, []);
+
+    // Each forward move adds a history entry; Back then undoes exactly one move.
+    const goBlock = (id) => { if (id && !block) pushNav(); setBlock(id); };
+    const back = () => { try { window.history.back(); } catch (e) { onClose(); } };
+    const closeAll = () => {
+      const n = depth.current;
+      depth.current = 0;
+      closing.current = true; // ignore the popstate our own history.go() fires
+      onClose();
+      if (n > 0) { try { window.history.go(-n); } catch (e) {} }
+    };
 
     /* ---------- screens ---------- */
     let body;
@@ -501,11 +543,11 @@
             <div style={{ ...S.note, marginTop: 16 }}>
               <b>What happens next:</b> our staff will call you to check your name and address. Your plot stays reserved while we do this. Your reservation is final once we receive your payment.
             </div>
-            <button type="button" style={{ ...S.big, marginTop: 18 }} onClick={onClose}>Close</button>
+            <button type="button" style={{ ...S.big, marginTop: 18 }} onClick={closeAll}>Close</button>
           </div>
         </div>);
     } else if (step !== 3) {
-      body = <SitePlan block={block} setBlock={setBlock} freeCounts={freeCounts} priceOf={priceOf} descOf={descOf} onChooseType={chooseType} phone={PAY_INFO.phone} />;
+      body = <SitePlan block={block} setBlock={(id) => (id ? goBlock(id) : back())} freeCounts={freeCounts} priceOf={priceOf} descOf={descOf} onChooseType={chooseType} phone={PAY_INFO.phone} />;
     } else {
       const t = TYPES[typeId];
       body = (
@@ -591,7 +633,7 @@
           <div ref={topRef} style={S.bar}>
             {done ? null : <button type="button" onClick={back} style={{ background: 'transparent', border: '1.5px solid #fffaf0', color: '#fffaf0', borderRadius: 8, fontSize: 16, padding: '8px 14px', cursor: 'pointer' }}>← Back</button>}
             <div style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>Presale · Blocks A, B, C, D</div>
-            <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: '#fffaf0', fontSize: 28, cursor: 'pointer', lineHeight: 1 }}>×</button>
+            <button type="button" onClick={closeAll} aria-label="Close" style={{ background: 'transparent', border: 'none', color: '#fffaf0', fontSize: 28, cursor: 'pointer', lineHeight: 1 }}>×</button>
           </div>
           {body}
         </div>
