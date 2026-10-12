@@ -3344,6 +3344,13 @@ function PresaleApplications({
       return;
     }
     const L = presaleLedger(a);
+    // A custom amount can never be less than the chosen monthly installment.
+    // (Only the last, smaller balance may be paid as it is.)
+    const minPay = Math.min(L.monthly, L.balance);
+    if (amount < minPay - 0.5) {
+      setToast(`The amount cannot be less than ${fmt(minPay)}${a.plan === 'cash' ? '' : ' (the monthly installment)'}.`);
+      return;
+    }
     if (amount > L.balance + 0.5) {
       if (!window.confirm(`${fmt(amount)} is more than the balance of ${fmt(L.balance)}. Record it anyway?`)) return;
     }
@@ -3521,7 +3528,15 @@ function PresaleApplications({
       fontWeight: 600,
       marginBottom: 4
     }
-  }, "Amount received (₱)"), plotEl("input", {
+  }, "Amount received (₱) — you may enter more than the monthly, never less", plotEl("div", {
+    style: {
+      fontWeight: 400,
+      color: '#777'
+    }
+  }, (() => {
+    const L = presaleLedger(sel);
+    return `Minimum: ${fmt(Math.min(L.monthly, L.balance))}`;
+  })())), plotEl("input", {
     style: {
       width: '100%',
       boxSizing: 'border-box',
