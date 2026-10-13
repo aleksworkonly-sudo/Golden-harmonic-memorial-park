@@ -36,6 +36,9 @@ const MAX_PLOTS = 100;     // safety ceiling only (one Firestore transaction mus
 
 // Fallbacks only. The live prices come from the Firestore 'products' docs.
 const DEFAULT_PRICES = { regular: 30000, premium: 42500, 'corner-premium': 47500 };
+// Presale discount on every Regular plot (more off for spot cash).
+const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
+const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
 const SURCHARGE = { 1: 0.10, 2: 0.15, 3: 0.20, 5: 0.30 };
 const METHODS = ['cash', 'gcash', 'bank', 'cheque'];
 
@@ -115,8 +118,9 @@ module.exports = async function handler(req, res) {
       plotCode: `${w.block}-${String(w.lot).padStart(4, '0')}`
     });
   }
-  const spot = plots.reduce((n, x) => n + x.price, 0);
-  const total = plan === 'installment' ? Math.round(spot * (1 + SURCHARGE[years])) : spot;
+  const spot = plots.reduce((n, x) => n + x.price - discOf(x.typeId, 'cash'), 0);                    // spot cash price
+  const instBase = plots.reduce((n, x) => n + x.price - discOf(x.typeId, 'installment'), 0);        // base for monthly plans
+  const total = plan === 'installment' ? Math.round(instBase * (1 + SURCHARGE[years])) : spot;
   const monthly = plan === 'installment' ? Math.round(total / (years * 12)) : 0;
 
   // Optional: the buyer may promise to pay MORE than the monthly, never less.
@@ -169,7 +173,7 @@ module.exports = async function handler(req, res) {
         blockId: first.blockId, lotNo: first.lotNo, plotCode: first.plotCode, typeId: first.typeId,
         plots, plotCount: plots.length,
         plan, years, method,
-        spotPrice: spot, totalPrice: total, monthly, customMonthly: intended,
+        spotPrice: spot, listPrice: plots.reduce((n, x) => n + x.price, 0), totalPrice: total, monthly, customMonthly: intended,
         name, address, mobile, mobileKey, email,
         paymentReference: '', paymentConfirmedAt: null,
         createdAt: now
@@ -177,7 +181,7 @@ module.exports = async function handler(req, res) {
       return { ref, plotCode: first.plotCode, typeId: first.typeId };
     });
 
-    return res.status(200).json({ ok: true, ref: result.ref, plotCode: result.plotCode, typeId: result.typeId, plots: plots.map((x) => ({ plotCode: x.plotCode, typeId: x.typeId, price: x.price })), plan, years, method, total, monthly, spot });
+    return res.status(200).json({ ok: true, ref: result.ref, plotCode: result.plotCode, typeId: result.typeId, plots: plots.map((x) => ({ plotCode: x.plotCode, typeId: x.typeId, price: x.price - discOf(x.typeId, plan === 'installment' ? 'installment' : 'cash') })), plan, years, method, total, monthly, spot });
   } catch (err) {
     if (err.code === 'TAKEN') return res.status(409).json({ error: 'taken', block: err.plot.blockId, lot: err.plot.lotNo });
     if (err.code === 'DUP') return res.status(409).json({ error: 'dup' });

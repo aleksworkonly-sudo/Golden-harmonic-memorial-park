@@ -34,6 +34,9 @@
   };
   const TAGPOS = { A: 'left:71.3%;top:19%', B: 'left:67.5%;top:25.8%', C: 'left:69.6%;top:33.7%', D: 'left:72%;top:44.9%' };
   const ZOOM = { A: { cx: 77.3, cy: 21.7, s: 3.2 }, B: { cx: 78.5, cy: 29.3, s: 2.6 }, C: { cx: 80.5, cy: 38.8, s: 2.4 }, D: { cx: 81.4, cy: 52.6, s: 2.1 } };
+  /* Presale discount on every Regular plot: more off when paying spot cash. */
+  const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
+  const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
   const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   function cssObj(str) {
     const o = {};
@@ -198,8 +201,10 @@
                     <div style={{ fontSize: 28, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
                     <div style={{ fontSize: 19, lineHeight: 1.45, color: '#2f3f38' }}>{descOf(id)}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{peso(priceOf(id))}</span>
+                      {discOf(id, 'cash') > 0 ? <span style={{ fontSize: 18, color: '#7a6a4a', textDecoration: 'line-through' }}>{peso(priceOf(id))}</span> : null}
+                      <span style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
                       <span style={{ fontSize: 17, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
+                      {discOf(id, 'cash') > 0 ? <span style={{ fontSize: 16, fontWeight: 700, color: '#1f4a39', background: '#e4f1e8', borderRadius: 8, padding: '4px 8px', alignSelf: 'flex-start' }}>Presale discount: {peso(discOf(id, 'cash'))} off for spot cash, {peso(discOf(id, 'installment'))} off for monthly</span> : null}
                       <span style={{ fontSize: 18, color: '#44534c' }}>{isBlock ? fc[id].toLocaleString('en-PH') + ' plots available in Block ' + block : fc[id].toLocaleString('en-PH') + ' plots in each block'}</span>
                     </div>
                     {isBlock ? (
@@ -449,7 +454,8 @@
 
     const MAX_PLOTS = 100; // safety ceiling only; effectively as many as the buyer wants
     const allLots = [...more, ...(step === 3 && lot && typeId && !more.some((m) => m.block === block && m.lot === lot) ? [{ block, lot, typeId }] : [])];
-    const spot = allLots.reduce((n, l) => n + priceOf(l.typeId), 0);
+    const spot = allLots.reduce((n, l) => n + priceOf(l.typeId) - discOf(l.typeId, 'cash'), 0);          // spot cash price
+    const instBase = allLots.reduce((n, l) => n + priceOf(l.typeId) - discOf(l.typeId, 'installment'), 0); // base for monthly plans
     const addAnother = () => {
       if (!lot || allLots.length >= MAX_PLOTS) return;
       setMore((m) => [...m, { block, lot, typeId }]);
@@ -458,7 +464,7 @@
     };
     const removeMore = (i) => setMore((m) => m.filter((_, k) => k !== i));
     const term = TERMS.find((t) => t.years === years) || TERMS[2];
-    const totalFor = (t) => Math.round(spot * (1 + t.surcharge));
+    const totalFor = (t) => Math.round(instBase * (1 + t.surcharge));
     const monthlyFor = (t) => Math.round(totalFor(t) / (t.years * 12));
     const total = plan === 'cash' ? spot : totalFor(term);
     const customNum = Math.round(Number(String(custom).replace(/[^0-9.]/g, '')) || 0);
@@ -607,7 +613,7 @@
             {allLots.map((l, i) => (
               <div key={l.block + l.lot} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i ? '1px solid #e3dccb' : 'none', fontSize: 18 }}>
                 <div style={{ flex: 1 }}><b>{code(l.block, l.lot)}</b> · {TYPES[l.typeId].name}</div>
-                <div><b>{peso(priceOf(l.typeId))}</b></div>
+                <div style={{ textAlign: 'right' }}>{discOf(l.typeId, 'cash') > 0 ? <div style={{ fontSize: 14, color: '#7a6a4a', textDecoration: 'line-through' }}>{peso(priceOf(l.typeId))}</div> : null}<b>{peso(priceOf(l.typeId) - discOf(l.typeId, 'cash'))}</b></div>
                 {i < more.length ? <button type="button" onClick={() => removeMore(i)} style={{ border: '1.5px solid #a33', color: '#a33', background: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 15, cursor: 'pointer' }}>Remove</button> : <span style={{ fontSize: 14, color: '#4a564f' }}>(choosing now)</span>}
               </div>))}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, padding: '10px 0 4px', borderTop: '2px solid #2f5d4c' }}><b>Total (spot cash)</b><b>{peso(spot)}</b></div>
