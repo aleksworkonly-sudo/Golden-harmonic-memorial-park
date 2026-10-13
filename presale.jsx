@@ -87,6 +87,15 @@
   function lotAt(col, row) { return row * COLS + col + 1; }
   function code(block, lot) { return block + '-' + String(lot).padStart(4, '0'); }
   function peso(n) { return '₱' + Math.round(n).toLocaleString('en-PH'); }
+  /* Mall-style price: red price, old price crossed out, red "-27%" tag. */
+  const RED = '#d0342c';
+  function offPct(was, now) { return was > now && was > 0 ? Math.round(((was - now) / was) * 100) : 0; }
+  function OffTag({ was, now, size }) {
+    const p = offPct(was, now);
+    if (!p) return null;
+    return <span style={{ display: 'inline-block', fontSize: size || 15, fontWeight: 800, color: RED, background: '#fde8e6', border: '1px solid #f3b9b3', borderRadius: 5, padding: '1px 7px', whiteSpace: 'nowrap' }}>-{p}%</span>;
+  }
+  function Was({ n, size }) { return <span style={{ fontSize: size || 17, color: '#8a8478', textDecoration: 'line-through' }}>{peso(n)}</span>; }
 
   // Precomputed once: which type each lot is, and how many of each exist.
   const LOT_TYPES = [];
@@ -201,10 +210,13 @@
                     <div style={{ fontSize: 28, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
                     <div style={{ fontSize: 19, lineHeight: 1.45, color: '#2f3f38' }}>{descOf(id)}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {discOf(id, 'cash') > 0 ? <span style={{ fontSize: 18, color: '#7a6a4a', textDecoration: 'line-through' }}>{peso(priceOf(id))}</span> : null}
-                      <span style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 30, fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
+                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={19} /> : null}
+                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={17} /> : null}
+                      </div>
                       <span style={{ fontSize: 17, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
-                      {discOf(id, 'cash') > 0 ? <span style={{ fontSize: 16, fontWeight: 700, color: '#1f4a39', background: '#e4f1e8', borderRadius: 8, padding: '4px 8px', alignSelf: 'flex-start' }}>Presale discount: {peso(discOf(id, 'cash'))} off for spot cash, {peso(discOf(id, 'installment'))} off for monthly</span> : null}
+                      {discOf(id, 'cash') > 0 ? <span style={{ fontSize: 16, fontWeight: 700, color: RED }}>Presale price: save {peso(discOf(id, 'cash'))} on spot cash, or {peso(discOf(id, 'installment'))} on monthly plans</span> : null}
                       <span style={{ fontSize: 18, color: '#44534c' }}>{isBlock ? fc[id].toLocaleString('en-PH') + ' plots available in Block ' + block : fc[id].toLocaleString('en-PH') + ' plots in each block'}</span>
                     </div>
                     {isBlock ? (
@@ -455,6 +467,7 @@
     const MAX_PLOTS = 100; // safety ceiling only; effectively as many as the buyer wants
     const allLots = [...more, ...(step === 3 && lot && typeId && !more.some((m) => m.block === block && m.lot === lot) ? [{ block, lot, typeId }] : [])];
     const spot = allLots.reduce((n, l) => n + priceOf(l.typeId) - discOf(l.typeId, 'cash'), 0);          // spot cash price
+    const listSum = allLots.reduce((n, l) => n + priceOf(l.typeId), 0);
     const instBase = allLots.reduce((n, l) => n + priceOf(l.typeId) - discOf(l.typeId, 'installment'), 0); // base for monthly plans
     const addAnother = () => {
       if (!lot || allLots.length >= MAX_PLOTS) return;
@@ -465,6 +478,7 @@
     const removeMore = (i) => setMore((m) => m.filter((_, k) => k !== i));
     const term = TERMS.find((t) => t.years === years) || TERMS[2];
     const totalFor = (t) => Math.round(instBase * (1 + t.surcharge));
+    const listTotalFor = (t) => Math.round(listSum * (1 + t.surcharge));
     const monthlyFor = (t) => Math.round(totalFor(t) / (t.years * 12));
     const total = plan === 'cash' ? spot : totalFor(term);
     const customNum = Math.round(Number(String(custom).replace(/[^0-9.]/g, '')) || 0);
@@ -613,17 +627,17 @@
             {allLots.map((l, i) => (
               <div key={l.block + l.lot} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i ? '1px solid #e3dccb' : 'none', fontSize: 18 }}>
                 <div style={{ flex: 1 }}><b>{code(l.block, l.lot)}</b> · {TYPES[l.typeId].name}</div>
-                <div style={{ textAlign: 'right' }}>{discOf(l.typeId, 'cash') > 0 ? <div style={{ fontSize: 14, color: '#7a6a4a', textDecoration: 'line-through' }}>{peso(priceOf(l.typeId))}</div> : null}<b>{peso(priceOf(l.typeId) - discOf(l.typeId, 'cash'))}</b></div>
+                <div style={{ textAlign: 'right' }}><b style={{ color: discOf(l.typeId, 'cash') > 0 ? RED : 'inherit' }}>{peso(priceOf(l.typeId) - discOf(l.typeId, 'cash'))}</b>{discOf(l.typeId, 'cash') > 0 ? <div><Was n={priceOf(l.typeId)} size={14} /> <OffTag was={priceOf(l.typeId)} now={priceOf(l.typeId) - discOf(l.typeId, 'cash')} size={13} /></div> : null}</div>
                 {i < more.length ? <button type="button" onClick={() => removeMore(i)} style={{ border: '1.5px solid #a33', color: '#a33', background: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 15, cursor: 'pointer' }}>Remove</button> : <span style={{ fontSize: 14, color: '#4a564f' }}>(choosing now)</span>}
               </div>))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, padding: '10px 0 4px', borderTop: '2px solid #2f5d4c' }}><b>Total (spot cash)</b><b>{peso(spot)}</b></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, padding: '10px 0 4px', borderTop: '2px solid #2f5d4c' }}><b>Total (spot cash)</b><span style={{ textAlign: 'right' }}><b style={{ color: listSum > spot ? RED : 'inherit' }}>{peso(spot)}</b>{listSum > spot ? <div><Was n={listSum} size={14} /> <OffTag was={listSum} now={spot} size={13} /></div> : null}</span></div>
             <button type="button" onClick={addAnother} disabled={allLots.length >= MAX_PLOTS} style={{ marginTop: 8, width: '100%', minHeight: 56, fontSize: 19, fontWeight: 700, borderRadius: 12, border: '2px solid #2f5d4c', background: '#fff', color: '#1f4a39', cursor: allLots.length >= MAX_PLOTS ? 'default' : 'pointer', opacity: allLots.length >= MAX_PLOTS ? 0.5 : 1 }}>＋ Add another plot{allLots.length >= MAX_PLOTS ? ' (limit reached)' : ''}</button>
             <div style={{ fontSize: 15, color: '#4a564f', marginTop: 6 }}>You may reserve as many plots as you need. One payment plan covers all of them.</div>
           </div>
 
           <div style={{ ...S.card, marginBottom: 16 }}>
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>How will you pay?</div>
-            {[{ id: 'cash', title: 'Spot cash', sub: peso(spot) + ' paid in full' }, { id: 'installment', title: 'Monthly installment', sub: 'Pay a little every month' }].map((o) => (
+            {[{ id: 'cash', title: 'Spot cash', sub: listSum > spot ? <span><b style={{ color: RED }}>{peso(spot)}</b> <Was n={listSum} size={15} /> <OffTag was={listSum} now={spot} size={13} /> paid in full</span> : peso(spot) + ' paid in full' }, { id: 'installment', title: 'Monthly installment', sub: 'Pay a little every month' }].map((o) => (
               <label key={o.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '12px 10px', borderRadius: 10, border: plan === o.id ? '2px solid #2f5d4c' : '1px solid #c9bd9f', background: plan === o.id ? '#eaf2ec' : '#fff', marginBottom: 8, cursor: 'pointer', fontSize: 18 }}>
                 <input type="radio" name="plan" checked={plan === o.id} onChange={() => setPlan(o.id)} style={{ width: 24, height: 24 }} />
                 <span><b>{o.title}</b><br /><span style={{ fontSize: 16, color: '#4a564f' }}>{o.sub}</span></span>
@@ -638,7 +652,7 @@
                     <span style={{ flex: 1, fontSize: 18 }}>
                       <b>{tm.years} {tm.years === 1 ? 'year' : 'years'}</b> · <b>{peso(monthlyFor(tm))}</b> a month
                       {tm.best ? <span style={{ marginLeft: 8, fontSize: 13, background: '#2f5d4c', color: '#fff', borderRadius: 999, padding: '2px 10px' }}>Lowest monthly</span> : null}
-                      <br /><span style={{ fontSize: 15, color: '#4a564f' }}>Total {peso(totalFor(tm))} (+{Math.round(tm.surcharge * 100)}%)</span>
+                      <br /><span style={{ fontSize: 15, color: '#4a564f' }}>Total <b style={{ color: listSum > instBase ? RED : 'inherit' }}>{peso(totalFor(tm))}</b> (+{Math.round(tm.surcharge * 100)}%){listSum > instBase ? <span> <Was n={listTotalFor(tm)} size={14} /> <OffTag was={listTotalFor(tm)} now={totalFor(tm)} size={13} /></span> : null}</span>
                     </span>
                   </label>))}
                 <div style={{ marginTop: 10, padding: 12, borderRadius: 10, border: '1px dashed #b08544', background: '#fffdf6' }}>
