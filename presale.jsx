@@ -216,7 +216,11 @@
                         {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={17} /> : null}
                       </div>
                       <span style={{ fontSize: 17, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
-                      {discOf(id, 'cash') > 0 ? <span style={{ fontSize: 16, fontWeight: 700, color: RED }}>Presale price: save {peso(discOf(id, 'cash'))} on spot cash, or {peso(discOf(id, 'installment'))} on monthly plans</span> : null}
+                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.5, color: '#0f2a21', background: '#e4f1e8', borderRadius: 10, padding: '10px 14px', textTransform: 'uppercase' }}>
+                        <div>Preselling discount</div>
+                        <div>For spot cash {Math.round(discOf(id, 'cash') / 1000)}K</div>
+                        <div>For installment {Math.round(discOf(id, 'installment') / 1000)}K</div>
+                      </div> : null}
                       <span style={{ fontSize: 18, color: '#44534c' }}>{isBlock ? fc[id].toLocaleString('en-PH') + ' plots available in Block ' + block : fc[id].toLocaleString('en-PH') + ' plots in each block'}</span>
                     </div>
                     {isBlock ? (
