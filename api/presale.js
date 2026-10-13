@@ -32,7 +32,7 @@ const PRESALE_BLOCKS = ['A', 'B', 'C', 'D'];
 const COLS = 40;
 const ROWS = 50;
 const TOTAL = COLS * ROWS; // 2,000 plots per block
-const MAX_PLOTS = 5;       // plots one buyer may reserve in one application
+const MAX_PLOTS = 100;     // safety ceiling only (one Firestore transaction must stay small)
 
 // Fallbacks only. The live prices come from the Firestore 'products' docs.
 const DEFAULT_PRICES = { regular: 30000, premium: 42500, 'corner-premium': 47500 };
