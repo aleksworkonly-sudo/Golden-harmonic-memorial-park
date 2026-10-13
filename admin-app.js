@@ -3267,6 +3267,14 @@ const PRESALE_TYPE_LABEL = {
   'premium': 'Premium',
   'corner-premium': 'Corner Premium'
 };
+function presalePlots(a) {
+  return Array.isArray(a.plots) && a.plots.length ? a.plots : [{
+    blockId: a.blockId,
+    lotNo: a.lotNo,
+    plotCode: a.plotCode,
+    typeId: a.typeId
+  }];
+}
 function presalePlanText(a) {
   return a.plan === 'cash' ? 'Spot cash' : `${a.years} years · ${fmt(a.monthly)}/mo`;
 }
@@ -3372,9 +3380,9 @@ function PresaleApplications({
         confirmedBy: actor
       };
       await window.db.collection('presaleApplications').doc(a._id).update(patch);
-      await window.db.collection('plots').doc(`${a.blockId}_${a.lotNo}`).update({
+      await Promise.all(presalePlots(a).map(x => window.db.collection('plots').doc(`${x.blockId}_${x.lotNo}`).update({
         hold: false
-      }).catch(() => {});
+      }).catch(() => {})));
       setRefText('');
       setAmtText('');
       setToast('Payment recorded');
@@ -3385,7 +3393,7 @@ function PresaleApplications({
     }
   };
   const cancelApp = async a => {
-    if (!window.confirm(`Cancel ${a.ref} and free plot ${a.plotCode}? This cannot be undone.`)) return;
+    if (!window.confirm(`Cancel ${a.ref} and free ${presalePlots(a).length > 1 ? 'all ' + presalePlots(a).length + ' plots' : 'plot ' + a.plotCode}? This cannot be undone.`)) return;
     setBusy(true);
     try {
       await window.db.collection('presaleApplications').doc(a._id).update({
@@ -3393,8 +3401,8 @@ function PresaleApplications({
         cancelledAt: Date.now(),
         cancelledBy: actor
       });
-      await window.db.collection('plots').doc(`${a.blockId}_${a.lotNo}`).delete();
-      setToast(`${a.plotCode} is free again`);
+      await Promise.all(presalePlots(a).map(x => window.db.collection('plots').doc(`${x.blockId}_${x.lotNo}`).delete()));
+      setToast(presalePlots(a).length > 1 ? 'The plots are free again' : `${a.plotCode} is free again`);
       setOpen(null);
     } catch (err) {
       setToast(err && err.message || 'Could not cancel');
@@ -3459,17 +3467,24 @@ function PresaleApplications({
       fontSize: 12,
       color: '#777'
     }
-  }, r.mobile)), plotEl("td", null, r.plotCode, plotEl("div", {
+  }, r.mobile)), plotEl("td", null, presalePlots(r).map(x => x.plotCode).join(', '), plotEl("div", {
     style: {
       fontSize: 12,
       color: '#777'
     }
-  }, PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r))))))), sel && plotEl("div", {
+  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r))))))), sel && plotEl("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && setOpen(null)
   }, plotEl("div", {
     className: "modal"
-  }, plotEl("h3", null, sel.ref, " · ", sel.plotCode, " · ", PRESALE_TYPE_LABEL[sel.typeId]), statusBadge(sel.status, sel), plotEl("div", {
+  }, plotEl("h3", null, sel.ref, " · ", presalePlots(sel).length > 1 ? `${presalePlots(sel).length} plots` : `${sel.plotCode} · ${PRESALE_TYPE_LABEL[sel.typeId]}`), presalePlots(sel).length > 1 && plotEl("div", {
+    style: {
+      lineHeight: 1.6,
+      marginBottom: 6
+    }
+  }, presalePlots(sel).map(x => plotEl("div", {
+    key: x.plotCode
+  }, plotEl("b", null, x.plotCode), " · ", PRESALE_TYPE_LABEL[x.typeId], x.price ? ` · ${fmt(x.price)}` : ''))), statusBadge(sel.status, sel), plotEl("div", {
     style: {
       margin: '12px 0',
       padding: 12,

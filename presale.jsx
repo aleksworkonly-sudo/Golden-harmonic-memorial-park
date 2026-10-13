@@ -382,6 +382,7 @@
     const [takenByBlock, setTakenByBlock] = useState({});
     const [loadErr, setLoadErr] = useState(false);
     const [lot, setLot] = useState(0);
+    const [more, setMore] = useState([]); // plots already added: [{ block, lot, typeId }]
     const [notice, setNotice] = useState('');
     const [plan, setPlan] = useState('cash');
     const [years, setYears] = useState(3);
@@ -414,10 +415,16 @@
     useEffect(() => { BLOCKS.forEach((b) => loadTaken(b)); }, [loadTaken]);
     useEffect(() => { if (topRef.current) topRef.current.scrollIntoView(); }, [step, done]);
 
-    const taken = useMemo(() => new Set(takenByBlock[block] || []), [takenByBlock, block]);
+    // Plots the buyer already added count as taken, so the same plot cannot be picked twice.
+    const taken = useMemo(() => {
+      const t = new Set(takenByBlock[block] || []);
+      more.forEach((m) => { if (m.block === block) t.add(m.lot); });
+      return t;
+    }, [takenByBlock, block, more]);
 
     const freeCounts = (b) => {
       const t = new Set(takenByBlock[b] || []);
+      more.forEach((m) => { if (m.block === b) t.add(m.lot); });
       const out = { 'regular': TYPE_TOTALS['regular'], 'premium': TYPE_TOTALS['premium'], 'corner-premium': TYPE_TOTALS['corner-premium'] };
       t.forEach((n) => { if (LOT_TYPES[n]) out[LOT_TYPES[n]]--; });
       return out;
@@ -440,7 +447,16 @@
       }
     }, [step, typeId, taken]);
 
-    const spot = typeId ? priceOf(typeId) : 0;
+    const MAX_PLOTS = 5;
+    const allLots = [...more, ...(step === 3 && lot && typeId && !more.some((m) => m.block === block && m.lot === lot) ? [{ block, lot, typeId }] : [])];
+    const spot = allLots.reduce((n, l) => n + priceOf(l.typeId), 0);
+    const addAnother = () => {
+      if (!lot || allLots.length >= MAX_PLOTS) return;
+      setMore((m) => [...m, { block, lot, typeId }]);
+      setNotice('');
+      back(); // one step back to the site plan, where the buyer picks the next plot
+    };
+    const removeMore = (i) => setMore((m) => m.filter((_, k) => k !== i));
     const term = TERMS.find((t) => t.years === years) || TERMS[2];
     const totalFor = (t) => Math.round(spot * (1 + t.surcharge));
     const monthlyFor = (t) => Math.round(totalFor(t) / (t.years * 12));
@@ -467,7 +483,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            block, lot, plan, years: plan === 'cash' ? 0 : years, method,
+            lots: allLots.map((l) => ({ block: l.block, lot: l.lot })), plan, years: plan === 'cash' ? 0 : years, method,
             customMonthly: plan === 'installment' && customNum > 0 ? customNum : 0,
             name: form.name, address: form.address, mobile: form.mobile, email: form.email,
             consent: form.consent, website: form.website
@@ -476,13 +492,20 @@
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.ok) { setDone(data); return; }
         if (data.error === 'taken') {
-          const fresh = await loadTaken(block);
+          const tb = data.block || block, tl = data.lot || lot;
+          const fresh = await loadTaken(tb);
           const set = new Set(fresh || []);
-          const next = nearestFree(lot, typeId, set);
-          if (next) setLot(next);
-          setError('Sorry, someone just took plot ' + lot + '. We moved your pin to the nearest free plot. Please check it and press Send again.');
+          const idx = more.findIndex((m) => m.block === tb && m.lot === tl);
+          if (idx >= 0) {
+            removeMore(idx);
+            setError('Sorry, someone just took plot ' + code(tb, tl) + '. We removed it from your list. You may add another plot, then press Send again.');
+          } else {
+            const next = nearestFree(tl, typeId, set);
+            if (next) setLot(next);
+            setError('Sorry, someone just took plot ' + code(tb, tl) + '. We moved your pin to the nearest free plot. Please check it and press Send again.');
+          }
         } else if (data.error === 'dup') {
-          setError('This mobile number already has a presale reservation. Each buyer can reserve one plot. Please call us if you need help.');
+          setError('This mobile number already has a presale reservation. Please call us if you want to add more plots to it.');
         } else {
           setError(data.error || 'Something went wrong. Please try again or call us.');
         }
@@ -495,6 +518,7 @@
 
     /* ---- Browser / phone Back button: step back inside the presale instead of leaving it ---- */
     const closing = useRef(false);
+    const skipNext = useRef(false);
     const depth = useRef(0);          // history entries this flow has added
     const live = useRef({});          // latest state for the popstate handler
     live.current = { step, block, done, onClose };
@@ -502,8 +526,12 @@
 
     useEffect(() => {
       pushNav(); // entry for the first screen, so the first Back press stays inside the presale
-      const onPop = () => {
+      const onPop = (e) => {
         if (closing.current) return;
+        if (skipNext.current) { skipNext.current = false; return; }
+        // Forward button: not supported inside the flow, so step straight back to where we were.
+        const idx = e && e.state && e.state.presale ? e.state.presale : 0;
+        if (idx > depth.current) { skipNext.current = true; try { window.history.back(); } catch (err) {} return; }
         depth.current = Math.max(0, depth.current - 1);
         const c = live.current;
         if (c.done) { closing.current = true; const n = depth.current; depth.current = 0; c.onClose(); if (n > 0) { try { window.history.go(-n); } catch (e) {} } }
@@ -536,10 +564,10 @@
         <div style={S.wrap}>
           <div style={{ ...S.card, borderColor: '#2f5d4c', borderWidth: 2 }}>
             <div style={{ fontSize: 44 }}>✅</div>
-            <h2 style={S.h2}>Your plot is reserved</h2>
+            <h2 style={S.h2}>{done.plots && done.plots.length > 1 ? 'Your ' + done.plots.length + ' plots are reserved' : 'Your plot is reserved'}</h2>
             <p style={S.lead}>Thank you. Please keep this reference number: <b style={{ fontSize: 22, color: '#2f5d4c' }}>{done.ref}</b></p>
             <div style={{ display: 'grid', gap: 8, fontSize: 18 }}>
-              <div><b>Plot:</b> {done.plotCode} · {TYPES[done.typeId].name}</div>
+              {(done.plots && done.plots.length ? done.plots : [{ plotCode: done.plotCode, typeId: done.typeId }]).map((x) => <div key={x.plotCode}><b>Plot:</b> {x.plotCode} · {TYPES[x.typeId].name}</div>)}
               <div><b>Plan:</b> {done.plan === 'cash' ? 'Spot cash · ' + peso(done.total) : done.years + ' years · ' + peso(done.monthly) + ' a month · total ' + peso(done.total)}</div>
               <div><b>You will pay by:</b> {m.label}</div>
               {info ? <div><b>Where:</b> {info}</div> : null}
@@ -572,6 +600,19 @@
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Choose your exact plot</div>
             {notice ? <div style={{ ...S.note, marginBottom: 10 }}>{notice}</div> : null}
             {lot ? <PlotPicker block={block} typeId={typeId} lot={lot} setLot={setLot} taken={taken} notify={setNotice} /> : <div>Loading plots...</div>}
+          </div>
+
+          <div style={{ ...S.card, marginBottom: 16 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Your plots ({allLots.length})</div>
+            {allLots.map((l, i) => (
+              <div key={l.block + l.lot} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i ? '1px solid #e3dccb' : 'none', fontSize: 18 }}>
+                <div style={{ flex: 1 }}><b>{code(l.block, l.lot)}</b> · {TYPES[l.typeId].name}</div>
+                <div><b>{peso(priceOf(l.typeId))}</b></div>
+                {i < more.length ? <button type="button" onClick={() => removeMore(i)} style={{ border: '1.5px solid #a33', color: '#a33', background: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 15, cursor: 'pointer' }}>Remove</button> : <span style={{ fontSize: 14, color: '#4a564f' }}>(choosing now)</span>}
+              </div>))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, padding: '10px 0 4px', borderTop: '2px solid #2f5d4c' }}><b>Total (spot cash)</b><b>{peso(spot)}</b></div>
+            <button type="button" onClick={addAnother} disabled={allLots.length >= MAX_PLOTS} style={{ marginTop: 8, width: '100%', minHeight: 56, fontSize: 19, fontWeight: 700, borderRadius: 12, border: '2px solid #2f5d4c', background: '#fff', color: '#1f4a39', cursor: allLots.length >= MAX_PLOTS ? 'default' : 'pointer', opacity: allLots.length >= MAX_PLOTS ? 0.5 : 1 }}>＋ Add another plot{allLots.length >= MAX_PLOTS ? ' (limit of ' + MAX_PLOTS + ' reached)' : ''}</button>
+            <div style={{ fontSize: 15, color: '#4a564f', marginTop: 6 }}>You may reserve up to {MAX_PLOTS} plots in one application. One payment plan covers all of them.</div>
           </div>
 
           <div style={{ ...S.card, marginBottom: 16 }}>
