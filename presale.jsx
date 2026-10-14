@@ -55,9 +55,9 @@
   const TOTAL = COLS * ROWS;
 
   const TYPES = {
-    'regular': { name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', tint: '#e8efe9', ink: '#2f5d4c' },
-    'premium': { name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', tint: '#f3e6c4', ink: '#8a6428' },
-    'corner-premium': { name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', tint: '#e9d3a3', ink: '#6e4d17' }
+    'regular': { name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', tint: '#2e9e5b', ink: '#ffffff' },
+    'premium': { name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', tint: '#2f7de1', ink: '#ffffff' },
+    'corner-premium': { name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', tint: '#f59e0b', ink: '#1f1607' }
   };
   const TYPE_IDS = ['regular', 'premium', 'corner-premium'];
 
@@ -179,7 +179,7 @@
         <Steps step={isBlock ? 2 : 1} />
 
         <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.35, background: '#fff3c9', border: '2px solid #d9a62e', borderRadius: 12, padding: '16px 20px', color: '#3b2a05' }}>
-          {isBlock ? 'Step 2 of 3: Choose the type of plot you want, below the map.' : 'Step 1 of 3: Touch a gold block on the map, or a button on the right.'}
+          {isBlock ? 'Step 2 of 3: Choose the type of plot you want, below the map.' : 'Step 1 of 3: Touch a green block on the map, or a button on the right.'}
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
@@ -187,18 +187,18 @@
             <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#0f2a21' }}>
               <div style={{ position: 'relative', transformOrigin: '0 0', transform: 'translate(' + tx.toFixed(2) + '%,' + ty.toFixed(2) + '%) scale(' + sc + ')', transition: 'transform 0.7s ease' }}>
                 <img src={MAP_SRC} alt="Aerial site development plan of Golden Harmonic Memorial Park" style={{ display: 'block', width: '100%', height: 'auto' }} />
-                {DIM.map((d, i) => <div key={i} style={{ position: 'absolute', background: 'rgba(12,26,21,0.62)', ...cssObj(d) }}></div>)}
+                {DIM.map((d, i) => <div key={i} style={{ position: 'absolute', background: 'rgba(30,70,170,0.55)', ...cssObj(d) }}></div>)}
                 {BLOCKS.map((id) => (
                   <button key={id} type="button" aria-label={'Block ' + id + ', open for sale'} aria-pressed={id === block} onClick={() => setBlock(id)}
-                    style={{ position: 'absolute', border: 0, padding: 0, margin: 0, cursor: 'pointer', background: 'rgba(232,184,56,' + (id === block ? '0.30' : '0.40') + ')', ...cssObj(GEO[id]) }}></button>))}
+                    style={{ position: 'absolute', border: 0, padding: 0, margin: 0, cursor: 'pointer', background: 'rgba(34,170,84,' + (id === block ? '0.35' : '0.55') + ')', outline: '3px solid #12803f', outlineOffset: '-3px', ...cssObj(GEO[id]) }}></button>))}
                 {BLOCKS.map((id) => (
                   <div key={'t' + id} style={{ position: 'absolute', pointerEvents: 'none', transformOrigin: '0 0', transform: 'scale(' + (1 / sc).toFixed(3) + ')', transition: 'transform 0.7s ease', fontSize: 17, fontWeight: 800, color: '#0f2a21', background: '#f4cf6a', padding: '4px 10px', borderRadius: 5, ...cssObj(TAGPOS[id]) }}>Block {id}</div>))}
               </div>
             </div>
             {!isBlock ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: 18, color: '#2f3f38' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#d9a62e' }}></span>Open for sale now</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#2f3b36' }}></span>Coming soon</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#22aa54', border: '2px solid #12803f' }}></span>Open for sale now</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#2d5fd0' }}></span>Coming soon</div>
               </div>) : null}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
@@ -300,7 +300,7 @@
 
     const takenRects = useMemo(() => {
       const out = [];
-      taken.forEach((n) => out.push(<rect key={n} x={colOf(n)} y={rowOf(n)} width="1" height="1" fill="#3b3b3b" opacity="0.55" />));
+      taken.forEach((n) => out.push(<rect key={n} x={colOf(n)} y={rowOf(n)} width="1" height="1" fill="#d0342c" opacity="0.9" />));
       return out;
     }, [taken]);
 
@@ -330,28 +330,29 @@
     return (
       <div>
         <p style={{ fontSize: 16, margin: '0 0 10px', lineHeight: 1.45 }}>
-          Drag the <b>gold pin</b> on the map to the place you like. You can also press a square below, or use the arrow buttons.
+          Drag the <b style={{ color: '#7c1fd6' }}>purple pin</b> on the map to the place you like. You can also press a square below, or use the arrow buttons.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 14 }} className="presale-pick">
           <div>
             <div style={{ position: 'relative', width: '100%', aspectRatio: COLS + ' / ' + ROWS, touchAction: 'none', cursor: 'grab', userSelect: 'none' }}
               onPointerDown={(e) => { e.preventDefault(); setDragging(true); pickAt(e.clientX, e.clientY); }}>
               <svg ref={svgRef} viewBox={'0 0 ' + COLS + ' ' + ROWS} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block', borderRadius: 10, border: '2px solid #2f5d4c' }}>
-                <rect x="0" y="0" width={COLS} height={ROWS} fill="#e8efe9" />
-                <rect x="3" y="3" width={COLS - 6} height={ROWS - 6} fill="#f3e6c4" />
-                <rect x="8" y="8" width={COLS - 16} height={ROWS - 16} fill="#e8efe9" />
-                <path d={'M0 0H' + COLS + 'V' + ROWS + 'H0Z M3 3V' + (ROWS - 3) + 'H' + (COLS - 3) + 'V3Z'} fill="#e9d3a3" fillRule="evenodd" />
+                <rect x="0" y="0" width={COLS} height={ROWS} fill="#2e9e5b" />
+                <rect x="3" y="3" width={COLS - 6} height={ROWS - 6} fill="#2f7de1" />
+                <rect x="8" y="8" width={COLS - 16} height={ROWS - 16} fill="#2e9e5b" />
+                <path d={'M0 0H' + COLS + 'V' + ROWS + 'H0Z M3 3V' + (ROWS - 3) + 'H' + (COLS - 3) + 'V3Z'} fill="#f59e0b" fillRule="evenodd" />
                 {takenRects}
-                <rect x={c - 2} y={r - 2} width="5" height="5" fill="none" stroke="#b08544" strokeWidth="0.3" />
-                <circle cx={c + 0.5} cy={r + 0.5} r="2.2" fill="#b08544" opacity="0.35" />
-                <circle cx={c + 0.5} cy={r + 0.5} r="1.1" fill="#b08544" stroke="#fff" strokeWidth="0.35" />
+                <rect x={c - 2} y={r - 2} width="5" height="5" fill="none" stroke="#7c1fd6" strokeWidth="0.35" />
+                <circle cx={c + 0.5} cy={r + 0.5} r="2.2" fill="#7c1fd6" opacity="0.4" />
+                <circle cx={c + 0.5} cy={r + 0.5} r="1.1" fill="#7c1fd6" stroke="#fff" strokeWidth="0.35" />
               </svg>
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 14, marginTop: 8 }}>
-              <span><i style={{ display: 'inline-block', width: 12, height: 12, background: '#e9d3a3', border: '1px solid #b08544', verticalAlign: -1 }}></i> Corner Premium</span>
-              <span><i style={{ display: 'inline-block', width: 12, height: 12, background: '#f3e6c4', border: '1px solid #b08544', verticalAlign: -1 }}></i> Premium</span>
-              <span><i style={{ display: 'inline-block', width: 12, height: 12, background: '#e8efe9', border: '1px solid #2f5d4c', verticalAlign: -1 }}></i> Regular</span>
-              <span><i style={{ display: 'inline-block', width: 12, height: 12, background: '#777', verticalAlign: -1 }}></i> Taken</span>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 15, fontWeight: 600, marginTop: 8 }}>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#f59e0b', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Corner Premium</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#2f7de1', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Premium</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#2e9e5b', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Regular</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#d0342c', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Taken</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#7c1fd6', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Your pick</span>
             </div>
           </div>
           <div>
@@ -366,10 +367,10 @@
                     aria-label={'Plot ' + n + (isTaken ? ', taken' : '')}
                     style={{
                       minHeight: 46, fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: ok ? 'pointer' : 'not-allowed',
-                      border: sel ? '3px solid #b08544' : '1px solid #c9bd9f',
-                      background: sel ? '#b08544' : isTaken ? '#9a9a9a' : TYPES[t].tint,
-                      color: sel ? '#1f1607' : isTaken ? '#fff' : TYPES[t].ink,
-                      opacity: ok || sel ? 1 : 0.55, padding: 0
+                      border: sel ? '3px solid #fff' : '1px solid rgba(0,0,0,.25)', boxShadow: sel ? '0 0 0 3px #7c1fd6' : 'none',
+                      background: sel ? '#7c1fd6' : isTaken ? '#d0342c' : TYPES[t].tint,
+                      color: sel || isTaken ? '#fff' : TYPES[t].ink,
+                      opacity: ok || sel || isTaken ? 1 : 0.45, padding: 0
                     }}>{n}</button>);
               })}
             </div>
