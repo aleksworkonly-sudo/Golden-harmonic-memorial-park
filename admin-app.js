@@ -3358,6 +3358,13 @@ function PresaleApplications({
   const [open, setOpen] = useState(null);
   const [refText, setRefText] = useState('');
   const [amtText, setAmtText] = useState('');
+  const [agentList, setAgentList] = useState([]);
+  const [agentPick, setAgentPick] = useState('');
+  const [commText, setCommText] = useState('');
+  useEffect(() => window.db.collection('agents').onSnapshot(s => setAgentList(s.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  }))), () => {}), []);
   const [salesView, setSalesView] = useState('summary'); // summary | sales | vat
   const [period, setPeriod] = useState('all'); // 'all' or 'YYYY-MM' for the Sales and VAT box
   const [busy, setBusy] = useState(false);
@@ -3435,6 +3442,52 @@ function PresaleApplications({
       setRefText('');
       setAmtText('');
       setToast('Payment recorded');
+    } catch (err) {
+      setToast(err && err.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const attachAgent = async a => {
+    const agent = agentList.find(x => x._id === agentPick);
+    const comm = Math.round(Number(String(commText).replace(/[^0-9.]/g, '')) || 0);
+    if (!agent) {
+      setToast('Please choose the agent.');
+      return;
+    }
+    if (!(comm > 0)) {
+      setToast('Please write the commission amount.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const saleMs = a.createdAt || Date.now();
+      const dates = agentDates(saleMs);
+      const ref = await window.db.collection('agentCommissions').add({
+        agentId: agent._id,
+        agentName: agent.name,
+        agentEmail: agent.email || '',
+        buyer: a.name,
+        ref: `${a.ref} · ${presalePlots(a).map(x => x.plotCode).join(' ')}`,
+        saleAmount: a.totalPrice || 0,
+        commission: comm,
+        saleDate: saleMs,
+        ...dates,
+        status: 'pending',
+        notifiedAt: null,
+        appRef: a.ref,
+        createdAt: Date.now(),
+        createdBy: actor
+      });
+      await window.db.collection('presaleApplications').doc(a._id).update({
+        agentId: agent._id,
+        agentName: agent.name,
+        agentCommission: comm,
+        agentCommissionId: ref.id
+      });
+      setAgentPick('');
+      setCommText('');
+      setToast('Agent and commission saved');
     } catch (err) {
       setToast(err && err.message || 'Could not save');
     } finally {
@@ -3776,7 +3829,51 @@ function PresaleApplications({
     }, plotEl("tbody", null, L.list.map((x, i) => plotEl("tr", {
       key: i
     }, plotEl("td", null, fmtDate(x.date)), plotEl("td", null, fmt(x.amount)), plotEl("td", null, x.ref || ''), plotEl("td", null, x.by || ''))))));
-  })(), plotEl("div", {
+  })(), sel.status !== 'cancelled' && plotEl("div", {
+    style: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 8,
+      background: '#eef3fb'
+    }
+  }, plotEl("b", null, "Agent commission"), sel.agentId ? plotEl("div", null, sel.agentName, " · ", fmt(sel.agentCommission || 0), " · due 1 year after the sale (", fmtDate(agentDates(sel.createdAt || Date.now()).dueDate), ")") : plotEl("div", null, plotEl("select", {
+    style: {
+      padding: 8,
+      width: '100%',
+      boxSizing: 'border-box',
+      marginTop: 6
+    },
+    value: agentPick,
+    onChange: e => {
+      const id = e.target.value;
+      setAgentPick(id);
+      const ag = agentList.find(x => x._id === id);
+      if (ag && ag.rate) setCommText(String(Math.round(presaleSplit(sel).base * ag.rate / 100)));
+    }
+  }, plotEl("option", {
+    value: ""
+  }, "No agent / choose agent…"), agentList.map(a => plotEl("option", {
+    key: a._id,
+    value: a._id
+  }, a.name))), agentPick && plotEl("div", null, plotEl("input", {
+    style: {
+      padding: 8,
+      width: '100%',
+      boxSizing: 'border-box',
+      marginTop: 6
+    },
+    inputMode: "numeric",
+    placeholder: "Commission amount (₱)",
+    value: commText,
+    onChange: e => setCommText(e.target.value)
+  }), plotEl("button", {
+    className: "btn btn-primary btn-sm",
+    style: {
+      marginTop: 6
+    },
+    disabled: busy,
+    onClick: () => attachAgent(sel)
+  }, "Save agent and commission")))), plotEl("div", {
     style: {
       marginTop: 12,
       padding: 10,
@@ -3861,6 +3958,428 @@ function PresaleApplications({
   }, "Close")))));
 }
 
+// ── Agents and their 1-year commissions ──────────────────────────────────────
+// agents/{id}: the sales agents. agentCommissions/{id}: one record per sale an agent
+// earns commission on. The commission falls due 12 months after the sale date and
+// staff are warned (here and by email, via /api/send-agent-commissions) at month 11.
+const AGENT_DUE_MONTHS = 12;
+const AGENT_NOTIFY_MONTHS = 11;
+function agentAddMonths(ms, n) {
+  const d = new Date(ms);
+  d.setMonth(d.getMonth() + n);
+  return d.getTime();
+}
+function agentDates(saleMs) {
+  return {
+    notifyDate: agentAddMonths(saleMs, AGENT_NOTIFY_MONTHS),
+    dueDate: agentAddMonths(saleMs, AGENT_DUE_MONTHS)
+  };
+}
+// 'paid' | 'overdue' | 'soon' (past month 11, not yet due) | 'waiting'
+function agentCommStatus(c, now) {
+  if (c.status === 'paid') return 'paid';
+  if (now >= c.dueDate) return 'overdue';
+  if (now >= c.notifyDate) return 'soon';
+  return 'waiting';
+}
+function agentDaysLeft(c, now) {
+  return Math.ceil((c.dueDate - now) / 86400000);
+}
+function AgentsTab({
+  currentUser
+}) {
+  const [agents, setAgents] = useState(null);
+  const [comms, setComms] = useState(null);
+  const [filter, setFilter] = useState('alert');
+  const [toast, setToast] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [af, setAf] = useState({
+    name: '',
+    mobile: '',
+    email: '',
+    rate: ''
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  const [cf, setCf] = useState({
+    agentId: '',
+    buyer: '',
+    ref: '',
+    saleDate: today,
+    saleAmount: '',
+    commission: ''
+  });
+  useEffect(() => window.db.collection('agents').orderBy('createdAt', 'desc').onSnapshot(s => setAgents(s.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  }))), () => setAgents([])), []);
+  useEffect(() => window.db.collection('agentCommissions').orderBy('dueDate', 'asc').onSnapshot(s => setComms(s.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  }))), () => setComms([])), []);
+  if (!agents || !comms) return plotEl("div", {
+    className: "loading"
+  }, plotEl("div", {
+    className: "spinner"
+  }), plotEl("div", null, "Loading agents…"));
+  const actor = currentUser && currentUser.email || 'staff';
+  const now = Date.now();
+  const money = v => Math.round(Number(String(v).replace(/[^0-9.]/g, '')) || 0);
+  const addAgent = async () => {
+    if (af.name.trim().length < 2) {
+      setToast('Please write the agent name.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await window.db.collection('agents').add({
+        name: af.name.trim(),
+        mobile: af.mobile.trim(),
+        email: af.email.trim(),
+        rate: Number(af.rate) || 0,
+        active: true,
+        createdAt: Date.now(),
+        createdBy: actor
+      });
+      setAf({
+        name: '',
+        mobile: '',
+        email: '',
+        rate: ''
+      });
+      setToast('Agent added');
+    } catch (e) {
+      setToast(e.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const removeAgent = async a => {
+    if (!window.confirm(`Remove agent ${a.name}? Their commission records stay.`)) return;
+    try {
+      await window.db.collection('agents').doc(a._id).delete();
+    } catch (e) {
+      setToast(e.message || 'Could not remove');
+    }
+  };
+  const addCommission = async () => {
+    const agent = agents.find(a => a._id === cf.agentId);
+    if (!agent) {
+      setToast('Please choose the agent.');
+      return;
+    }
+    const comm = money(cf.commission);
+    if (!(comm > 0)) {
+      setToast('Please write the commission amount.');
+      return;
+    }
+    const saleMs = new Date(cf.saleDate + 'T00:00:00').getTime();
+    if (!saleMs) {
+      setToast('Please choose the sale date.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await window.db.collection('agentCommissions').add({
+        agentId: agent._id,
+        agentName: agent.name,
+        agentEmail: agent.email || '',
+        buyer: cf.buyer.trim(),
+        ref: cf.ref.trim(),
+        saleAmount: money(cf.saleAmount),
+        commission: comm,
+        saleDate: saleMs,
+        ...agentDates(saleMs),
+        status: 'pending',
+        notifiedAt: null,
+        createdAt: Date.now(),
+        createdBy: actor
+      });
+      setCf({
+        agentId: '',
+        buyer: '',
+        ref: '',
+        saleDate: today,
+        saleAmount: '',
+        commission: ''
+      });
+      setToast('Commission recorded');
+    } catch (e) {
+      setToast(e.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const markPaid = async c => {
+    if (!window.confirm(`Mark the ${fmt(c.commission)} commission for ${c.agentName} as PAID?`)) return;
+    try {
+      await window.db.collection('agentCommissions').doc(c._id).update({
+        status: 'paid',
+        paidAt: Date.now(),
+        paidBy: actor
+      });
+      setToast('Marked as paid');
+    } catch (e) {
+      setToast(e.message || 'Could not save');
+    }
+  };
+  const removeComm = async c => {
+    if (!window.confirm('Delete this commission record?')) return;
+    try {
+      await window.db.collection('agentCommissions').doc(c._id).delete();
+    } catch (e) {
+      setToast(e.message || 'Could not delete');
+    }
+  };
+  const withState = comms.map(c => ({
+    ...c,
+    st: agentCommStatus(c, now)
+  }));
+  const alerts = withState.filter(c => c.st === 'soon' || c.st === 'overdue');
+  const pendingTotal = withState.filter(c => c.st !== 'paid').reduce((n, c) => n + (c.commission || 0), 0);
+  const shown = withState.filter(c => filter === 'all' ? true : filter === 'alert' ? c.st === 'soon' || c.st === 'overdue' : filter === 'pending' ? c.st !== 'paid' : c.st === 'paid');
+  const stat = (n, label) => plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, n), plotEl("div", {
+    className: "stat-lbl"
+  }, label)));
+  const badge = c => c.st === 'paid' ? plotEl("span", {
+    className: "badge badge-converted"
+  }, "Paid") : c.st === 'overdue' ? plotEl("span", {
+    className: "badge",
+    style: {
+      background: '#fde8e6',
+      color: '#a33'
+    }
+  }, "Due now / overdue") : c.st === 'soon' ? plotEl("span", {
+    className: "badge badge-new"
+  }, `Due in ${agentDaysLeft(c, now)} days`) : plotEl("span", {
+    className: "badge badge-contacted"
+  }, "Waiting");
+  const inp = {
+    padding: 8,
+    width: '100%',
+    boxSizing: 'border-box'
+  };
+  const lbl = {
+    fontSize: 12,
+    fontWeight: 600,
+    display: 'block',
+    marginBottom: 2
+  };
+  const pickAgent = id => {
+    const a = agents.find(x => x._id === id);
+    setCf(f => ({
+      ...f,
+      agentId: id,
+      commission: a && a.rate && f.saleAmount ? String(Math.round(money(f.saleAmount) * a.rate / 100)) : f.commission
+    }));
+  };
+  const setSaleAmount = v => {
+    const a = agents.find(x => x._id === cf.agentId);
+    setCf(f => ({
+      ...f,
+      saleAmount: v,
+      commission: a && a.rate ? String(Math.round(money(v) * a.rate / 100)) : f.commission
+    }));
+  };
+  return plotEl("div", null, toast && plotEl(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), plotEl("div", {
+    className: "section-hd"
+  }, plotEl("h2", null, "Agents and commissions")), plotEl("div", {
+    className: "stats-row",
+    style: {
+      gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
+      marginBottom: 16
+    }
+  }, stat(agents.length, 'Agents'), stat(alerts.length, 'Commissions to prepare'), stat(withState.filter(c => c.st !== 'paid').length, 'Unpaid commissions'), stat(fmt(pendingTotal), 'Unpaid total')), alerts.length > 0 && plotEl("div", {
+    style: {
+      background: '#fff3c9',
+      border: '2px solid #d9a62e',
+      borderRadius: 10,
+      padding: 14,
+      marginBottom: 16
+    }
+  }, plotEl("b", null, "🔔 Commissions due soon (the 1-year mark is near)"), alerts.map(c => plotEl("div", {
+    key: c._id,
+    style: {
+      marginTop: 6
+    }
+  }, c.agentName, " · ", fmt(c.commission), " · ", c.buyer || c.ref || 'sale', " · due ", fmtDate(c.dueDate), c.st === 'overdue' ? ' (now due)' : ` (in ${agentDaysLeft(c, now)} days)`))), plotEl("div", {
+    className: "table-card",
+    style: {
+      padding: 16,
+      marginBottom: 16
+    }
+  }, plotEl("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 8
+    }
+  }, "Add an agent"), plotEl("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+      gap: 10
+    }
+  }, [['name', 'Name'], ['mobile', 'Mobile'], ['email', 'Email (for notices)'], ['rate', 'Commission % (optional)']].map(([k, label]) => plotEl("div", {
+    key: k
+  }, plotEl("label", {
+    style: lbl
+  }, label), plotEl("input", {
+    style: inp,
+    value: af[k],
+    onChange: e => setAf({
+      ...af,
+      [k]: e.target.value
+    })
+  })))), plotEl("button", {
+    className: "btn btn-primary",
+    style: {
+      marginTop: 10
+    },
+    disabled: busy,
+    onClick: addAgent
+  }, "Add agent"), agents.length > 0 && plotEl("table", {
+    style: {
+      marginTop: 12
+    }
+  }, plotEl("thead", null, plotEl("tr", null, ['Agent', 'Mobile', 'Email', 'Commission %', ''].map(h => plotEl("th", {
+    key: h || 'x'
+  }, h)))), plotEl("tbody", null, agents.map(a => plotEl("tr", {
+    key: a._id
+  }, plotEl("td", null, a.name), plotEl("td", null, a.mobile), plotEl("td", null, a.email), plotEl("td", null, a.rate ? a.rate + '%' : '—'), plotEl("td", null, plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => removeAgent(a)
+  }, "Remove"))))))), plotEl("div", {
+    className: "table-card",
+    style: {
+      padding: 16,
+      marginBottom: 16
+    }
+  }, plotEl("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Record a commission"), plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777',
+      marginBottom: 8
+    }
+  }, "The commission falls due 1 year after the sale date. We warn you (and email you and the agent) when 11 months have passed."), plotEl("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+      gap: 10
+    }
+  }, plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Agent"), plotEl("select", {
+    style: inp,
+    value: cf.agentId,
+    onChange: e => pickAgent(e.target.value)
+  }, plotEl("option", {
+    value: ""
+  }, "Choose…"), agents.map(a => plotEl("option", {
+    key: a._id,
+    value: a._id
+  }, a.name)))), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Buyer name"), plotEl("input", {
+    style: inp,
+    value: cf.buyer,
+    onChange: e => setCf({
+      ...cf,
+      buyer: e.target.value
+    })
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Reference (e.g. PS-0001, plot)"), plotEl("input", {
+    style: inp,
+    value: cf.ref,
+    onChange: e => setCf({
+      ...cf,
+      ref: e.target.value
+    })
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Sale date"), plotEl("input", {
+    type: "date",
+    style: inp,
+    value: cf.saleDate,
+    onChange: e => setCf({
+      ...cf,
+      saleDate: e.target.value
+    })
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Sale amount (₱)"), plotEl("input", {
+    style: inp,
+    inputMode: "numeric",
+    value: cf.saleAmount,
+    onChange: e => setSaleAmount(e.target.value)
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Commission amount (₱)"), plotEl("input", {
+    style: inp,
+    inputMode: "numeric",
+    value: cf.commission,
+    onChange: e => setCf({
+      ...cf,
+      commission: e.target.value
+    })
+  }))), plotEl("button", {
+    className: "btn btn-primary",
+    style: {
+      marginTop: 10
+    },
+    disabled: busy,
+    onClick: addCommission
+  }, "Save commission")), plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginBottom: 14
+    }
+  }, [['alert', 'Due soon'], ['pending', 'Unpaid'], ['paid', 'Paid'], ['all', 'All']].map(([id, label]) => plotEl("button", {
+    key: id,
+    className: `btn btn-sm ${filter === id ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setFilter(id)
+  }, label))), plotEl("div", {
+    className: "table-card"
+  }, shown.length === 0 ? plotEl("div", {
+    style: {
+      padding: 24
+    }
+  }, "No commissions here yet.") : plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['Agent', 'Sale', 'Sale date', 'Commission', 'Due date', 'Status', ''].map(h => plotEl("th", {
+    key: h || 'x'
+  }, h)))), plotEl("tbody", null, shown.map(c => plotEl("tr", {
+    key: c._id
+  }, plotEl("td", null, c.agentName), plotEl("td", null, c.buyer || '—', plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, c.ref)), plotEl("td", null, fmtDate(c.saleDate)), plotEl("td", null, fmt(c.commission)), plotEl("td", null, fmtDate(c.dueDate), plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, "warn on ", fmtDate(c.notifyDate))), plotEl("td", null, badge(c)), plotEl("td", null, c.st !== 'paid' && plotEl("button", {
+    className: "btn btn-primary btn-sm",
+    onClick: () => markPaid(c)
+  }, "Mark paid"), ' ', plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => removeComm(c)
+  }, "✕"))))))));
+}
+
 const TABS = [{
   id: 'pipeline',
   label: 'Pipeline',
@@ -3886,6 +4405,11 @@ const TABS = [{
   label: 'Presale',
   ico: '📋',
   badge: 2
+}, {
+  id: 'agents',
+  label: 'Agents',
+  ico: '🤝',
+  badge: 0
 }, {
   id: 'products',
   label: 'Products',
@@ -3926,7 +4450,8 @@ function Dashboard({
     users: 0,
     trash: 0,
     pending: 0,
-    presale: 0
+    presale: 0,
+    agents: 0
   });
   // myRole is looked up from users/{uid} — the doc ID MUST equal the Firebase Auth UID
   // for this (and the Firestore security rules) to work. 'unlinked' means this login
@@ -3955,6 +4480,14 @@ function Dashboard({
       ...c,
       presale: snap.docs.filter(d => d.data().status === 'new').length
     })), () => {});
+    // Agents tab badge: unpaid commissions that reached month 11
+    const agentsUnsub = window.db.collection('agentCommissions').onSnapshot(snap => setCounts(c => ({
+      ...c,
+      agents: snap.docs.filter(d => {
+        const x = d.data();
+        return x.status !== 'paid' && Date.now() >= x.notifyDate;
+      }).length
+    })), () => {});
     const pendingUnsub = window.db.collection('customers').onSnapshot(snap => {
       let n = 0;
       snap.docs.forEach(d => {
@@ -3971,6 +4504,7 @@ function Dashboard({
       unsubs.forEach(u => u());
       pendingUnsub();
       presaleUnsub();
+      agentsUnsub();
     };
   }, []);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -4076,6 +4610,8 @@ function Dashboard({
   }), tab === 'pending' && /*#__PURE__*/React.createElement(PendingPayments, {
     currentUser: user
   }), tab === 'presale' && /*#__PURE__*/React.createElement(PresaleApplications, {
+    currentUser: user
+  }), tab === 'agents' && /*#__PURE__*/React.createElement(AgentsTab, {
     currentUser: user
   }), tab === 'products' && isAdminOrHigher && /*#__PURE__*/React.createElement(Products, null), tab === 'users' && isAdminOrHigher && /*#__PURE__*/React.createElement(Users, {
     currentUser: user,
