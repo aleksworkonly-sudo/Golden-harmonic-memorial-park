@@ -329,9 +329,9 @@
 
     return (
       <div>
-        <style>{'@keyframes ps-beep{0%,100%{transform:scale(1);box-shadow:0 0 0 2px #fff,0 0 0 0 rgba(0,0,0,.55)}50%{transform:scale(1.12);box-shadow:0 0 0 2px #fff,0 0 0 9px rgba(0,0,0,0)}}@media (prefers-reduced-motion:reduce){[style*="ps-beep"]{animation:none!important}}'}</style>
+        <style>{'@keyframes ps-beep{0%,100%{transform:scale(1);box-shadow:0 0 0 2px #e6007e,0 0 0 0 rgba(230,0,126,.6)}50%{transform:scale(1.12);box-shadow:0 0 0 2px #e6007e,0 0 0 9px rgba(230,0,126,0)}}@media (prefers-reduced-motion:reduce){[style*="ps-beep"]{animation:none!important}}'}</style>
         <p style={{ fontSize: 16, margin: '0 0 10px', lineHeight: 1.45 }}>
-          Drag the <b>white pin</b> on the map to the place you like. You can also press a square below, or use the arrow buttons.
+          Drag the <b style={{ color: '#e6007e' }}>pink pin</b> on the map to the place you like. You can also press a square below, or use the arrow buttons.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 14 }} className="presale-pick">
           <div>
@@ -343,14 +343,14 @@
                 <rect x="8" y="8" width={COLS - 16} height={ROWS - 16} fill="#9ae6b0" />
                 <path d={'M0 0H' + COLS + 'V' + ROWS + 'H0Z M3 3V' + (ROWS - 3) + 'H' + (COLS - 3) + 'V3Z'} fill="#ffd27a" fillRule="evenodd" />
                 {takenRects}
-                <rect x={c - 2} y={r - 2} width="5" height="5" fill="none" stroke="#000000" strokeWidth="0.35">
+                <rect x={c - 2} y={r - 2} width="5" height="5" fill="none" stroke="#e6007e" strokeWidth="0.45">
                   <animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite" />
                 </rect>
-                <circle cx={c + 0.5} cy={r + 0.5} r="2.2" fill="#ffffff" opacity="0.55" className="ps-beep-ring">
+                <circle cx={c + 0.5} cy={r + 0.5} r="2.2" fill="#e6007e" opacity="0.55" className="ps-beep-ring">
                   <animate attributeName="r" values="1.2;3.4;1.2" dur="1.2s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.9;0.1;0.9" dur="1.2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx={c + 0.5} cy={r + 0.5} r="1.1" fill="#ffffff" stroke="#000000" strokeWidth="0.4" />
+                <circle cx={c + 0.5} cy={r + 0.5} r="1.3" fill="#e6007e" stroke="#ffffff" strokeWidth="0.45" />
               </svg>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 15, fontWeight: 600, marginTop: 8 }}>
@@ -358,7 +358,7 @@
               <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#9cc9ff', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Premium</span>
               <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#9ae6b0', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Regular</span>
               <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#ff9d9d', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Taken</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#ffffff', border: '2px solid #000', verticalAlign: -4 }}></i> Your pick</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#e6007e', border: '2px solid #ffffff', boxShadow: '0 0 0 1px #000', verticalAlign: -4 }}></i> Your pick</span>
             </div>
           </div>
           <div>
@@ -373,9 +373,9 @@
                     aria-label={'Plot ' + n + (isTaken ? ', taken' : '')}
                     style={{
                       minHeight: 46, fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: ok ? 'pointer' : 'not-allowed',
-                      border: sel ? '3px solid #000' : '1px solid rgba(0,0,0,.25)', boxShadow: sel ? '0 0 0 2px #fff' : 'none', animation: sel ? 'ps-beep 1.2s ease-in-out infinite' : 'none',
-                      background: sel ? '#ffffff' : isTaken ? '#ff9d9d' : TYPES[t].tint,
-                      color: sel ? '#000000' : isTaken ? '#7a0f0f' : TYPES[t].ink,
+                      border: sel ? '3px solid #fff' : '1px solid rgba(0,0,0,.25)', boxShadow: sel ? '0 0 0 2px #e6007e' : 'none', animation: sel ? 'ps-beep 1.2s ease-in-out infinite' : 'none',
+                      background: sel ? '#e6007e' : isTaken ? '#ff9d9d' : TYPES[t].tint,
+                      color: sel ? '#ffffff' : isTaken ? '#7a0f0f' : TYPES[t].ink,
                       opacity: ok || sel || isTaken ? 1 : 0.45, padding: 0
                     }}>{n}</button>);
               })}
