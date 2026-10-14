@@ -3297,6 +3297,36 @@ function fmt2(n) {
     maximumFractionDigits: 2
   });
 }
+const PRESALE_SURCHARGE = {
+  1: 0.10,
+  2: 0.15,
+  3: 0.20,
+  5: 0.30
+};
+// Splits a reservation's total into the plot price and the installment surcharge.
+function presaleSplit(a) {
+  const total = a.totalPrice || 0;
+  const rate = a.plan === 'installment' ? PRESALE_SURCHARGE[a.years] || 0 : 0;
+  const base = rate ? Math.round(total / (1 + rate)) : total;
+  return {
+    total,
+    base,
+    surcharge: total - base,
+    ratio: total ? (total - base) / total : 0
+  };
+}
+function presaleMonthKey(ms) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function presaleMonthLabel(k) {
+  const [y, m] = k.split('-');
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleString('en-PH', {
+    month: 'long',
+    year: 'numeric'
+  });
+}
 function presaleLedger(a) {
   const total = a.totalPrice || 0;
   const monthly = a.plan === 'cash' ? total : a.monthly || 0;
@@ -3328,6 +3358,7 @@ function PresaleApplications({
   const [open, setOpen] = useState(null);
   const [refText, setRefText] = useState('');
   const [amtText, setAmtText] = useState('');
+  const [period, setPeriod] = useState('all'); // 'all' or 'YYYY-MM' for the Sales and VAT box
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
   useEffect(() => window.db.collection('presaleApplications').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
@@ -3451,40 +3482,114 @@ function PresaleApplications({
       marginBottom: 16
     }
   }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed')), (() => {
-    const sold = presaleVat(live.reduce((n, r) => n + (r.totalPrice || 0), 0));
-    const got = presaleVat(live.reduce((n, r) => n + presaleLedger(r).paid, 0));
+    // Booked sales are counted in the month the reservation was made; collections in the month each payment was received.
+    const monthSet = new Set();
+    rows.forEach(r => {
+      monthSet.add(presaleMonthKey(r.createdAt));
+      presaleLedger(r).list.forEach(x => monthSet.add(presaleMonthKey(x.date)));
+    });
+    monthSet.delete('');
+    const months = [...monthSet].sort().reverse();
+    const inPeriod = ms => period === 'all' || presaleMonthKey(ms) === period;
+    const bookedRows = live.filter(r => inPeriod(r.createdAt));
+    const booked = {
+      base: 0,
+      surcharge: 0
+    };
+    bookedRows.forEach(r => {
+      const sp = presaleSplit(r);
+      booked.base += sp.base;
+      booked.surcharge += sp.surcharge;
+    });
+    const coll = {
+      base: 0,
+      surcharge: 0
+    };
+    live.forEach(r => {
+      const sp = presaleSplit(r);
+      presaleLedger(r).list.filter(x => inPeriod(x.date)).forEach(x => {
+        const amt = Number(x.amount) || 0;
+        coll.surcharge += amt * sp.ratio;
+        coll.base += amt * (1 - sp.ratio);
+      });
+    });
+    const line = (label, v) => {
+      const total = v.base + v.surcharge;
+      const t = presaleVat(total);
+      return {
+        label,
+        base: v.base,
+        surcharge: v.surcharge,
+        vat: t.vat,
+        net: t.net,
+        total
+      };
+    };
+    const out = [line(`Booked sales (${bookedRows.length} reservations)`, booked), line('Collected (payments received)', coll)];
+    const R = {
+      textAlign: 'right'
+    };
     return plotEl("div", {
       className: "table-card",
       style: {
         padding: 16,
-        marginBottom: 16
+        marginBottom: 16,
+        overflowX: 'auto'
       }
     }, plotEl("div", {
       style: {
-        fontWeight: 700,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
         marginBottom: 8
       }
-    }, "Sales and VAT (", Math.round(PRESALE_VAT_RATE * 100), "% VAT, prices include VAT)"), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['', 'Sales (without VAT)', 'VAT', 'Total (with VAT)'].map(h => plotEl("th", {
-      key: h,
+    }, plotEl("div", {
       style: {
-        textAlign: 'right'
-      }
-    }, h)))), plotEl("tbody", null, [['Booked sales (all reservations)', sold], ['Collected so far (payments received)', got]].map(([label, v]) => plotEl("tr", {
-      key: label
-    }, plotEl("td", null, label), plotEl("td", {
-      style: {
-        textAlign: 'right'
-      }
-    }, fmt2(v.net)), plotEl("td", {
-      style: {
-        textAlign: 'right'
-      }
-    }, fmt2(v.vat)), plotEl("td", {
-      style: {
-        textAlign: 'right',
         fontWeight: 700
       }
-    }, fmt2(v.gross)))))));
+    }, "Sales and VAT (", Math.round(PRESALE_VAT_RATE * 100), "% VAT, prices include VAT)"), plotEl("label", {
+      style: {
+        fontSize: 13
+      }
+    }, "Period: ", plotEl("select", {
+      value: period,
+      onChange: e => setPeriod(e.target.value),
+      style: {
+        padding: 6,
+        marginLeft: 4
+      }
+    }, plotEl("option", {
+      value: "all"
+    }, "All time"), months.map(k => plotEl("option", {
+      key: k,
+      value: k
+    }, presaleMonthLabel(k)))))), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['', false], ['Plot price', true], ['Installment surcharge', true], ['Total (with VAT)', true], ['VAT', true], ['Sales without VAT', true]].map(([h, r]) => plotEl("th", {
+      key: h || 'x',
+      style: r ? R : null
+    }, h)))), plotEl("tbody", null, out.map(o => plotEl("tr", {
+      key: o.label
+    }, plotEl("td", null, o.label), plotEl("td", {
+      style: R
+    }, fmt2(o.base)), plotEl("td", {
+      style: R
+    }, fmt2(o.surcharge)), plotEl("td", {
+      style: {
+        ...R,
+        fontWeight: 700
+      }
+    }, fmt2(o.total)), plotEl("td", {
+      style: R
+    }, fmt2(o.vat)), plotEl("td", {
+      style: R
+    }, fmt2(o.net)))))), plotEl("div", {
+      style: {
+        fontSize: 12,
+        color: '#777',
+        marginTop: 6
+      }
+    }, "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
   })(), plotEl("div", {
     style: {
       display: 'flex',
@@ -3558,13 +3663,15 @@ function PresaleApplications({
       }
     }, plotEl("b", null, "Payments"), (() => {
       const v = presaleVat(sel.totalPrice);
+      const sp = presaleSplit(sel);
       return plotEl("div", {
         style: {
           fontSize: 13,
           color: '#555',
-          margin: '2px 0 6px'
+          margin: '2px 0 6px',
+          lineHeight: 1.5
         }
-      }, "Sale ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross));
+      }, sel.plan === 'installment' && plotEl("div", null, "Plot price ", fmt2(sp.base), " + installment surcharge ", fmt2(sp.surcharge), " = ", fmt2(sp.total)), plotEl("div", null, "Sales ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross)));
     })(), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("table", {
       style: {
         width: '100%',
