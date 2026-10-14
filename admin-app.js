@@ -3358,6 +3358,7 @@ function PresaleApplications({
   const [open, setOpen] = useState(null);
   const [refText, setRefText] = useState('');
   const [amtText, setAmtText] = useState('');
+  const [salesView, setSalesView] = useState('summary'); // summary | sales | vat
   const [period, setPeriod] = useState('all'); // 'all' or 'YYYY-MM' for the Sales and VAT box
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
@@ -3505,13 +3506,40 @@ function PresaleApplications({
       base: 0,
       surcharge: 0
     };
+    const payRows = [];
     live.forEach(r => {
       const sp = presaleSplit(r);
       presaleLedger(r).list.filter(x => inPeriod(x.date)).forEach(x => {
         const amt = Number(x.amount) || 0;
         coll.surcharge += amt * sp.ratio;
         coll.base += amt * (1 - sp.ratio);
+        const v = presaleVat(amt);
+        payRows.push({
+          date: x.date,
+          ref: r.ref,
+          name: r.name,
+          receipt: x.ref || '',
+          amount: amt,
+          net: v.net,
+          vat: v.vat
+        });
       });
+    });
+    payRows.sort((p, q) => (p.date || 0) - (q.date || 0));
+    const saleRows = bookedRows.slice().sort((p, q) => (p.createdAt || 0) - (q.createdAt || 0)).map(r => {
+      const sp = presaleSplit(r);
+      const v = presaleVat(sp.total);
+      return {
+        date: r.createdAt,
+        ref: r.ref,
+        name: r.name,
+        plots: presalePlots(r).map(x => x.plotCode).join(' '),
+        base: sp.base,
+        surcharge: sp.surcharge,
+        total: sp.total,
+        net: v.net,
+        vat: v.vat
+      };
     });
     const line = (label, v) => {
       const total = v.base + v.surcharge;
@@ -3529,6 +3557,67 @@ function PresaleApplications({
     const R = {
       textAlign: 'right'
     };
+    const sum = (arr, k) => arr.reduce((n, x) => n + (x[k] || 0), 0);
+    const day = ms => ms ? new Date(ms).toLocaleDateString('en-PH') : '';
+    const periodName = period === 'all' ? 'all-time' : period;
+    const download = (name, header, lines) => {
+      const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const csv = [header, ...lines].map(l => l.map(esc).join(',')).join('\r\n');
+      const url = URL.createObjectURL(new Blob(['﻿' + csv], {
+        type: 'text/csv;charset=utf-8'
+      }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    const exportCsv = () => {
+      if (salesView === 'vat') {
+        download(`presale-vat-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Receipt/Reference', 'Amount received', 'Sales without VAT', 'VAT'], payRows.map(x => [day(x.date), x.ref, x.name, x.receipt, x.amount.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]));
+      } else {
+        download(`presale-sales-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Plots', 'Plot price', 'Installment surcharge', 'Total with VAT', 'Sales without VAT', 'VAT'], saleRows.map(x => [day(x.date), x.ref, x.name, x.plots, x.base.toFixed(2), x.surcharge.toFixed(2), x.total.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]));
+      }
+    };
+    const th = (h, r) => plotEl("th", {
+      key: h || 'x',
+      style: r ? R : null
+    }, h);
+    const td = (v, bold) => plotEl("td", {
+      style: {
+        ...R,
+        fontWeight: bold ? 700 : 400
+      }
+    }, fmt2(v));
+    let tbl;
+    if (salesView === 'sales') {
+      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Plots', false], ['Plot price', true], ['Surcharge', true], ['Total (with VAT)', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, saleRows.map(x => plotEl("tr", {
+        key: x.ref
+      }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.plots), td(x.base), td(x.surcharge), td(x.total, true), td(x.net), td(x.vat))), plotEl("tr", {
+        style: {
+          fontWeight: 700,
+          borderTop: '2px solid #ccc'
+        }
+      }, plotEl("td", {
+        colSpan: 4
+      }, "Total"), td(sum(saleRows, 'base'), true), td(sum(saleRows, 'surcharge'), true), td(sum(saleRows, 'total'), true), td(sum(saleRows, 'net'), true), td(sum(saleRows, 'vat'), true))));
+    } else if (salesView === 'vat') {
+      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Receipt / reference', false], ['Amount received', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, payRows.map((x, i) => plotEl("tr", {
+        key: x.ref + i
+      }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.receipt), td(x.amount, true), td(x.net), td(x.vat))), plotEl("tr", {
+        style: {
+          fontWeight: 700,
+          borderTop: '2px solid #ccc'
+        }
+      }, plotEl("td", {
+        colSpan: 4
+      }, "Total VAT collected"), td(sum(payRows, 'amount'), true), td(sum(payRows, 'net'), true), td(sum(payRows, 'vat'), true))));
+    } else {
+      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['', false], ['Plot price', true], ['Installment surcharge', true], ['Total (with VAT)', true], ['VAT', true], ['Sales without VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, out.map(o => plotEl("tr", {
+        key: o.label
+      }, plotEl("td", null, o.label), td(o.base), td(o.surcharge), td(o.total, true), td(o.vat), td(o.net)))));
+    }
+    const noRows = salesView === 'sales' && !saleRows.length || salesView === 'vat' && !payRows.length;
     return plotEl("div", {
       className: "table-card",
       style: {
@@ -3543,7 +3632,7 @@ function PresaleApplications({
         alignItems: 'center',
         flexWrap: 'wrap',
         gap: 8,
-        marginBottom: 8
+        marginBottom: 10
       }
     }, plotEl("div", {
       style: {
@@ -3565,31 +3654,37 @@ function PresaleApplications({
     }, "All time"), months.map(k => plotEl("option", {
       key: k,
       value: k
-    }, presaleMonthLabel(k)))))), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['', false], ['Plot price', true], ['Installment surcharge', true], ['Total (with VAT)', true], ['VAT', true], ['Sales without VAT', true]].map(([h, r]) => plotEl("th", {
-      key: h || 'x',
-      style: r ? R : null
-    }, h)))), plotEl("tbody", null, out.map(o => plotEl("tr", {
-      key: o.label
-    }, plotEl("td", null, o.label), plotEl("td", {
-      style: R
-    }, fmt2(o.base)), plotEl("td", {
-      style: R
-    }, fmt2(o.surcharge)), plotEl("td", {
+    }, presaleMonthLabel(k)))))), plotEl("div", {
       style: {
-        ...R,
-        fontWeight: 700
+        display: 'flex',
+        gap: 6,
+        flexWrap: 'wrap',
+        marginBottom: 10,
+        alignItems: 'center'
       }
-    }, fmt2(o.total)), plotEl("td", {
-      style: R
-    }, fmt2(o.vat)), plotEl("td", {
-      style: R
-    }, fmt2(o.net)))))), plotEl("div", {
+    }, [['summary', 'Summary'], ['sales', 'Sales'], ['vat', 'VAT']].map(([id, label]) => plotEl("button", {
+      key: id,
+      className: `btn btn-sm ${salesView === id ? 'btn-primary' : 'btn-outline'}`,
+      onClick: () => setSalesView(id)
+    }, label)), salesView !== 'summary' && plotEl("button", {
+      className: "btn btn-sm btn-outline",
+      style: {
+        marginLeft: 'auto'
+      },
+      disabled: noRows,
+      onClick: exportCsv
+    }, "⬇ Download (Excel/CSV)")), noRows ? plotEl("div", {
+      style: {
+        padding: 12,
+        color: '#777'
+      }
+    }, "Nothing in this period yet.") : tbl, plotEl("div", {
       style: {
         fontSize: 12,
         color: '#777',
         marginTop: 6
       }
-    }, "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
+    }, salesView === 'vat' ? "VAT is figured on the money received (payments recorded by staff)." : salesView === 'sales' ? "Sales are listed in the month the reservation was made. The installment surcharge is shown apart from the plot price." : "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
   })(), plotEl("div", {
     style: {
       display: 'flex',
