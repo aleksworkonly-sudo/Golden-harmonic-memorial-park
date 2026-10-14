@@ -210,13 +210,13 @@
                     <div style={{ fontSize: 28, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
                     <div style={{ fontSize: 19, lineHeight: 1.45, color: '#2f3f38' }}>{descOf(id)}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 30, fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
-                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={19} /> : null}
-                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={17} /> : null}
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 'clamp(24px, 7vw, 30px)', fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
+                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={16} /> : null}
+                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={14} /> : null}
                       </div>
                       <span style={{ fontSize: 17, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
-                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.5, color: '#0f2a21', background: '#e4f1e8', borderRadius: 10, padding: '10px 14px', textTransform: 'uppercase' }}>
+                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 'clamp(13px, 4.1vw, 17px)', fontWeight: 800, lineHeight: 1.5, color: '#0f2a21', background: '#e4f1e8', borderRadius: 10, padding: '10px 12px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                         <div>Preselling discount</div>
                         <div>For spot cash {Math.round(discOf(id, 'cash') / 1000)}K</div>
                         <div>For installment {Math.round(discOf(id, 'installment') / 1000)}K</div>
