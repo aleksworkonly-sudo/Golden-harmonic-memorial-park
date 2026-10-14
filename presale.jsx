@@ -203,20 +203,20 @@
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
               <h2 style={{ margin: 0, fontSize: 30, lineHeight: 1.2, fontWeight: 800, color: '#0f2a21' }}>{isBlock ? 'Block ' + block + ': choose your plot type' : 'Plot types in every block'}</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20, alignItems: 'stretch' }}>
                 {TYPE_IDS.map((id) => (
-                  <div key={id} style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, padding: 18, borderRadius: 12, border: isBlock ? '2px solid #0f2a21' : '2px solid #c9c2ae', background: isBlock ? '#fbf9f3' : '#fff' }}>
-                    <img src={TYPES[id].photo} alt={'Photo of a ' + TYPES[id].short + ' plot'} style={{ width: '100%', aspectRatio: '2.1 / 1', objectFit: 'cover', borderRadius: 8 }} />
-                    <div style={{ fontSize: 28, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
+                  <div key={id} style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12, padding: 22, minHeight: 560, borderRadius: 14, border: isBlock ? '2px solid #0f2a21' : '2px solid #c9c2ae', background: isBlock ? '#fbf9f3' : '#fff' }}>
+                    <img src={TYPES[id].photo} alt={'Photo of a ' + TYPES[id].short + ' plot'} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 10 }} />
+                    <div style={{ fontSize: 30, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
                     <div style={{ fontSize: 19, lineHeight: 1.45, color: '#2f3f38' }}>{descOf(id)}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 'clamp(24px, 7vw, 30px)', fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
-                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={16} /> : null}
-                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={14} /> : null}
+                        <span style={{ fontSize: 32, fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
+                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={17} /> : null}
+                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={15} /> : null}
                       </div>
                       <span style={{ fontSize: 17, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
-                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 'clamp(13px, 4.1vw, 17px)', fontWeight: 800, lineHeight: 1.5, color: '#0f2a21', background: '#e4f1e8', borderRadius: 10, padding: '10px 12px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 'clamp(14px, 4.4vw, 18px)', fontWeight: 800, lineHeight: 1.55, color: '#0f2a21', background: '#e4f1e8', borderRadius: 10, padding: '12px 14px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                         <div>Preselling discount</div>
                         <div>For spot cash {Math.round(discOf(id, 'cash') / 1000)}K</div>
                         <div>For installment {Math.round(discOf(id, 'installment') / 1000)}K</div>
