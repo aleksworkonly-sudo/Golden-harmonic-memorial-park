@@ -55,9 +55,9 @@
   const TOTAL = COLS * ROWS;
 
   const TYPES = {
-    'regular': { name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', tint: '#2e9e5b', ink: '#ffffff' },
-    'premium': { name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', tint: '#2f7de1', ink: '#ffffff' },
-    'corner-premium': { name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', tint: '#f59e0b', ink: '#1f1607' }
+    'regular': { name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', tint: '#9ae6b0', ink: '#14502c' },
+    'premium': { name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', tint: '#9cc9ff', ink: '#103c78' },
+    'corner-premium': { name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', tint: '#ffd27a', ink: '#5a3a00' }
   };
   const TYPE_IDS = ['regular', 'premium', 'corner-premium'];
 
@@ -187,18 +187,18 @@
             <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#0f2a21' }}>
               <div style={{ position: 'relative', transformOrigin: '0 0', transform: 'translate(' + tx.toFixed(2) + '%,' + ty.toFixed(2) + '%) scale(' + sc + ')', transition: 'transform 0.7s ease' }}>
                 <img src={MAP_SRC} alt="Aerial site development plan of Golden Harmonic Memorial Park" style={{ display: 'block', width: '100%', height: 'auto' }} />
-                {DIM.map((d, i) => <div key={i} style={{ position: 'absolute', background: 'rgba(30,70,170,0.55)', ...cssObj(d) }}></div>)}
+                {DIM.map((d, i) => <div key={i} style={{ position: 'absolute', background: 'rgba(110,170,255,0.35)', ...cssObj(d) }}></div>)}
                 {BLOCKS.map((id) => (
                   <button key={id} type="button" aria-label={'Block ' + id + ', open for sale'} aria-pressed={id === block} onClick={() => setBlock(id)}
-                    style={{ position: 'absolute', border: 0, padding: 0, margin: 0, cursor: 'pointer', background: 'rgba(34,170,84,' + (id === block ? '0.35' : '0.55') + ')', outline: '3px solid #12803f', outlineOffset: '-3px', ...cssObj(GEO[id]) }}></button>))}
+                    style={{ position: 'absolute', border: 0, padding: 0, margin: 0, cursor: 'pointer', background: 'rgba(90,215,130,' + (id === block ? '0.35' : '0.55') + ')', outline: '3px solid #3fae65', outlineOffset: '-3px', ...cssObj(GEO[id]) }}></button>))}
                 {BLOCKS.map((id) => (
                   <div key={'t' + id} style={{ position: 'absolute', pointerEvents: 'none', transformOrigin: '0 0', transform: 'scale(' + (1 / sc).toFixed(3) + ')', transition: 'transform 0.7s ease', fontSize: 17, fontWeight: 800, color: '#0f2a21', background: '#f4cf6a', padding: '4px 10px', borderRadius: 5, ...cssObj(TAGPOS[id]) }}>Block {id}</div>))}
               </div>
             </div>
             {!isBlock ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: 18, color: '#2f3f38' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#22aa54', border: '2px solid #12803f' }}></span>Open for sale now</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#2d5fd0' }}></span>Coming soon</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#9ae6b0', border: '2px solid #3fae65' }}></span>Open for sale now</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#9cc9ff' }}></span>Coming soon</div>
               </div>) : null}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
@@ -300,7 +300,7 @@
 
     const takenRects = useMemo(() => {
       const out = [];
-      taken.forEach((n) => out.push(<rect key={n} x={colOf(n)} y={rowOf(n)} width="1" height="1" fill="#d0342c" opacity="0.9" />));
+      taken.forEach((n) => out.push(<rect key={n} x={colOf(n)} y={rowOf(n)} width="1" height="1" fill="#ff9d9d" opacity="0.9" />));
       return out;
     }, [taken]);
 
@@ -337,22 +337,22 @@
             <div style={{ position: 'relative', width: '100%', aspectRatio: COLS + ' / ' + ROWS, touchAction: 'none', cursor: 'grab', userSelect: 'none' }}
               onPointerDown={(e) => { e.preventDefault(); setDragging(true); pickAt(e.clientX, e.clientY); }}>
               <svg ref={svgRef} viewBox={'0 0 ' + COLS + ' ' + ROWS} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block', borderRadius: 10, border: '2px solid #2f5d4c' }}>
-                <rect x="0" y="0" width={COLS} height={ROWS} fill="#2e9e5b" />
-                <rect x="3" y="3" width={COLS - 6} height={ROWS - 6} fill="#2f7de1" />
-                <rect x="8" y="8" width={COLS - 16} height={ROWS - 16} fill="#2e9e5b" />
-                <path d={'M0 0H' + COLS + 'V' + ROWS + 'H0Z M3 3V' + (ROWS - 3) + 'H' + (COLS - 3) + 'V3Z'} fill="#f59e0b" fillRule="evenodd" />
+                <rect x="0" y="0" width={COLS} height={ROWS} fill="#9ae6b0" />
+                <rect x="3" y="3" width={COLS - 6} height={ROWS - 6} fill="#9cc9ff" />
+                <rect x="8" y="8" width={COLS - 16} height={ROWS - 16} fill="#9ae6b0" />
+                <path d={'M0 0H' + COLS + 'V' + ROWS + 'H0Z M3 3V' + (ROWS - 3) + 'H' + (COLS - 3) + 'V3Z'} fill="#ffd27a" fillRule="evenodd" />
                 {takenRects}
                 <rect x={c - 2} y={r - 2} width="5" height="5" fill="none" stroke="#7c1fd6" strokeWidth="0.35" />
-                <circle cx={c + 0.5} cy={r + 0.5} r="2.2" fill="#7c1fd6" opacity="0.4" />
-                <circle cx={c + 0.5} cy={r + 0.5} r="1.1" fill="#7c1fd6" stroke="#fff" strokeWidth="0.35" />
+                <circle cx={c + 0.5} cy={r + 0.5} r="2.2" fill="#c9a4ff" opacity="0.4" />
+                <circle cx={c + 0.5} cy={r + 0.5} r="1.1" fill="#c9a4ff" stroke="#fff" strokeWidth="0.35" />
               </svg>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 15, fontWeight: 600, marginTop: 8 }}>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#f59e0b', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Corner Premium</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#2f7de1', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Premium</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#2e9e5b', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Regular</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#d0342c', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Taken</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#7c1fd6', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Your pick</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#ffd27a', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Corner Premium</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#9cc9ff', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Premium</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#9ae6b0', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Regular</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#ff9d9d', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Taken</span>
+              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#c9a4ff', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Your pick</span>
             </div>
           </div>
           <div>
@@ -368,8 +368,8 @@
                     style={{
                       minHeight: 46, fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: ok ? 'pointer' : 'not-allowed',
                       border: sel ? '3px solid #fff' : '1px solid rgba(0,0,0,.25)', boxShadow: sel ? '0 0 0 3px #7c1fd6' : 'none',
-                      background: sel ? '#7c1fd6' : isTaken ? '#d0342c' : TYPES[t].tint,
-                      color: sel || isTaken ? '#fff' : TYPES[t].ink,
+                      background: sel ? '#c9a4ff' : isTaken ? '#ff9d9d' : TYPES[t].tint,
+                      color: sel ? '#3b0a78' : isTaken ? '#7a0f0f' : TYPES[t].ink,
                       opacity: ok || sel || isTaken ? 1 : 0.45, padding: 0
                     }}>{n}</button>);
               })}
