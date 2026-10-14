@@ -3280,6 +3280,23 @@ function presalePlanText(a) {
 }
 // Payment ledger: every payment staff receive is added to a.payments. Extra money
 // automatically covers the next months, so the months left go down on their own.
+// VAT: prices are treated as VAT-INCLUSIVE. Change the rate here if it ever changes.
+const PRESALE_VAT_RATE = 0.12;
+function presaleVat(gross) {
+  const g = Number(gross) || 0;
+  const net = Math.round(g / (1 + PRESALE_VAT_RATE) * 100) / 100;
+  return {
+    gross: g,
+    net,
+    vat: Math.round((g - net) * 100) / 100
+  };
+}
+function fmt2(n) {
+  return '₱' + (Number(n) || 0).toLocaleString('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
 function presaleLedger(a) {
   const total = a.totalPrice || 0;
   const monthly = a.plan === 'cash' ? total : a.monthly || 0;
@@ -3433,7 +3450,42 @@ function PresaleApplications({
       gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
       marginBottom: 16
     }
-  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed')), plotEl("div", {
+  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed')), (() => {
+    const sold = presaleVat(live.reduce((n, r) => n + (r.totalPrice || 0), 0));
+    const got = presaleVat(live.reduce((n, r) => n + presaleLedger(r).paid, 0));
+    return plotEl("div", {
+      className: "table-card",
+      style: {
+        padding: 16,
+        marginBottom: 16
+      }
+    }, plotEl("div", {
+      style: {
+        fontWeight: 700,
+        marginBottom: 8
+      }
+    }, "Sales and VAT (", Math.round(PRESALE_VAT_RATE * 100), "% VAT, prices include VAT)"), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['', 'Sales (without VAT)', 'VAT', 'Total (with VAT)'].map(h => plotEl("th", {
+      key: h,
+      style: {
+        textAlign: 'right'
+      }
+    }, h)))), plotEl("tbody", null, [['Booked sales (all reservations)', sold], ['Collected so far (payments received)', got]].map(([label, v]) => plotEl("tr", {
+      key: label
+    }, plotEl("td", null, label), plotEl("td", {
+      style: {
+        textAlign: 'right'
+      }
+    }, fmt2(v.net)), plotEl("td", {
+      style: {
+        textAlign: 'right'
+      }
+    }, fmt2(v.vat)), plotEl("td", {
+      style: {
+        textAlign: 'right',
+        fontWeight: 700
+      }
+    }, fmt2(v.gross)))))));
+  })(), plotEl("div", {
     style: {
       display: 'flex',
       gap: 6,
@@ -3504,7 +3556,16 @@ function PresaleApplications({
         borderRadius: 8,
         background: L.full ? '#e8f5e9' : '#f6f1e8'
       }
-    }, plotEl("b", null, "Payments"), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("table", {
+    }, plotEl("b", null, "Payments"), (() => {
+      const v = presaleVat(sel.totalPrice);
+      return plotEl("div", {
+        style: {
+          fontSize: 13,
+          color: '#555',
+          margin: '2px 0 6px'
+        }
+      }, "Sale ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross));
+    })(), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("table", {
       style: {
         width: '100%',
         fontSize: 13,
