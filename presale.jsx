@@ -203,29 +203,29 @@
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
               <h2 style={{ margin: 0, fontSize: 30, lineHeight: 1.2, fontWeight: 800, color: '#0f2a21' }}>{isBlock ? 'Block ' + block + ': choose your plot type' : 'Plot types in every block'}</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20, alignItems: 'stretch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(250px, 100%), 1fr))', gap: 14, alignItems: 'stretch' }}>
                 {TYPE_IDS.map((id) => (
-                  <div key={id} style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12, padding: 22, minHeight: 560, borderRadius: 14, border: isBlock ? '2px solid #0f2a21' : '2px solid #c9c2ae', background: isBlock ? '#fbf9f3' : '#fff' }}>
-                    <img src={TYPES[id].photo} alt={'Photo of a ' + TYPES[id].short + ' plot'} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 10 }} />
-                    <div style={{ fontSize: 30, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
-                    <div style={{ fontSize: 19, lineHeight: 1.45, color: '#2f3f38' }}>{descOf(id)}</div>
+                  <div key={id} style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, padding: 16, borderRadius: 14, border: isBlock ? '2px solid #0f2a21' : '2px solid #c9c2ae', background: isBlock ? '#fbf9f3' : '#fff' }}>
+                    <img src={TYPES[id].photo} alt={'Photo of a ' + TYPES[id].short + ' plot'} style={{ width: '100%', aspectRatio: '2 / 1', objectFit: 'cover', borderRadius: 8 }} />
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
+                    <div style={{ fontSize: 16, lineHeight: 1.4, color: '#2f3f38', minHeight: '2.8em' }}>{descOf(id)}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 32, fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
-                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={17} /> : null}
-                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={15} /> : null}
+                        <span style={{ fontSize: 26, fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
+                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={15} /> : null}
+                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={13} /> : null}
                       </div>
-                      <span style={{ fontSize: 17, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
-                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 'clamp(14px, 4.4vw, 18px)', fontWeight: 800, lineHeight: 1.55, color: '#0f2a21', background: '#e4f1e8', borderRadius: 10, padding: '12px 14px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                      <span style={{ fontSize: 15, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
+                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 'clamp(13px, 3.8vw, 15px)', fontWeight: 800, lineHeight: 1.5, color: '#0f2a21', background: '#e4f1e8', borderRadius: 8, padding: '8px 10px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                         <div>Preselling discount</div>
                         <div>For spot cash {Math.round(discOf(id, 'cash') / 1000)}K</div>
                         <div>For installment {Math.round(discOf(id, 'installment') / 1000)}K</div>
                       </div> : null}
-                      <span style={{ fontSize: 18, color: '#44534c' }}>{isBlock ? fc[id].toLocaleString('en-PH') + ' plots available in Block ' + block : fc[id].toLocaleString('en-PH') + ' plots in each block'}</span>
+                      <span style={{ fontSize: 15, color: '#44534c' }}>{isBlock ? fc[id].toLocaleString('en-PH') + ' plots available in Block ' + block : fc[id].toLocaleString('en-PH') + ' plots in each block'}</span>
                     </div>
                     {isBlock ? (
                       <button type="button" disabled={fc[id] < 1} onClick={() => onChooseType(id)}
-                        style={{ boxSizing: 'border-box', minHeight: 64, marginTop: 'auto', borderRadius: 12, border: 'none', background: '#0f2a21', color: '#f6e7b4', fontSize: 22, fontWeight: 800, cursor: 'pointer', opacity: fc[id] < 1 ? 0.5 : 1 }}>
+                        style={{ boxSizing: 'border-box', minHeight: 56, marginTop: 'auto', borderRadius: 12, border: 'none', background: '#0f2a21', color: '#f6e7b4', fontSize: 19, fontWeight: 800, cursor: 'pointer', opacity: fc[id] < 1 ? 0.5 : 1 }}>
                         {fc[id] < 1 ? 'Sold out' : 'Choose ' + TYPES[id].short}
                       </button>) : null}
                   </div>))}
