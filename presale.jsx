@@ -32,7 +32,7 @@
     C: 'left:68.94%;top:33.51%;width:23.08%;height:10.50%;clip-path:polygon(0% 0%,96.1% 0%,100% 100%,2.6% 100%)',
     D: 'left:71.34%;top:44.75%;width:20.08%;height:15.69%;clip-path:polygon(0% 0%,100% 5.4%,92.5% 79.7%,62.7% 100%,17.9% 93.2%)'
   };
-  const TAGPOS = { A: 'left:71.3%;top:19%', B: 'left:67.5%;top:25.8%', C: 'left:69.6%;top:33.7%', D: 'left:72%;top:44.9%' };
+  const TAGPOS = { A: 'left:77.3%;top:21.7%', B: 'left:78.5%;top:29.3%', C: 'left:80.5%;top:38.8%', D: 'left:81.4%;top:52.6%' };
   const ZOOM = { A: { cx: 77.3, cy: 21.7, s: 3.2 }, B: { cx: 78.5, cy: 29.3, s: 2.6 }, C: { cx: 80.5, cy: 38.8, s: 2.4 }, D: { cx: 81.4, cy: 52.6, s: 2.1 } };
   /* Presale discount on every Regular plot: more off when paying spot cash. */
   const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
@@ -192,7 +192,7 @@
                   <button key={id} type="button" aria-label={'Block ' + id + ', open for sale'} aria-pressed={id === block} onClick={() => setBlock(id)}
                     style={{ position: 'absolute', border: 0, padding: 0, margin: 0, cursor: 'pointer', background: 'rgba(90,215,130,' + (id === block ? '0.35' : '0.55') + ')', outline: '3px solid #3fae65', outlineOffset: '-3px', ...cssObj(GEO[id]) }}></button>))}
                 {BLOCKS.map((id) => (
-                  <div key={'t' + id} style={{ position: 'absolute', pointerEvents: 'none', transformOrigin: '0 0', transform: 'scale(' + (1 / sc).toFixed(3) + ')', transition: 'transform 0.7s ease', fontSize: 17, fontWeight: 800, color: '#0f2a21', background: '#f4cf6a', padding: '4px 10px', borderRadius: 5, ...cssObj(TAGPOS[id]) }}>Block {id}</div>))}
+                  <div key={'t' + id} style={{ position: 'absolute', pointerEvents: 'none', transformOrigin: '50% 50%', transform: 'translate(-50%,-50%) scale(' + (1 / sc).toFixed(3) + ')', whiteSpace: 'nowrap', transition: 'transform 0.7s ease', fontSize: 15, fontWeight: 800, color: '#0f2a21', background: '#f4cf6a', padding: '3px 9px', borderRadius: 5, ...cssObj(TAGPOS[id]) }}>Block {id}</div>))}
               </div>
             </div>
             {!isBlock ? (
