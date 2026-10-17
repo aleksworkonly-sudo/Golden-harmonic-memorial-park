@@ -3383,6 +3383,11 @@ function PresaleApplications({
   const [commText, setCommText] = useState('');
   const [brokerText, setBrokerText] = useState('');
   const [allocDay, setAllocDay] = useState('');
+  const todayKey = () => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  const [reportDay, setReportDay] = useState(todayKey());
   useEffect(() => window.db.collection('agents').onSnapshot(s => setAgentList(s.docs.map(d => ({
     _id: d.id,
     ...d.data()
@@ -3693,6 +3698,39 @@ function PresaleApplications({
         marginTop: 2
       }
     }, note));
+    const printDaily = () => {
+      const dk = ms => {
+        if (!ms) return '';
+        const d = new Date(ms);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      };
+      const day0 = reportDay || todayKey();
+      const newRes = live.filter(r => dk(r.createdAt) === day0);
+      const pays = [];
+      live.forEach(r => {
+        const L0 = presaleLedger(r);
+        const A0 = presaleAlloc(r);
+        L0.list.forEach((x, i) => {
+          if (dk(x.date) !== day0) return;
+          const amt = Number(x.amount) || 0;
+          const v = presaleVat(amt);
+          const al = A0[i] || { agent: 0, broker: 0, company: amt };
+          pays.push({ ref: r.ref, name: r.name, receipt: x.ref || '', method: PRESALE_METHOD_LABEL[r.method] || r.method || '', amount: amt, net: v.net, vat: v.vat, agent: al.agent, broker: al.broker, company: al.company });
+        });
+      });
+      const w = window.open('', '_blank');
+      if (!w) { setToast('Please allow pop-ups to print.'); return; }
+      const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const m = n => (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const tot = k => pays.reduce((n, x) => n + x[k], 0);
+      const dayLabel = new Date(day0 + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const resRows = newRes.map(r => '<tr><td>' + e(r.ref) + '</td><td>' + e(r.name) + '</td><td>' + e(presalePlots(r).map(x => x.plotCode).join(' ')) + '</td><td>' + (r.plan === 'cash' ? 'Spot cash' : r.years + '-year monthly') + '</td><td class="n">' + m(r.totalPrice) + '</td></tr>').join('') || '<tr><td colspan="5">No new reservations.</td></tr>';
+      const payRowsHtml = pays.map(x => '<tr><td>' + e(x.ref) + '</td><td>' + e(x.name) + '</td><td>' + e(x.method) + ' ' + e(x.receipt) + '</td><td class="n">' + m(x.amount) + '</td><td class="n">' + m(x.net) + '</td><td class="n">' + m(x.vat) + '</td></tr>').join('') || '<tr><td colspan="6">No payments received.</td></tr>';
+      w.document.write('<html><head><title>Daily Sales Report</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%;margin-bottom:16px}th,td{border:1px solid #999;padding:5px 7px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 2px}h3{margin:14px 0 6px}.box td{font-size:14px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div><b>Daily Sales Report</b> - ' + e(dayLabel) + '</div><h3>New reservations (' + newRes.length + ')</h3><table><tr><th>Ref</th><th>Buyer</th><th>Plots</th><th>Plan</th><th class="n">Total price</th></tr>' + resRows + '</table><h3>Payments received (' + pays.length + ')</h3><table><tr><th>Ref</th><th>Buyer</th><th>Paid by / receipt</th><th class="n">Amount received</th><th class="n">Sales (no tax)</th><th class="n">Tax (VAT ' + Math.round(PRESALE_VAT_RATE * 100) + '%)</th></tr>' + payRowsHtml + '<tr><th colspan="3">Total</th><th class="n">' + m(tot('amount')) + '</th><th class="n">' + m(tot('net')) + '</th><th class="n">' + m(tot('vat')) + '</th></tr></table><h3>Where the money goes</h3><table class="box"><tr><td>Agent commission</td><td class="n">' + m(tot('agent')) + '</td></tr><tr><td>Broker and agent compensation (held)</td><td class="n">' + m(tot('broker')) + '</td></tr><tr><th>Company deposit</th><th class="n">' + m(tot('company')) + '</th></tr></table><p>Prepared by: ____________________ &nbsp;&nbsp; Verified by: ____________________</p></body></html>');
+      w.document.close();
+      w.focus();
+      w.print();
+    };
     const dayKey = ms => {
       if (!ms) return '';
       const d = new Date(ms);
@@ -3869,7 +3907,29 @@ function PresaleApplications({
       },
       disabled: noRows,
       onClick: exportCsv
-    }, "⬇ Download (Excel/CSV)")), noRows ? plotEl("div", {
+    }, "⬇ Download (Excel/CSV)")), plotEl("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        margin: '4px 0 10px',
+        padding: 10,
+        borderRadius: 8,
+        background: '#f6f1e8',
+        fontSize: 13
+      }
+    }, plotEl("b", null, "Daily sales report:"), plotEl("input", {
+      type: "date",
+      value: reportDay,
+      onChange: e => setReportDay(e.target.value),
+      style: {
+        padding: 5
+      }
+    }), plotEl("button", {
+      className: "btn btn-sm btn-primary",
+      onClick: printDaily
+    }, "🖨 Print daily sales report")), noRows ? plotEl("div", {
       style: {
         padding: 12,
         color: '#777'
