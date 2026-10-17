@@ -3542,6 +3542,8 @@ function PresaleApplications({
   }, n), plotEl("div", {
     className: "stat-lbl"
   }, label)));
+  const allPaid = live.reduce((n, r) => n + presaleLedger(r).paid, 0);
+  const allVat = presaleVat(allPaid);
   const shown = rows.filter(r => filter === 'all' ? true : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : r.status === filter);
   const statusBadge = (s, r) => plotEl("span", {
     className: s === 'paid' ? 'badge badge-converted' : s === 'cancelled' ? 'badge' : s === 'verified' ? 'badge badge-contacted' : 'badge badge-new'
@@ -3554,10 +3556,10 @@ function PresaleApplications({
   }, plotEl("h2", null, "Presale applications")), plotEl("div", {
     className: "stats-row",
     style: {
-      gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
+      gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))',
       marginBottom: 16
     }
-  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed')), (() => {
+  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed'), stat(fmt2(allVat.net), 'Sales (without tax)'), stat(fmt2(allVat.vat), 'Tax collected')), (() => {
     // Booked sales are counted in the month the reservation was made; collections in the month each payment was received.
     const monthSet = new Set();
     rows.forEach(r => {
