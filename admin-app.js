@@ -3370,6 +3370,100 @@ function presaleLedger(a) {
     list, paid, balance, monthly, monthsPaid, monthsLeft, nextDue, full: total > 0 && balance <= 0
   };
 }
+// Rows of money received on one day (YYYY-MM-DD), with the SOP split of each payment.
+function presalePaymentsOn(live, dk) {
+  const key = ms => {
+    if (!ms) return '';
+    const d = new Date(ms);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  const out = [];
+  live.forEach(r => {
+    const A0 = presaleAlloc(r);
+    presaleLedger(r).list.forEach((x, i) => {
+      if (key(x.date) !== dk) return;
+      const amt = Number(x.amount) || 0;
+      const al = A0[i] || { agent: 0, broker: 0, company: amt };
+      out.push({ date: x.date, receipt: x.ref || '', ref: r.ref, name: r.name, plots: presalePlots(r).map(p => p.plotCode).join(' '), agentName: r.agentName || '', brokerName: r.brokerName || '', method: PRESALE_METHOD_LABEL[x.method || r.method] || x.method || r.method || '', amount: amt, agent: al.agent, broker: al.broker, company: al.company, remarks: x.remarks || '' });
+    });
+  });
+  return out;
+}
+const EOD_ACCOUNTS = { company: 'Company operating account', agent: 'Agent commission account', broker: 'Broker and agent compensation account' };
+// Deposit instructions and the end-of-day report for one day (SOP sections 5, 6, 9).
+function PresaleEod({ day, rows, actor, setToast }) {
+  const [deposits, setDeposits] = useState([]);
+  const [report, setReport] = useState(null);
+  const [verif, setVerif] = useState('pending');
+  const [disc, setDisc] = useState('');
+  const [busy, setBusy] = useState(false);
+  const nowTime = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const blank = { ref: '', amount: '', type: 'cash', allocation: 'company', staff: actor, bank: '', account: '', depositDate: day, depositTime: nowTime() };
+  const [f, setF] = useState(blank);
+  useEffect(() => window.db.collection('presaleDeposits').where('day', '==', day).onSnapshot(s => setDeposits(s.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))), () => {}), [day]);
+  useEffect(() => window.db.collection('presaleEodReports').doc(day).onSnapshot(sn => {
+    const d = sn.exists ? sn.data() : null;
+    setReport(d);
+    setVerif(d && d.verification || 'pending');
+    setDisc(d && d.discrepancies || '');
+  }, () => {}), [day]);
+  const sum = (arr, k) => arr.reduce((n, x) => n + (Number(x[k]) || 0), 0);
+  const T = { count: rows.length, received: sum(rows, 'amount'), agent: sum(rows, 'agent'), broker: sum(rows, 'broker'), company: sum(rows, 'company') };
+  const depCash = deposits.filter(d => d.type === 'cash').reduce((n, d) => n + d.amount, 0);
+  const depOnline = deposits.filter(d => d.type === 'online').reduce((n, d) => n + d.amount, 0);
+  const depCompany = deposits.filter(d => d.allocation === 'company').reduce((n, d) => n + d.amount, 0);
+  const gap = Math.round((T.company - depCompany) * 100) / 100;
+  const dayLabel = new Date(day + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+  const field = (label, el) => plotEl("label", { key: label, style: { display: 'block', fontSize: 13, fontWeight: 600 } }, label, el);
+  const inp = (k, props) => plotEl("input", { value: f[k], onChange: set(k), style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 }, ...props });
+  const sel = (k, opts) => plotEl("select", { value: f[k], onChange: set(k), style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 } }, opts.map(([v, l]) => plotEl("option", { key: v, value: v }, l)));
+  const saveDeposit = async () => {
+    const amount = Math.round(Number(String(f.amount).replace(/[^0-9.]/g, '')) * 100) / 100;
+    if (!(amount > 0)) { setToast('Please write the amount to be deposited.'); return; }
+    if (!f.bank.trim() || !f.account.trim() || !f.staff.trim()) { setToast('Please fill in the bank name, account number and responsible staff.'); return; }
+    setBusy(true);
+    try {
+      await window.db.collection('presaleDeposits').add({ day, ref: f.ref.trim() || `DEP-${day.replace(/-/g, '')}-${deposits.length + 1}`, amount, type: f.type, allocation: f.allocation, staff: f.staff.trim(), bank: f.bank.trim(), account: f.account.trim(), depositDate: f.depositDate || day, depositTime: f.depositTime || '', createdAt: Date.now(), createdBy: actor });
+      setF({ ...blank, bank: f.bank, account: f.account, staff: f.staff });
+      setToast('Deposit instruction saved');
+    } catch (err) { setToast(err && err.message || 'Could not save'); } finally { setBusy(false); }
+  };
+  const delDeposit = async d => {
+    if (!window.confirm(`Delete deposit ${d.ref}?`)) return;
+    try { await window.db.collection('presaleDeposits').doc(d._id).delete(); } catch (err) { setToast(err && err.message || 'Could not delete'); }
+  };
+  const snapshot = () => ({ day, verification: verif, discrepancies: disc.trim(), transactions: T.count, received: T.received, agentTotal: T.agent, brokerAndCompensationTotal: T.broker, companyTotal: T.company, cashDeposits: depCash, onlineTransfers: depOnline, notYetDeposited: gap, updatedAt: Date.now(), updatedBy: actor });
+  const saveReport = async extra => {
+    setBusy(true);
+    try { await window.db.collection('presaleEodReports').doc(day).set({ ...snapshot(), ...extra }, { merge: true }); setToast('End-of-day report saved'); }
+    catch (err) { setToast(err && err.message || 'Could not save'); } finally { setBusy(false); }
+  };
+  const approve = () => {
+    if (verif !== 'verified' && !window.confirm('Receipts are not marked as Verified. Approve anyway?')) return;
+    if (Math.abs(gap) > 0.5 && !disc.trim() && !window.confirm(`The company share is not fully deposited (${fmt2(gap)} difference) and no discrepancy note was written. Approve anyway?`)) return;
+    saveReport({ approvedBy: actor, approvedAt: Date.now() });
+  };
+  const reopen = () => { if (window.confirm('Re-open this report for changes?')) saveReport({ approvedBy: '', approvedAt: null }); };
+  const approved = !!(report && report.approvedAt);
+  const VER = { pending: 'Pending', verified: 'Verified', issues: 'Has problems' };
+  const printEod = () => {
+    const w = window.open('', '_blank');
+    if (!w) { setToast('Please allow pop-ups to print.'); return; }
+    const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const m = n => (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const kv = (k, v, b) => '<tr><td>' + k + '</td><td class="n">' + (b ? '<b>' + v + '</b>' : v) + '</td></tr>';
+    const depRows = deposits.map(d => '<tr><td>' + e(d.ref) + '</td><td>' + e(d.type === 'cash' ? 'Cash deposit' : 'Online transfer') + '</td><td>' + e(EOD_ACCOUNTS[d.allocation] || d.allocation) + '</td><td>' + e(d.bank) + ' / ' + e(d.account) + '</td><td>' + e(d.depositDate) + ' ' + e(d.depositTime) + '</td><td>' + e(d.staff) + '</td><td class="n">' + m(d.amount) + '</td></tr>').join('') || '<tr><td colspan="7">No deposits recorded.</td></tr>';
+    w.document.write('<html><head><title>End-of-Day Report</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%;margin-bottom:14px}th,td{border:1px solid #999;padding:5px 7px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 2px}h3{margin:14px 0 6px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div><b>End-of-Day Report</b> - ' + e(dayLabel) + '</div><h3>Totals</h3><table>' + kv('Total transactions', T.count) + kv('Total amount received', m(T.received), 1) + kv('Agent commission allocation total', m(T.agent)) + kv('Broker fee and agent compensation allocation total (3%)', m(T.broker)) + kv('Company deposit total', m(T.company), 1) + '</table><h3>Deposits made</h3><table><tr><th>Reference</th><th>Type</th><th>Account allocation</th><th>Bank / account no.</th><th>Deposit date and time</th><th>Responsible staff</th><th class="n">Amount</th></tr>' + depRows + '</table><table>' + kv('Cash deposits made', m(depCash)) + kv('Online transfers made', m(depOnline)) + kv('Company share not yet deposited', m(gap), 1) + '</table><table>' + kv('Receipt verification status', e(VER[verif] || verif)) + kv('Discrepancies', e(disc || 'None')) + kv('Final approval', approved ? e(report.approvedBy) + ' - ' + new Date(report.approvedAt).toLocaleString('en-PH') : 'Not yet approved') + '</table><p>Prepared by: ____________________ &nbsp;&nbsp; Approved by: ____________________</p></body></html>');
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+  const card = (title, ...kids) => plotEl("div", { style: { padding: 12, borderRadius: 8, background: '#f6f1e8', marginBottom: 12 } }, plotEl("b", null, title), ...kids);
+  const line = (k, v, bold) => plotEl("div", { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 12, padding: '3px 0', fontWeight: bold ? 700 : 400 } }, plotEl("span", null, k), plotEl("span", null, v));
+  return plotEl("div", null, plotEl("div", { style: { fontWeight: 700, marginBottom: 8 } }, dayLabel), card('End-of-day report (filled in automatically from the payments recorded)', plotEl("div", { style: { marginTop: 6 } }, line('Total transactions', T.count), line('Total amount received', fmt2(T.received), true), line('Agent commission allocation total', fmt2(T.agent)), line('Broker fee and agent compensation allocation total (3%)', fmt2(T.broker)), line('Company deposit total', fmt2(T.company), true), line('Cash deposits made', fmt2(depCash)), line('Online transfers made', fmt2(depOnline)), line('Company share not yet deposited', fmt2(gap), true))), card('Deposit instruction', plotEl("div", { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10, marginTop: 8 } }, field('Transaction reference', inp('ref', { placeholder: `DEP-${day.replace(/-/g, '')}-${deposits.length + 1}` })), field('Amount to be deposited (₱)', inp('amount', { inputMode: 'decimal', placeholder: gap > 0 ? String(gap) : '' })), field('Payment type', sel('type', [['cash', 'Cash deposit'], ['online', 'Online transfer']])), field('Account allocation', sel('allocation', Object.entries(EOD_ACCOUNTS))), field('Responsible staff', inp('staff')), field('Bank name', inp('bank')), field('Account number', inp('account')), field('Deposit date', inp('depositDate', { type: 'date' })), field('Deposit time', inp('depositTime', { type: 'time' }))), plotEl("button", { className: "btn btn-primary btn-sm", style: { marginTop: 10 }, disabled: busy, onClick: saveDeposit }, "Save deposit instruction"), deposits.length > 0 && plotEl("table", { style: { marginTop: 10 } }, plotEl("thead", null, plotEl("tr", null, ['Reference', 'Type', 'Allocation', 'Bank / account', 'Date and time', 'Staff', 'Amount', ''].map(h => plotEl("th", { key: h }, h)))), plotEl("tbody", null, deposits.map(d => plotEl("tr", { key: d._id }, plotEl("td", null, d.ref), plotEl("td", null, d.type === 'cash' ? 'Cash' : 'Online'), plotEl("td", null, EOD_ACCOUNTS[d.allocation] || d.allocation), plotEl("td", null, d.bank, ' / ', d.account), plotEl("td", null, d.depositDate, ' ', d.depositTime), plotEl("td", null, d.staff), plotEl("td", { style: { textAlign: 'right' } }, fmt2(d.amount)), plotEl("td", null, plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => delDeposit(d) }, "Delete"))))))), card('Verification and approval', plotEl("div", { style: { marginTop: 8 } }, plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600 } }, 'Receipt verification status', plotEl("select", { value: verif, disabled: approved, onChange: e => setVerif(e.target.value), style: { display: 'block', padding: 8, marginTop: 3, fontWeight: 400 } }, Object.entries(VER).map(([v, l]) => plotEl("option", { key: v, value: v }, l)))), plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600, marginTop: 8 } }, 'Discrepancies (write "None" if all matches)', plotEl("textarea", { value: disc, disabled: approved, onChange: e => setDisc(e.target.value), rows: 3, style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 } })), approved ? plotEl("div", { style: { marginTop: 8 } }, plotEl("b", null, "✔ Approved by "), report.approvedBy, " · ", new Date(report.approvedAt).toLocaleString('en-PH')) : null, plotEl("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 } }, !approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: () => saveReport({}) }, "Save report"), !approved && plotEl("button", { className: "btn btn-primary btn-sm", disabled: busy, onClick: approve }, "Final approval"), approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: reopen }, "Re-open"), plotEl("button", { className: "btn btn-outline btn-sm", onClick: printEod }, "🖨 Print end-of-day report")))));
+}
+
 function PresaleApplications({
   currentUser
 }) {
@@ -3388,6 +3482,7 @@ function PresaleApplications({
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   };
   const [reportDay, setReportDay] = useState(todayKey());
+  const [remarksText, setRemarksText] = useState('');
   useEffect(() => window.db.collection('agents').onSnapshot(s => setAgentList(s.docs.map(d => ({
     _id: d.id,
     ...d.data()
@@ -3453,6 +3548,7 @@ function PresaleApplications({
         date: now,
         ref: refText.trim(),
         method: a.method,
+        remarks: remarksText.trim(),
         by: actor
       };
       const patch = {
@@ -3468,6 +3564,7 @@ function PresaleApplications({
       }).catch(() => {})));
       setRefText('');
       setAmtText('');
+      setRemarksText('');
       setToast('Payment recorded');
     } catch (err) {
       setToast(err && err.message || 'Could not save');
@@ -3611,7 +3708,10 @@ function PresaleApplications({
           brokerName: r.brokerName || '',
           agent: al.agent,
           broker: al.broker,
-          company: al.company
+          company: al.company,
+          plots: presalePlots(r).map(p => p.plotCode).join(' '),
+          method: PRESALE_METHOD_LABEL[x.method || r.method] || x.method || r.method || '',
+          remarks: x.remarks || ''
         });
       });
     });
@@ -3737,15 +3837,16 @@ function PresaleApplications({
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     };
     const allocRows = allocDay ? payRows.filter(x => dayKey(x.date) === allocDay) : payRows;
-    const allocHead = ['Date', 'Ref', 'Buyer', 'Receipt/Reference', 'Agent', 'Broker', 'Amount paid', 'Agent commission', 'Broker & agent compensation', 'Company deposit'];
-    const allocLine = x => [day(x.date), x.ref, x.name, x.receipt, x.agentName, x.brokerName, x.amount, x.agent, x.broker, x.company];
+    const allocCols = [['Date', 'date'], ['Transaction reference', 'receipt'], ['Buyer', 'name'], ['Plot / unit', 'plots'], ['Agent', 'agentName'], ['Broker', 'brokerName'], ['Payment type', 'method'], ['Amount received', 'amount', 1], ['Agent commission', 'agent', 1], ['Broker fee & agent compensation', 'broker', 1], ['Company share', 'company', 1], ['Remarks', 'remarks']];
+    const allocHead = allocCols.map(c => c[0]);
+    const allocLine = x => allocCols.map(c => c[1] === 'date' ? day(x.date) : x[c[1]]);
     const printAlloc = () => {
       const w = window.open('', '_blank');
       if (!w) { setToast('Please allow pop-ups to print.'); return; }
       const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
       const m = n => (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const title = 'Daily Allocation Report - ' + (allocDay ? new Date(allocDay + 'T00:00:00').toLocaleDateString('en-PH') : period === 'all' ? 'All payments' : presaleMonthLabel(period));
-      w.document.write('<html><head><title>' + e(title) + '</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:5px 7px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 4px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div>' + e(title) + '</div><br><table><tr>' + allocHead.map((h, i) => '<th class="' + (i > 5 ? 'n' : '') + '">' + e(h) + '</th>').join('') + '</tr>' + allocRows.map(x => '<tr>' + allocLine(x).map((v, i) => '<td class="' + (i > 5 ? 'n' : '') + '">' + (i > 5 ? m(v) : e(v)) + '</td>').join('') + '</tr>').join('') + '<tr><th colspan="6">Total</th><th class="n">' + m(sum(allocRows, 'amount')) + '</th><th class="n">' + m(sum(allocRows, 'agent')) + '</th><th class="n">' + m(sum(allocRows, 'broker')) + '</th><th class="n">' + m(sum(allocRows, 'company')) + '</th></tr></table><p><b>Deposit to company bank account: PHP ' + m(sum(allocRows, 'company')) + '</b></p><p>Prepared by: ____________________ &nbsp;&nbsp; Verified by: ____________________</p></body></html>');
+      const title = 'Payment Allocation Report - ' + (allocDay ? new Date(allocDay + 'T00:00:00').toLocaleDateString('en-PH') : period === 'all' ? 'All payments' : presaleMonthLabel(period));
+      w.document.write('<html><head><title>' + e(title) + '</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:4px 6px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 4px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div>' + e(title) + '</div><br><table><tr>' + allocCols.map(c => '<th class="' + (c[2] ? 'n' : '') + '">' + e(c[0]) + '</th>').join('') + '</tr>' + allocRows.map(x => '<tr>' + allocCols.map(c => c[2] ? '<td class="n">' + m(x[c[1]]) + '</td>' : '<td>' + e(c[1] === 'date' ? day(x.date) : x[c[1]]) + '</td>').join('') + '</tr>').join('') + '<tr><th colspan="7">Total</th><th class="n">' + m(sum(allocRows, 'amount')) + '</th><th class="n">' + m(sum(allocRows, 'agent')) + '</th><th class="n">' + m(sum(allocRows, 'broker')) + '</th><th class="n">' + m(sum(allocRows, 'company')) + '</th><th></th></tr></table><p><b>Deposit to company bank account: PHP ' + m(sum(allocRows, 'company')) + '</b></p><p>Prepared by: ____________________ &nbsp;&nbsp; Verified by: ____________________</p></body></html>');
       w.document.close();
       w.focus();
       w.print();
@@ -3785,17 +3886,27 @@ function PresaleApplications({
           borderTop: '2px solid #ccc'
         }
       }, plotEl("td", null, "Total tax"), td(sum(payRows, 'amount'), true), td(sum(payRows, 'net'), true), td(taxCollected, true)))));
-    if (salesView === 'alloc') {
-      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Agent / broker', false], ['Amount paid', true], ['Agent commission', true], ['Broker & agent comp.', true], ['Company deposit', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
+    if (salesView === 'eod') {
+      tbl = plotEl(PresaleEod, {
+        key: allocDay || todayKey(),
+        day: allocDay || todayKey(),
+        rows: presalePaymentsOn(live, allocDay || todayKey()),
+        actor,
+        setToast
+      });
+    } else if (salesView === 'alloc') {
+      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, allocCols.map(c => th(c[0], !!c[2])))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
         key: x.ref + i
-      }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.agentName || '—', x.brokerName ? ' / ' + x.brokerName : ''), td(x.amount, true), td(x.agent), td(x.broker), td(x.company))), plotEl("tr", {
+      }, allocCols.map(c => c[2] ? td(x[c[1]], c[1] === 'amount') : plotEl("td", {
+        key: c[1]
+      }, c[1] === 'date' ? day(x.date) : x[c[1]] || '—')))), plotEl("tr", {
         style: {
           fontWeight: 700,
           borderTop: '2px solid #ccc'
         }
       }, plotEl("td", {
-        colSpan: 4
-      }, "Total · deposit to company bank account: ", fmt2(sum(allocRows, 'company'))), td(sum(allocRows, 'amount'), true), td(sum(allocRows, 'agent'), true), td(sum(allocRows, 'broker'), true), td(sum(allocRows, 'company'), true))));
+        colSpan: 7
+      }, "Total · deposit to company bank account: ", fmt2(sum(allocRows, 'company'))), td(sum(allocRows, 'amount'), true), td(sum(allocRows, 'agent'), true), td(sum(allocRows, 'broker'), true), td(sum(allocRows, 'company'), true), plotEl("td", null, ""))));
     } else if (salesView === 'sales') {
       tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Plots', false], ['Plot price', true], ['Surcharge', true], ['Total (with VAT)', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, saleRows.map(x => plotEl("tr", {
         key: x.ref
@@ -3874,11 +3985,11 @@ function PresaleApplications({
         marginBottom: 10,
         alignItems: 'center'
       }
-    }, [['summary', 'Summary'], ['sales', 'Sales'], ['vat', 'Tax (VAT)'], ['alloc', 'Allocation']].map(([id, label]) => plotEl("button", {
+    }, [['summary', 'Summary'], ['sales', 'Sales'], ['vat', 'Tax (VAT)'], ['alloc', 'Allocation'], ['eod', 'Deposit & end of day']].map(([id, label]) => plotEl("button", {
       key: id,
       className: `btn btn-sm ${salesView === id ? 'btn-primary' : 'btn-outline'}`,
       onClick: () => setSalesView(id)
-    }, label)), salesView === 'alloc' && plotEl("label", {
+    }, label)), (salesView === 'alloc' || salesView === 'eod') && plotEl("label", {
       style: {
         fontSize: 13,
         marginLeft: 8
@@ -3903,7 +4014,7 @@ function PresaleApplications({
       },
       disabled: noRows,
       onClick: printAlloc
-    }, "🖨 Print daily report"), salesView !== 'summary' && plotEl("button", {
+    }, "🖨 Print daily report"), salesView !== 'summary' && salesView !== 'eod' && plotEl("button", {
       className: "btn btn-sm btn-outline",
       style: salesView === 'alloc' ? null : {
         marginLeft: 'auto'
@@ -3943,7 +4054,7 @@ function PresaleApplications({
         color: '#777',
         marginTop: 6
       }
-    }, salesView === 'alloc' ? "Each sale's FIRST payment is split: 50% of the agent commission (7% of the plot price unless a commission amount was typed), 3% for broker and agent compensation, and the rest to the company. Later payments go fully to the company. Sales with no agent go fully to the company." : salesView === 'vat' ? "Tax is the 12% VAT inside the prices, figured on the money actually received in the chosen period (payments recorded by staff). Please confirm the rate and whether it applies with your accountant." : salesView === 'sales' ? "Sales are listed in the month the reservation was made. The installment surcharge is shown apart from the plot price." : "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
+    }, salesView === 'eod' ? "The totals fill in by themselves from the payments recorded on that day. Deposit instructions, the verification status and the final approval are saved for your records." : salesView === 'alloc' ? "Each sale's FIRST payment is split: 50% of the agent commission (7% of the plot price unless a commission amount was typed), 3% for broker and agent compensation, and the rest to the company. Later payments go fully to the company. Sales with no agent go fully to the company." : salesView === 'vat' ? "Tax is the 12% VAT inside the prices, figured on the money actually received in the chosen period (payments recorded by staff). Please confirm the rate and whether it applies with your accountant." : salesView === 'sales' ? "Sales are listed in the month the reservation was made. The installment surcharge is shown apart from the plot price." : "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
   })(), plotEl("div", {
     style: {
       display: 'flex',
@@ -4196,6 +4307,16 @@ function PresaleApplications({
     },
     value: refText,
     onChange: e => setRefText(e.target.value)
+  }), plotEl("input", {
+    style: {
+      width: '100%',
+      boxSizing: 'border-box',
+      padding: 8,
+      marginBottom: 10
+    },
+    placeholder: "Remarks (optional)",
+    value: remarksText,
+    onChange: e => setRemarksText(e.target.value)
   }), plotEl("button", {
     className: "btn btn-primary",
     disabled: busy,
