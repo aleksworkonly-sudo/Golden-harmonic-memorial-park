@@ -3318,22 +3318,29 @@ function presaleSplit(a) {
 // SOP: allocation of each payment into Agent Commission / Broker & Agent Compensation / Company.
 // Only the FIRST payment (the down payment) is split. Later payments go fully to the company
 // until management sets the installment commission policy. No agent on the sale = all company.
-const SOP_COMMISSION_RATE = 0.07;   // 7% of the plot price (spot cash price) when no amount was typed
-const SOP_AGENT_FIRST_SHARE = 0.5;  // 50% of the commission is released from the down payment
-const SOP_BROKER_RATE = 0.03;       // 3% of the down payment is held for broker and agent compensation
-function presaleAlloc(a) {
-  const list = presaleLedger(a).list;
-  const hasAgent = !!a.agentId;
+// The three rates below are the defaults; an admin can change them in the Allocation view
+// (saved in presaleSettings/allocation). A payment recorded for a sale that has an agent keeps
+// the split it was recorded with, so later rule changes do not rewrite past reports.
+const SOP_RULES = {
+  commissionRate: 0.07,   // 7% of the plot price (spot cash price) when no commission amount was typed
+  agentFirstShare: 0.5,   // 50% of the commission is released from the down payment
+  brokerRate: 0.03        // 3% of the down payment is held for broker and agent compensation
+};
+function presaleCommission(a) {
+  if (!a.agentId) return 0;
   const base = a.spotPrice || presaleSplit(a).base;
-  const comm = hasAgent ? a.agentCommission > 0 ? a.agentCommission : Math.round(base * SOP_COMMISSION_RATE) : 0;
+  return a.agentCommission > 0 ? a.agentCommission : Math.round(base * SOP_RULES.commissionRate);
+}
+function presaleAllocOne(a, amount, index) {
+  const amt = Number(amount) || 0;
   const c2 = n => Math.round(n * 100) / 100;
-  return list.map((x, i) => {
-    const amt = Number(x.amount) || 0;
-    if (!hasAgent || i > 0) return { agent: 0, broker: 0, company: amt };
-    const agent = Math.min(Math.round(comm * SOP_AGENT_FIRST_SHARE), amt);
-    const broker = Math.min(c2(amt * SOP_BROKER_RATE), amt - agent);
-    return { agent, broker, company: c2(amt - agent - broker) };
-  });
+  if (!a.agentId || index > 0) return { agent: 0, broker: 0, company: amt };
+  const agent = Math.min(Math.round(presaleCommission(a) * SOP_RULES.agentFirstShare), amt);
+  const broker = Math.min(c2(amt * SOP_RULES.brokerRate), amt - agent);
+  return { agent, broker, company: c2(amt - agent - broker) };
+}
+function presaleAlloc(a) {
+  return presaleLedger(a).list.map((x, i) => x.alloc ? x.alloc : presaleAllocOne(a, x.amount, i));
 }
 function presaleMonthKey(ms) {
   if (!ms) return '';
@@ -3464,8 +3471,32 @@ function PresaleEod({ day, rows, actor, setToast }) {
   return plotEl("div", null, plotEl("div", { style: { fontWeight: 700, marginBottom: 8 } }, dayLabel), card('End-of-day report (filled in automatically from the payments recorded)', plotEl("div", { style: { marginTop: 6 } }, line('Total transactions', T.count), line('Total amount received', fmt2(T.received), true), line('Agent commission allocation total', fmt2(T.agent)), line('Broker fee and agent compensation allocation total (3%)', fmt2(T.broker)), line('Company deposit total', fmt2(T.company), true), line('Cash deposits made', fmt2(depCash)), line('Online transfers made', fmt2(depOnline)), line('Company share not yet deposited', fmt2(gap), true))), card('Deposit instruction', plotEl("div", { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10, marginTop: 8 } }, field('Transaction reference', inp('ref', { placeholder: `DEP-${day.replace(/-/g, '')}-${deposits.length + 1}` })), field('Amount to be deposited (₱)', inp('amount', { inputMode: 'decimal', placeholder: gap > 0 ? String(gap) : '' })), field('Payment type', sel('type', [['cash', 'Cash deposit'], ['online', 'Online transfer']])), field('Account allocation', sel('allocation', Object.entries(EOD_ACCOUNTS))), field('Responsible staff', inp('staff')), field('Bank name', inp('bank')), field('Account number', inp('account')), field('Deposit date', inp('depositDate', { type: 'date' })), field('Deposit time', inp('depositTime', { type: 'time' }))), plotEl("button", { className: "btn btn-primary btn-sm", style: { marginTop: 10 }, disabled: busy, onClick: saveDeposit }, "Save deposit instruction"), deposits.length > 0 && plotEl("table", { style: { marginTop: 10 } }, plotEl("thead", null, plotEl("tr", null, ['Reference', 'Type', 'Allocation', 'Bank / account', 'Date and time', 'Staff', 'Amount', ''].map(h => plotEl("th", { key: h }, h)))), plotEl("tbody", null, deposits.map(d => plotEl("tr", { key: d._id }, plotEl("td", null, d.ref), plotEl("td", null, d.type === 'cash' ? 'Cash' : 'Online'), plotEl("td", null, EOD_ACCOUNTS[d.allocation] || d.allocation), plotEl("td", null, d.bank, ' / ', d.account), plotEl("td", null, d.depositDate, ' ', d.depositTime), plotEl("td", null, d.staff), plotEl("td", { style: { textAlign: 'right' } }, fmt2(d.amount)), plotEl("td", null, plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => delDeposit(d) }, "Delete"))))))), card('Verification and approval', plotEl("div", { style: { marginTop: 8 } }, plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600 } }, 'Receipt verification status', plotEl("select", { value: verif, disabled: approved, onChange: e => setVerif(e.target.value), style: { display: 'block', padding: 8, marginTop: 3, fontWeight: 400 } }, Object.entries(VER).map(([v, l]) => plotEl("option", { key: v, value: v }, l)))), plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600, marginTop: 8 } }, 'Discrepancies (write "None" if all matches)', plotEl("textarea", { value: disc, disabled: approved, onChange: e => setDisc(e.target.value), rows: 3, style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 } })), approved ? plotEl("div", { style: { marginTop: 8 } }, plotEl("b", null, "✔ Approved by "), report.approvedBy, " · ", new Date(report.approvedAt).toLocaleString('en-PH')) : null, plotEl("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 } }, !approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: () => saveReport({}) }, "Save report"), !approved && plotEl("button", { className: "btn btn-primary btn-sm", disabled: busy, onClick: approve }, "Final approval"), approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: reopen }, "Re-open"), plotEl("button", { className: "btn btn-outline btn-sm", onClick: printEod }, "🖨 Print end-of-day report")))));
 }
 
+// Admin-only editor for the allocation rates (stored in presaleSettings/allocation).
+function PresaleRules({ canEdit, tick, setToast, actor }) {
+  const pct = n => String(Math.round(n * 10000) / 100);
+  const [f, setF] = useState({ commissionRate: pct(SOP_RULES.commissionRate), agentFirstShare: pct(SOP_RULES.agentFirstShare), brokerRate: pct(SOP_RULES.brokerRate) });
+  const [open, setOpen] = useState(false);
+  useEffect(() => setF({ commissionRate: pct(SOP_RULES.commissionRate), agentFirstShare: pct(SOP_RULES.agentFirstShare), brokerRate: pct(SOP_RULES.brokerRate) }), [tick]);
+  const save = async () => {
+    const v = {};
+    for (const k of Object.keys(f)) {
+      const n = Number(f[k]);
+      if (!(n >= 0 && n <= 100)) { setToast('Each rate must be between 0 and 100.'); return; }
+      v[k] = Math.round(n * 100) / 10000;
+    }
+    try {
+      await window.db.collection('presaleSettings').doc('allocation').set({ ...v, updatedAt: Date.now(), updatedBy: actor });
+      setToast('Allocation rules saved. They apply to payments recorded from now on.');
+      setOpen(false);
+    } catch (err) { setToast(err && err.message || 'Could not save'); }
+  };
+  const labels = [['commissionRate', 'Agent commission (% of plot price)'], ['agentFirstShare', 'Share of commission released from the down payment (%)'], ['brokerRate', 'Broker and agent compensation (% of the down payment)']];
+  return plotEl("div", { style: { padding: 10, borderRadius: 8, background: '#f1f8ec', marginBottom: 12, fontSize: 13, lineHeight: 1.6 } }, plotEl("b", null, "Allocation rules: "), `agent commission ${pct(SOP_RULES.commissionRate)}% of the plot price, ${pct(SOP_RULES.agentFirstShare)}% of it released from the down payment, ${pct(SOP_RULES.brokerRate)}% of the down payment held for broker and agent compensation, the rest to the company. `, canEdit ? plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => setOpen(!open) }, open ? "Close" : "Change rules") : plotEl("em", null, "(only an admin can change these)"), open && canEdit && plotEl("div", { style: { marginTop: 8 } }, labels.map(([k, l]) => plotEl("label", { key: k, style: { display: 'block', marginBottom: 6 } }, l, plotEl("input", { value: f[k], inputMode: "decimal", onChange: e => setF({ ...f, [k]: e.target.value }), style: { display: 'block', padding: 6, width: 120 } }))), plotEl("button", { className: "btn btn-primary btn-sm", onClick: save }, "Save rules")));
+}
+
 function PresaleApplications({
-  currentUser
+  currentUser,
+  canEditRules
 }) {
   const [rows, setRows] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -3483,6 +3514,19 @@ function PresaleApplications({
   };
   const [reportDay, setReportDay] = useState(todayKey());
   const [remarksText, setRemarksText] = useState('');
+  const [ruleTick, setRuleTick] = useState(0);
+  const [fAgent, setFAgent] = useState('');
+  const [fBroker, setFBroker] = useState('');
+  const [fPlot, setFPlot] = useState('');
+  const [lastPay, setLastPay] = useState(null);
+  useEffect(() => window.db.collection('presaleSettings').doc('allocation').onSnapshot(sn => {
+    if (!sn.exists) return;
+    const d = sn.data();
+    ['commissionRate', 'agentFirstShare', 'brokerRate'].forEach(k => {
+      if (typeof d[k] === 'number') SOP_RULES[k] = d[k];
+    });
+    setRuleTick(t => t + 1);
+  }, () => {}), []);
   useEffect(() => window.db.collection('agents').onSnapshot(s => setAgentList(s.docs.map(d => ({
     _id: d.id,
     ...d.data()
@@ -3551,6 +3595,13 @@ function PresaleApplications({
         remarks: remarksText.trim(),
         by: actor
       };
+      const split = presaleAllocOne(a, amount, L.list.length);
+      if (a.agentId) entry.alloc = {
+        ...split,
+        rates: {
+          ...SOP_RULES
+        }
+      };
       const patch = {
         payments: firebase.firestore.FieldValue.arrayUnion(entry),
         status: 'paid',
@@ -3565,6 +3616,16 @@ function PresaleApplications({
       setRefText('');
       setAmtText('');
       setRemarksText('');
+      setLastPay({
+        ref: a.ref,
+        receipt: entry.ref,
+        name: a.name,
+        plots: presalePlots(a).map(p => p.plotCode).join(' '),
+        amount,
+        when: now,
+        method: PRESALE_METHOD_LABEL[a.method] || a.method,
+        ...split
+      });
       setToast('Payment recorded');
     } catch (err) {
       setToast(err && err.message || 'Could not save');
@@ -3709,6 +3770,10 @@ function PresaleApplications({
           agent: al.agent,
           broker: al.broker,
           company: al.company,
+          time: x.date ? new Date(x.date).toLocaleTimeString('en-PH', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }) : '',
           plots: presalePlots(r).map(p => p.plotCode).join(' '),
           method: PRESALE_METHOD_LABEL[x.method || r.method] || x.method || r.method || '',
           remarks: x.remarks || ''
@@ -3836,8 +3901,10 @@ function PresaleApplications({
       const d = new Date(ms);
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     };
-    const allocRows = allocDay ? payRows.filter(x => dayKey(x.date) === allocDay) : payRows;
-    const allocCols = [['Date', 'date'], ['Transaction reference', 'receipt'], ['Buyer', 'name'], ['Plot / unit', 'plots'], ['Agent', 'agentName'], ['Broker', 'brokerName'], ['Payment type', 'method'], ['Amount received', 'amount', 1], ['Agent commission', 'agent', 1], ['Broker fee & agent compensation', 'broker', 1], ['Company share', 'company', 1], ['Remarks', 'remarks']];
+    const match = (v, q) => !q.trim() || String(v || '').toLowerCase().includes(q.trim().toLowerCase());
+    const allocRows = (allocDay ? payRows.filter(x => dayKey(x.date) === allocDay) : payRows).filter(x => match(x.agentName, fAgent) && match(x.brokerName, fBroker) && match(x.plots, fPlot));
+    const fApps = live.filter(r => match(r.agentName, fAgent) && match(r.brokerName, fBroker) && match(presalePlots(r).map(p => p.plotCode).join(' '), fPlot));
+    const allocCols = [['Date', 'date'], ['Time', 'time'], ['Transaction reference', 'receipt'], ['Buyer', 'name'], ['Plot / unit', 'plots'], ['Agent', 'agentName'], ['Broker', 'brokerName'], ['Payment type', 'method'], ['Amount received', 'amount', 1], ['Agent commission', 'agent', 1], ['Broker fee & agent compensation', 'broker', 1], ['Company share', 'company', 1], ['Remarks', 'remarks']];
     const allocHead = allocCols.map(c => c[0]);
     const allocLine = x => allocCols.map(c => c[1] === 'date' ? day(x.date) : x[c[1]]);
     const printAlloc = () => {
@@ -3846,7 +3913,7 @@ function PresaleApplications({
       const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
       const m = n => (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const title = 'Payment Allocation Report - ' + (allocDay ? new Date(allocDay + 'T00:00:00').toLocaleDateString('en-PH') : period === 'all' ? 'All payments' : presaleMonthLabel(period));
-      w.document.write('<html><head><title>' + e(title) + '</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:4px 6px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 4px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div>' + e(title) + '</div><br><table><tr>' + allocCols.map(c => '<th class="' + (c[2] ? 'n' : '') + '">' + e(c[0]) + '</th>').join('') + '</tr>' + allocRows.map(x => '<tr>' + allocCols.map(c => c[2] ? '<td class="n">' + m(x[c[1]]) + '</td>' : '<td>' + e(c[1] === 'date' ? day(x.date) : x[c[1]]) + '</td>').join('') + '</tr>').join('') + '<tr><th colspan="7">Total</th><th class="n">' + m(sum(allocRows, 'amount')) + '</th><th class="n">' + m(sum(allocRows, 'agent')) + '</th><th class="n">' + m(sum(allocRows, 'broker')) + '</th><th class="n">' + m(sum(allocRows, 'company')) + '</th><th></th></tr></table><p><b>Deposit to company bank account: PHP ' + m(sum(allocRows, 'company')) + '</b></p><p>Prepared by: ____________________ &nbsp;&nbsp; Verified by: ____________________</p></body></html>');
+      w.document.write('<html><head><title>' + e(title) + '</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:4px 6px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 4px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div>' + e(title) + '</div><br><table><tr>' + allocCols.map(c => '<th class="' + (c[2] ? 'n' : '') + '">' + e(c[0]) + '</th>').join('') + '</tr>' + allocRows.map(x => '<tr>' + allocCols.map(c => c[2] ? '<td class="n">' + m(x[c[1]]) + '</td>' : '<td>' + e(c[1] === 'date' ? day(x.date) : x[c[1]]) + '</td>').join('') + '</tr>').join('') + '<tr><th colspan="8">Total</th><th class="n">' + m(sum(allocRows, 'amount')) + '</th><th class="n">' + m(sum(allocRows, 'agent')) + '</th><th class="n">' + m(sum(allocRows, 'broker')) + '</th><th class="n">' + m(sum(allocRows, 'company')) + '</th><th></th></tr></table><p><b>Deposit to company bank account: PHP ' + m(sum(allocRows, 'company')) + '</b></p><p>Prepared by: ____________________ &nbsp;&nbsp; Verified by: ____________________</p></body></html>');
       w.document.close();
       w.focus();
       w.print();
@@ -3895,7 +3962,102 @@ function PresaleApplications({
         setToast
       });
     } else if (salesView === 'alloc') {
-      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, allocCols.map(c => th(c[0], !!c[2])))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
+      const grp = {};
+      allocRows.forEach(x => {
+        const k = x.agentName || 'No agent';
+        if (!grp[k]) grp[k] = { name: k, n: 0, amount: 0, agent: 0, broker: 0, company: 0 };
+        grp[k].n += 1;
+        grp[k].amount += x.amount;
+        grp[k].agent += x.agent;
+        grp[k].broker += x.broker;
+        grp[k].company += x.company;
+      });
+      const pendAgent = fApps.reduce((n, r) => n + Math.max(0, presaleCommission(r) - presaleAlloc(r).reduce((m, x) => m + x.agent, 0)), 0);
+      const heldBroker = fApps.reduce((n, r) => n + presaleAlloc(r).reduce((m, x) => m + x.broker, 0), 0);
+      const dash = (label, v, color, note) => plotEl("div", {
+        key: label,
+        style: {
+          flex: '1 1 170px',
+          padding: 12,
+          borderRadius: 10,
+          background: color
+        }
+      }, plotEl("div", {
+        style: {
+          fontSize: 12,
+          color: '#444'
+        }
+      }, label), plotEl("div", {
+        style: {
+          fontSize: 22,
+          fontWeight: 800
+        }
+      }, fmt2(v)), note && plotEl("div", {
+        style: {
+          fontSize: 11,
+          color: '#666'
+        }
+      }, note));
+      const filt = (label, v, set) => plotEl("label", {
+        key: label,
+        style: {
+          fontSize: 13
+        }
+      }, label, " ", plotEl("input", {
+        value: v,
+        onChange: e => set(e.target.value),
+        style: {
+          padding: 5,
+          width: 120
+        }
+      }));
+      const statusOf = r => {
+        const L1 = presaleLedger(r);
+        return L1.full ? 'Paid in full' : L1.paid > 0 ? `Paying · ${L1.monthsLeft} mo left` : 'No payment yet';
+      };
+      const secTitle = t => plotEl("div", {
+        style: {
+          fontWeight: 700,
+          margin: '14px 0 6px'
+        }
+      }, t);
+      tbl = plotEl("div", null, plotEl(PresaleRules, {
+        canEdit: !!canEditRules,
+        tick: ruleTick,
+        setToast,
+        actor
+      }), plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          marginBottom: 10
+        }
+      }, plotEl("b", {
+        style: {
+          fontSize: 13
+        }
+      }, "Filter:"), filt('Agent', fAgent, setFAgent), filt('Broker', fBroker, setFBroker), filt('Plot / unit', fPlot, setFPlot)), plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+          marginBottom: 6
+        }
+      }, dash('Total payments received', sum(allocRows, 'amount'), '#fff3c9'), dash('Agent commission allocated', sum(allocRows, 'agent'), '#eef3fb'), dash('Broker / agent compensation allocated', sum(allocRows, 'broker'), '#f3e9fb'), dash('Company funds', sum(allocRows, 'company'), '#f1f8ec')), plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap'
+        }
+      }, dash('Pending release: agent commission', pendAgent, '#fde8e6', 'commission still to be released (all time)'), dash('Held: broker / agent compensation', heldBroker, '#fde8e6', 'set aside, waiting for management rules (all time)')), secTitle('By agent'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Agent', false], ['Transactions', true], ['Received', true], ['Commission', true], ['Compensation', true], ['Company', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, Object.values(grp).map(g => plotEl("tr", {
+        key: g.name
+      }, plotEl("td", null, g.name), plotEl("td", {
+        style: R
+      }, g.n), td(g.amount), td(g.agent), td(g.broker), td(g.company))))), secTitle('Status by client'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Client', false], ['Plot / unit', false], ['Agent', false], ['Status', false], ['Paid', true], ['Balance', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, fApps.map(r => plotEl("tr", {
+        key: r._id || r.ref
+      }, plotEl("td", null, r.name), plotEl("td", null, presalePlots(r).map(p => p.plotCode).join(' ')), plotEl("td", null, r.agentName || '—'), plotEl("td", null, statusOf(r)), td(presaleLedger(r).paid), td(presaleLedger(r).balance))))), secTitle('Transaction log'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, allocCols.map(c => th(c[0], !!c[2])))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
         key: x.ref + i
       }, allocCols.map(c => c[2] ? td(x[c[1]], c[1] === 'amount') : plotEl("td", {
         key: c[1]
@@ -3905,8 +4067,8 @@ function PresaleApplications({
           borderTop: '2px solid #ccc'
         }
       }, plotEl("td", {
-        colSpan: 7
-      }, "Total · deposit to company bank account: ", fmt2(sum(allocRows, 'company'))), td(sum(allocRows, 'amount'), true), td(sum(allocRows, 'agent'), true), td(sum(allocRows, 'broker'), true), td(sum(allocRows, 'company'), true), plotEl("td", null, ""))));
+        colSpan: 8
+      }, "Total · deposit to company bank account: ", fmt2(sum(allocRows, 'company'))), td(sum(allocRows, 'amount'), true), td(sum(allocRows, 'agent'), true), td(sum(allocRows, 'broker'), true), td(sum(allocRows, 'company'), true), plotEl("td", null, "")))));
     } else if (salesView === 'sales') {
       tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Plots', false], ['Plot price', true], ['Surcharge', true], ['Total (with VAT)', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, saleRows.map(x => plotEl("tr", {
         key: x.ref
@@ -4014,7 +4176,7 @@ function PresaleApplications({
       },
       disabled: noRows,
       onClick: printAlloc
-    }, "🖨 Print daily report"), salesView !== 'summary' && salesView !== 'eod' && plotEl("button", {
+    }, "🖨 Print transaction log"), salesView !== 'summary' && salesView !== 'eod' && plotEl("button", {
       className: "btn btn-sm btn-outline",
       style: salesView === 'alloc' ? null : {
         marginLeft: 'auto'
@@ -4321,7 +4483,39 @@ function PresaleApplications({
     className: "btn btn-primary",
     disabled: busy,
     onClick: () => confirmPaid(sel)
-  }, "Record payment received")), plotEl("div", {
+  }, "Record payment received"), lastPay && lastPay.ref === sel.ref && plotEl("div", {
+    style: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 8,
+      background: '#e8f5e9',
+      border: '2px solid #2e9e5b',
+      lineHeight: 1.6,
+      fontSize: 14
+    }
+  }, plotEl("b", null, "✔ Payment received"), plotEl("div", null, "Reference: ", lastPay.receipt, " · ", lastPay.method), plotEl("div", null, lastPay.name, " · ", lastPay.plots), plotEl("div", null, new Date(lastPay.when).toLocaleString('en-PH')), plotEl("div", {
+    style: {
+      fontWeight: 700
+    }
+  }, "Amount: ", fmt2(lastPay.amount)), plotEl("div", {
+    style: {
+      marginTop: 6
+    }
+  }, plotEl("b", null, "Allocation breakdown")), plotEl("div", null, "Agent commission: ", fmt2(lastPay.agent)), plotEl("div", null, "Broker and agent compensation (held): ", fmt2(lastPay.broker)), plotEl("div", null, "Company operating account: ", fmt2(lastPay.company)), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    style: {
+      marginTop: 8
+    },
+    onClick: () => {
+      const w = window.open('', '_blank');
+      if (!w) return;
+      const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      w.document.write('<html><head><title>Payment Confirmation</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:14px;line-height:1.7}h2{margin:0}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div><b>Payment Confirmation</b></div><br>Reference: ' + e(lastPay.receipt) + ' (' + e(lastPay.method) + ')<br>Application: ' + e(lastPay.ref) + '<br>Client: ' + e(lastPay.name) + '<br>Plot / unit: ' + e(lastPay.plots) + '<br>Date and time: ' + e(new Date(lastPay.when).toLocaleString('en-PH')) + '<br><b>Amount received: ' + e(fmt2(lastPay.amount)) + '</b><br><br><b>Allocation breakdown</b><br>Agent commission: ' + e(fmt2(lastPay.agent)) + '<br>Broker and agent compensation (held): ' + e(fmt2(lastPay.broker)) + '<br>Company operating account: ' + e(fmt2(lastPay.company)) + '<br><br>Received by: ____________________' + '</body></html>');
+      w.document.close();
+      w.focus();
+      w.print();
+    }
+  }, "🖨 Print confirmation"))), plotEl("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -4990,7 +5184,8 @@ function Dashboard({
   }), tab === 'pending' && /*#__PURE__*/React.createElement(PendingPayments, {
     currentUser: user
   }), tab === 'presale' && /*#__PURE__*/React.createElement(PresaleApplications, {
-    currentUser: user
+    currentUser: user,
+    canEditRules: isAdminOrHigher
   }), tab === 'agents' && /*#__PURE__*/React.createElement(AgentsTab, {
     currentUser: user
   }), tab === 'products' && isAdminOrHigher && /*#__PURE__*/React.createElement(Products, null), tab === 'users' && isAdminOrHigher && /*#__PURE__*/React.createElement(Users, {
