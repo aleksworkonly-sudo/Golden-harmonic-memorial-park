@@ -3655,6 +3655,42 @@ function PresaleApplications({
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
+    const taxMonths = {};
+    payRows.forEach(x => {
+      const k = presaleMonthKey(x.date);
+      if (!taxMonths[k]) taxMonths[k] = { month: k, amount: 0, net: 0, vat: 0 };
+      taxMonths[k].amount += x.amount;
+      taxMonths[k].net += x.net;
+      taxMonths[k].vat += x.vat;
+    });
+    const taxRows = Object.values(taxMonths).sort((p, q) => p.month < q.month ? -1 : 1);
+    const taxCollected = sum(payRows, 'vat');
+    const taxBooked = sum(saleRows, 'vat');
+    const taxCard = (label, v, note, color) => plotEl("div", {
+      key: label,
+      style: {
+        flex: '1 1 200px',
+        padding: 14,
+        borderRadius: 10,
+        background: color
+      }
+    }, plotEl("div", {
+      style: {
+        fontSize: 13,
+        color: '#444'
+      }
+    }, label), plotEl("div", {
+      style: {
+        fontSize: 26,
+        fontWeight: 800
+      }
+    }, fmt2(v)), plotEl("div", {
+      style: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 2
+      }
+    }, note));
     const dayKey = ms => {
       if (!ms) return '';
       const d = new Date(ms);
@@ -3675,7 +3711,9 @@ function PresaleApplications({
       w.print();
     };
     const exportCsv = () => {
-      if (salesView === 'alloc') {
+      if (salesView === 'tax') {
+        download(`presale-tax-${periodName}.csv`, ['Month', 'Amount received', 'Sales without VAT', 'Tax (VAT)'], [...taxRows.map(x => [presaleMonthLabel(x.month), x.amount.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]), ['Total', sum(payRows, 'amount').toFixed(2), sum(payRows, 'net').toFixed(2), taxCollected.toFixed(2)]]);
+      } else if (salesView === 'alloc') {
         download(`presale-allocation-${allocDay || periodName}.csv`, allocHead, allocRows.map(allocLine));
       } else if (salesView === 'vat') {
         download(`presale-vat-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Receipt/Reference', 'Amount received', 'Sales without VAT', 'VAT'], payRows.map(x => [day(x.date), x.ref, x.name, x.receipt, x.amount.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]));
@@ -3694,7 +3732,23 @@ function PresaleApplications({
       }
     }, fmt2(v));
     let tbl;
-    if (salesView === 'alloc') {
+    if (salesView === 'tax') {
+      tbl = plotEl("div", null, plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 12,
+          flexWrap: 'wrap',
+          marginBottom: 12
+        }
+      }, taxCard('Total tax collected (VAT)', taxCollected, `on ${fmt2(sum(payRows, 'amount'))} received`, '#fff3c9'), taxCard('Tax on all booked sales', taxBooked, `on ${fmt2(sum(saleRows, 'total'))} sold`, '#eef3fb'), taxCard('Tax still to come in', Math.max(0, taxBooked - taxCollected), 'booked sales not yet paid', '#f1f8ec')), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Month', false], ['Amount received', true], ['Sales without VAT', true], ['Tax (VAT)', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, taxRows.map(x => plotEl("tr", {
+        key: x.month
+      }, plotEl("td", null, presaleMonthLabel(x.month)), td(x.amount), td(x.net), td(x.vat, true))), plotEl("tr", {
+        style: {
+          fontWeight: 700,
+          borderTop: '2px solid #ccc'
+        }
+      }, plotEl("td", null, "Total tax"), td(sum(payRows, 'amount'), true), td(sum(payRows, 'net'), true), td(taxCollected, true)))));
+    } else if (salesView === 'alloc') {
       tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Agent / broker', false], ['Amount paid', true], ['Agent commission', true], ['Broker & agent comp.', true], ['Company deposit', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
         key: x.ref + i
       }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.agentName || '—', x.brokerName ? ' / ' + x.brokerName : ''), td(x.amount, true), td(x.agent), td(x.broker), td(x.company))), plotEl("tr", {
@@ -3732,7 +3786,7 @@ function PresaleApplications({
         key: o.label
       }, plotEl("td", null, o.label), td(o.base), td(o.surcharge), td(o.total, true), td(o.vat), td(o.net)))));
     }
-    const noRows = salesView === 'alloc' && !allocRows.length || salesView === 'sales' && !saleRows.length || salesView === 'vat' && !payRows.length;
+    const noRows = salesView === 'tax' && !payRows.length || salesView === 'alloc' && !allocRows.length || salesView === 'sales' && !saleRows.length || salesView === 'vat' && !payRows.length;
     return plotEl("div", {
       className: "table-card",
       style: {
@@ -3777,7 +3831,7 @@ function PresaleApplications({
         marginBottom: 10,
         alignItems: 'center'
       }
-    }, [['summary', 'Summary'], ['sales', 'Sales'], ['vat', 'VAT'], ['alloc', 'Allocation']].map(([id, label]) => plotEl("button", {
+    }, [['summary', 'Summary'], ['sales', 'Sales'], ['vat', 'VAT'], ['tax', 'TAX'], ['alloc', 'Allocation']].map(([id, label]) => plotEl("button", {
       key: id,
       className: `btn btn-sm ${salesView === id ? 'btn-primary' : 'btn-outline'}`,
       onClick: () => setSalesView(id)
@@ -3824,7 +3878,7 @@ function PresaleApplications({
         color: '#777',
         marginTop: 6
       }
-    }, salesView === 'alloc' ? "Each sale's FIRST payment is split: 50% of the agent commission (7% of the plot price unless a commission amount was typed), 3% for broker and agent compensation, and the rest to the company. Later payments go fully to the company. Sales with no agent go fully to the company." : salesView === 'vat' ? "VAT is figured on the money received (payments recorded by staff)." : salesView === 'sales' ? "Sales are listed in the month the reservation was made. The installment surcharge is shown apart from the plot price." : "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
+    }, salesView === 'tax' ? "Tax here is the 12% VAT inside the prices, figured on the money actually received in the chosen period. Please confirm the rate and whether it applies with your accountant." : salesView === 'alloc' ? "Each sale's FIRST payment is split: 50% of the agent commission (7% of the plot price unless a commission amount was typed), 3% for broker and agent compensation, and the rest to the company. Later payments go fully to the company. Sales with no agent go fully to the company." : salesView === 'vat' ? "VAT is figured on the money received (payments recorded by staff)." : salesView === 'sales' ? "Sales are listed in the month the reservation was made. The installment surcharge is shown apart from the plot price." : "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
   })(), plotEl("div", {
     style: {
       display: 'flex',
