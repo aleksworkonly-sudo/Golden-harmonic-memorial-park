@@ -2429,51 +2429,79 @@ function CustomerDetailModal({
 
 // ── Customer monitoring sheet (printed layout matches the paper form) ──────
 function CustomerMonitoringSheet({ customer, payments }) {
+  // Layout copied from the paper "Customer Monitoring Sheet" (Word form):
+  // header block, three 20-row payment ledgers, agent / broker block.
   const ce = React.createElement;
-  const plan = customer.plan || {};
   const name = customer.fullName || [customer.firstName, customer.lastName].filter(Boolean).join(' ');
-  const added = customer.createdAt && customer.createdAt.toDate ? customer.createdAt.toDate() : customer.createdAt ? new Date(customer.createdAt) : null;
-  const addedText = added ? added.toLocaleDateString('en-PH') : '';
+  const plan = customer.plan || {};
+  const toDate = v => v && v.toDate ? v.toDate() : (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))) ? new Date(Number(v)) : v ? new Date(v) : null;
+  const fmtDate = v => { const d = toDate(v); return d && !isNaN(d) ? d.toLocaleDateString('en-PH') : ''; };
   const METHOD = { cash: 'Cash', gcash: 'GCash', bank: 'Bank transfer', cheque: 'Cheque' };
-  const cellStyle = { border: '1px solid #000', padding: '4px 6px', fontSize: 12, verticalAlign: 'top' };
-  const labelCell = t => ce('td', { style: { ...cellStyle, fontWeight: 700, whiteSpace: 'nowrap', width: '18%' } }, t);
-  const valueCell = v => ce('td', { style: { ...cellStyle, width: '32%' } }, v == null || v === '' ? ' ' : String(v));
-  const headRows = [
-    ['NAME:', name, 'CONTACT NO.:', customer.phone || ''],
-    ['BLOCK:', customer.blockId || '', 'LOT TYPE:', plan.tierName || customer.typeName || ''],
-    ['LOT NO.:', customer.lotNo || '', 'PHASE NO.:', customer.phaseNo || ''],
-    ['CONTRACT PRICE:', plan.price ? fmt(plan.price) : '', 'YEAR CONTRACT:', plan.termLabel || ''],
-    ['DATE:', addedText, 'AMOUNT:', plan.monthlyAmount ? fmt(plan.monthlyAmount) + ' / mo' : '']
+  const ordered = [...(payments || [])].sort((x, y) => (toDate(x.date) || 0) - (toDate(y.date) || 0));
+  const LEDGER_ROWS = 20;
+  const cell = { border: '1px solid #000', padding: '1px 3px', fontSize: 10, lineHeight: '12px', verticalAlign: 'middle' };
+  const head = { ...cell, fontWeight: 700, textAlign: 'center', fontSize: 9 };
+  const label = { ...cell, fontWeight: 700, whiteSpace: 'nowrap' };
+  const spacer = { border: 'none', padding: 0, width: 6 };
+  const val = v => (v == null || v === '' ? ' ' : String(v));
+  const tbl = { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontFamily: 'Arial, sans-serif', color: '#000' };
+
+  // Header block: label | value | spacer | label | value
+  const headerRows = [
+    ['NAME:', name, 'CONTACT NO.:', customer.phone],
+    ['BLOCK:', customer.blockId, 'LOT TYPE:', plan.tierName || customer.typeName],
+    ['LOT NO.:', customer.lotNo, 'PHASE NO.:', customer.phaseNo],
+    ['CONTRACT PRICE:', plan.price ? fmt(plan.price) : '', 'YEAR CONRACT:', plan.termLabel],
+    ['DATE:', fmtDate(customer.createdAt), 'AMOUNT:', plan.monthlyAmount ? fmt(plan.monthlyAmount) : '']
   ];
-  const ledgerCols = [0, 1, 2];
-  const fmtDate = d => d == null || d === '' ? '' : (typeof d === 'number' || (typeof d === 'string' && /^\d+$/.test(d)) ? new Date(Number(d)) : d && d.toDate ? d.toDate() : new Date(d)).toLocaleDateString('en-PH');
-  const ordered = [...(payments || [])].sort((x, y) => Number(new Date(x.date && x.date.toDate ? x.date.toDate() : x.date || 0)) - Number(new Date(y.date && y.date.toDate ? y.date.toDate() : y.date || 0)));
-  const ledgerRows = Array.from({ length: 11 }, (_, r) => ce('tr', { key: r }, ...ledgerCols.flatMap(g => {
-    const p = ordered[g * 11 + r];
+  const headerTable = ce('table', { style: { ...tbl, marginBottom: 6 } },
+    ce('colgroup', null, ce('col', { style: { width: '18%' } }), ce('col', { style: { width: '31%' } }), ce('col', { style: { width: '6px' } }), ce('col', { style: { width: '18%' } }), ce('col', { style: { width: '27%' } })),
+    ce('tbody', null, headerRows.map((r, i) => ce('tr', { key: i, style: { height: 18 } },
+      ce('td', { style: label }, r[0]), ce('td', { style: cell }, val(r[1])),
+      ce('td', { style: spacer }, ' '),
+      ce('td', { style: label }, r[2]), ce('td', { style: cell }, val(r[3]))))));
+
+  // Payment ledger: three groups of DATE | RECEIPT NO. | AMOUNT | REMARKS, with spacer columns between.
+  const groupHead = ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS (Cash, GCash, Bank transfer)'];
+  const ledgerHead = ce('tr', null, ...[0, 1, 2].flatMap(g => [
+    ...groupHead.map((h, i) => ce('th', { key: `h${g}-${i}`, style: head }, h)),
+    g < 2 ? ce('th', { key: `hs${g}`, style: spacer }, ' ') : null
+  ]).filter(Boolean));
+  const ledgerRows = Array.from({ length: LEDGER_ROWS }, (_, r) => ce('tr', { key: r, style: { height: 14 } }, ...[0, 1, 2].flatMap(g => {
+    const p = ordered[g * LEDGER_ROWS + r];
     const k = `${g}-${r}`;
     return [
-      ce('td', { key: k + 'd', style: cellStyle }, p ? fmtDate(p.date) : ' '),
-      ce('td', { key: k + 'r', style: cellStyle }, p ? (p.ref || p.receipt || '') : ' '),
-      ce('td', { key: k + 'a', style: { ...cellStyle, textAlign: 'right' } }, p ? fmt(p.amount) : ' '),
-      ce('td', { key: k + 'm', style: cellStyle }, p ? (p.note || METHOD[p.method] || p.method || '') : ' ')
-    ];
+      ce('td', { key: k + 'd', style: cell }, p ? fmtDate(p.date) : ' '),
+      ce('td', { key: k + 'r', style: cell }, p ? (p.ref || p.receipt || '') : ' '),
+      ce('td', { key: k + 'a', style: { ...cell, textAlign: 'right' } }, p ? fmt(p.amount) : ' '),
+      ce('td', { key: k + 'm', style: cell }, p ? (p.note || METHOD[p.method] || p.method || '') : ' '),
+      g < 2 ? ce('td', { key: k + 's', style: spacer }, ' ') : null
+    ].filter(Boolean);
   })));
-  const ledgerHead = ce('tr', null, ...ledgerCols.flatMap(g => ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS (Cash, GCash, Bank transfer)'].map((h, i) => ce('th', { key: g + '-' + i, style: { ...cellStyle, fontWeight: 700, textAlign: 'center' } }, h))));
-  const extra = ordered.length > 33 ? ce('div', { style: { fontSize: 11, marginTop: 4 } }, `${ordered.length - 33} more payment(s) are in the system and not shown on this sheet.`) : null;
-  return ce('div', { style: { fontFamily: 'Arial, sans-serif', color: '#000' } },
-    ce('table', { style: { width: '100%', borderCollapse: 'collapse', marginBottom: 12 } },
-      ce('tbody', null, headRows.map((r, i) => ce('tr', { key: i }, labelCell(r[0]), valueCell(r[1]), labelCell(r[2]), valueCell(r[3]))))),
-    ce('table', { style: { width: '100%', borderCollapse: 'collapse' } },
-      ce('thead', null, ledgerHead),
-      ce('tbody', null, ledgerRows)),
-    extra,
-    ce('table', { style: { width: '100%', borderCollapse: 'collapse', marginTop: 14 } },
-      ce('tbody', null,
-        ce('tr', null, labelCell('AGENT:'), ce('td', { style: cellStyle, colSpan: 3 }, customer.agentName || ' ')),
-        ce('tr', null, ce('th', { style: { ...cellStyle, fontWeight: 700, textAlign: 'center', width: '33%' } }, 'Date:'), ce('th', { style: { ...cellStyle, fontWeight: 700, textAlign: 'center', width: '33%' } }, 'Commission:'), ce('th', { style: { ...cellStyle, fontWeight: 700, textAlign: 'center', width: '34%' } }, 'Signature')),
-        ce('tr', null, ce('td', { style: { ...cellStyle, height: 28 } }, customer.agentCommissionDate || ' '), ce('td', { style: cellStyle }, customer.agentCommission ? fmt(customer.agentCommission) : ' '), ce('td', { style: cellStyle }, ' ')),
-        ce('tr', null, ce('td', { style: { ...cellStyle, height: 28 } }, ' '), ce('td', { style: cellStyle }, ' '), ce('td', { style: cellStyle }, ' ')),
-        ce('tr', null, labelCell('BROKER:'), ce('td', { style: cellStyle, colSpan: 3 }, customer.brokerName || ' ')))));
+  const ledgerTable = ce('table', { style: { ...tbl, marginBottom: 6 } },
+    ce('colgroup', null, ...[0, 1, 2].flatMap(g => [
+      ce('col', { key: g + 'c0', style: { width: '13%' } }), ce('col', { key: g + 'c1', style: { width: '11%' } }),
+      ce('col', { key: g + 'c2', style: { width: '11%' } }), ce('col', { key: g + 'c3', style: { width: '15%' } }),
+      g < 2 ? ce('col', { key: g + 'c4', style: { width: '6px' } }) : null
+    ].filter(Boolean))),
+    ce('thead', null, ledgerHead), ce('tbody', null, ledgerRows));
+
+  const extra = ordered.length > LEDGER_ROWS * 3 ? ce('div', { style: { fontSize: 10, marginBottom: 6 } }, `${ordered.length - LEDGER_ROWS * 3} more payment(s) are in the system and not shown on this sheet.`) : null;
+
+  // Agent / broker block
+  const spacerRow = () => ce('tr', { style: { height: 4 } }, ce('td', { colSpan: 3, style: { border: 'none', padding: 0 } }, ' '));
+  const agentTable = ce('table', { style: tbl },
+    ce('colgroup', null, ce('col', { style: { width: '34%' } }), ce('col', { style: { width: '38%' } }), ce('col', { style: { width: '28%' } })),
+    ce('tbody', null,
+      ce('tr', { style: { height: 20 } }, ce('td', { style: label }, 'AGENT:'), ce('td', { colSpan: 2, style: cell }, val(customer.agentName))),
+      ce('tr', { style: { height: 14 } }, ce('td', { style: head }, 'Date:'), ce('td', { style: head }, 'Commission:'), ce('td', { style: head }, 'Signature')),
+      ce('tr', { style: { height: 26 } }, ce('td', { style: cell }, fmtDate(customer.agentCommissionDate) || ' '), ce('td', { style: cell }, customer.agentCommission ? fmt(customer.agentCommission) : ' '), ce('td', { style: cell }, ' ')),
+      spacerRow(),
+      ce('tr', { style: { height: 20 } }, ce('td', { style: label }, 'BROKER:'), ce('td', { colSpan: 2, style: cell }, val(customer.brokerName))),
+      spacerRow(),
+      ce('tr', { style: { height: 26 } }, ce('td', { style: cell }, ' '), ce('td', { style: cell }, ' '), ce('td', { style: cell }, ' '))));
+
+  return ce('div', { style: { fontFamily: 'Arial, sans-serif', color: '#000' } }, headerTable, ledgerTable, extra, agentTable);
 }
 
 // ── Products panel ─────────────────────────────────────────────────────────
