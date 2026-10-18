@@ -2421,40 +2421,62 @@ function CustomerDetailModal({
     onClick: onClose
   }, "Close"))), /*#__PURE__*/React.createElement("div", {
     className: "print-sheet"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "letterhead"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "brand"
-  }, "Golden Harmonic Memorial Park"), /*#__PURE__*/React.createElement("div", {
-    className: "sub"
-  }, "Customer Record — Internal Records")), /*#__PURE__*/React.createElement("div", {
-    className: "sub"
-  }, "Printed: ", new Date().toLocaleString('en-PH'))), /*#__PURE__*/React.createElement("h2", null, "Customer Information"), /*#__PURE__*/React.createElement("div", {
-    className: "meta-grid"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Name: "), /*#__PURE__*/React.createElement("strong", null, customer.fullName || `${customer.firstName} ${customer.lastName}`)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Pipeline stage: "), /*#__PURE__*/React.createElement("strong", null, STAGE_LABEL[normalizeStage(customer.status)])), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Email: "), customer.email || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Phone: "), customer.phone || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Preferred location: "), customer.preferredLocation || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Interest: "), customer.interest || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Lead source: "), customer.source || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Date added: "), customer.createdAt && customer.createdAt.toDate ? customer.createdAt.toDate().toLocaleDateString('en-PH') : customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('en-PH') : '—')), customer.plan && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Plan Details"), customer.plan.imageUrl && /*#__PURE__*/React.createElement("img", {
-    src: customer.plan.imageUrl,
-    alt: customer.plan.tierName,
-    style: {
-      width: '100%',
-      maxHeight: 220,
-      objectFit: 'cover',
-      borderRadius: 6,
-      marginBottom: 10
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "meta-grid"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Plan: "), /*#__PURE__*/React.createElement("strong", null, customer.plan.tierName)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Term: "), customer.plan.termLabel || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Plan price: "), fmt(customer.plan.price)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Monthly amount: "), fmt(customer.plan.monthlyAmount), "/mo"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Total paid to date: "), fmt(bal.paid)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Remaining balance: "), fmt(bal.balance)))), payments.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Payment History"), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Amount"), /*#__PURE__*/React.createElement("th", null, "Method"), /*#__PURE__*/React.createElement("th", null, "Note"))), /*#__PURE__*/React.createElement("tbody", null, payments.map((p, i) => /*#__PURE__*/React.createElement("tr", {
-    key: i
-  }, /*#__PURE__*/React.createElement("td", null, p.date), /*#__PURE__*/React.createElement("td", null, fmt(p.amount)), /*#__PURE__*/React.createElement("td", null, p.method), /*#__PURE__*/React.createElement("td", null, p.note || '—')))))), customer.followUpAt && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Follow-up"), /*#__PURE__*/React.createElement("div", {
-    className: "meta-grid"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Date: "), customer.followUpAt), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Note: "), customer.followUpNote || '—'))), /*#__PURE__*/React.createElement("h2", null, "Activity & Notes"), activity.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    className: "activity-item"
-  }, "No activity recorded.") : activity.map((a, i) => /*#__PURE__*/React.createElement("div", {
-    className: "activity-item",
-    key: i
-  }, /*#__PURE__*/React.createElement("strong", null, a.at ? new Date(a.at).toLocaleString('en-PH') : '—'), " — ", a.text, a.author ? ` (${a.author})` : '')), /*#__PURE__*/React.createElement("div", {
-    className: "footer-note"
-  }, "This record was generated from the Golden Harmonic Memorial Park CRM for internal filing purposes.")));
+  }, /*#__PURE__*/React.createElement(CustomerMonitoringSheet, {
+    customer: customer,
+    payments: payments
+  })));
+}
+
+// ── Customer monitoring sheet (printed layout matches the paper form) ──────
+function CustomerMonitoringSheet({ customer, payments }) {
+  const ce = React.createElement;
+  const plan = customer.plan || {};
+  const name = customer.fullName || [customer.firstName, customer.lastName].filter(Boolean).join(' ');
+  const added = customer.createdAt && customer.createdAt.toDate ? customer.createdAt.toDate() : customer.createdAt ? new Date(customer.createdAt) : null;
+  const addedText = added ? added.toLocaleDateString('en-PH') : '';
+  const METHOD = { cash: 'Cash', gcash: 'GCash', bank: 'Bank transfer', cheque: 'Cheque' };
+  const cellStyle = { border: '1px solid #000', padding: '4px 6px', fontSize: 12, verticalAlign: 'top' };
+  const labelCell = t => ce('td', { style: { ...cellStyle, fontWeight: 700, whiteSpace: 'nowrap', width: '18%' } }, t);
+  const valueCell = v => ce('td', { style: { ...cellStyle, width: '32%' } }, v == null || v === '' ? ' ' : String(v));
+  const headRows = [
+    ['NAME:', name, 'CONTACT NO.:', customer.phone || ''],
+    ['BLOCK:', customer.blockId || '', 'LOT TYPE:', plan.tierName || customer.typeName || ''],
+    ['LOT NO.:', customer.lotNo || '', 'PHASE NO.:', customer.phaseNo || ''],
+    ['CONTRACT PRICE:', plan.price ? fmt(plan.price) : '', 'YEAR CONTRACT:', plan.termLabel || ''],
+    ['DATE:', addedText, 'AMOUNT:', plan.monthlyAmount ? fmt(plan.monthlyAmount) + ' / mo' : '']
+  ];
+  const ledgerCols = [0, 1, 2];
+  const fmtDate = d => d == null || d === '' ? '' : (typeof d === 'number' || (typeof d === 'string' && /^\d+$/.test(d)) ? new Date(Number(d)) : d && d.toDate ? d.toDate() : new Date(d)).toLocaleDateString('en-PH');
+  const ordered = [...(payments || [])].sort((x, y) => Number(new Date(x.date && x.date.toDate ? x.date.toDate() : x.date || 0)) - Number(new Date(y.date && y.date.toDate ? y.date.toDate() : y.date || 0)));
+  const ledgerRows = Array.from({ length: 11 }, (_, r) => ce('tr', { key: r }, ...ledgerCols.flatMap(g => {
+    const p = ordered[g * 11 + r];
+    const k = `${g}-${r}`;
+    return [
+      ce('td', { key: k + 'd', style: cellStyle }, p ? fmtDate(p.date) : ' '),
+      ce('td', { key: k + 'r', style: cellStyle }, p ? (p.ref || p.receipt || '') : ' '),
+      ce('td', { key: k + 'a', style: { ...cellStyle, textAlign: 'right' } }, p ? fmt(p.amount) : ' '),
+      ce('td', { key: k + 'm', style: cellStyle }, p ? (p.note || METHOD[p.method] || p.method || '') : ' ')
+    ];
+  })));
+  const ledgerHead = ce('tr', null, ...ledgerCols.flatMap(g => ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS (Cash, GCash, Bank transfer)'].map((h, i) => ce('th', { key: g + '-' + i, style: { ...cellStyle, fontWeight: 700, textAlign: 'center' } }, h))));
+  const extra = ordered.length > 33 ? ce('div', { style: { fontSize: 11, marginTop: 4 } }, `${ordered.length - 33} more payment(s) are in the system and not shown on this sheet.`) : null;
+  return ce('div', { style: { fontFamily: 'Arial, sans-serif', color: '#000' } },
+    ce('div', { style: { textAlign: 'center', marginBottom: 10 } },
+      ce('div', { style: { fontSize: 16, fontWeight: 700 } }, 'GOLDEN HARMONIC MEMORIAL PARK'),
+      ce('div', { style: { fontSize: 13, fontWeight: 700, marginTop: 2 } }, 'CUSTOMER MONITORING SHEET')),
+    ce('table', { style: { width: '100%', borderCollapse: 'collapse', marginBottom: 12 } },
+      ce('tbody', null, headRows.map((r, i) => ce('tr', { key: i }, labelCell(r[0]), valueCell(r[1]), labelCell(r[2]), valueCell(r[3]))))),
+    ce('table', { style: { width: '100%', borderCollapse: 'collapse' } },
+      ce('thead', null, ledgerHead),
+      ce('tbody', null, ledgerRows)),
+    extra,
+    ce('table', { style: { width: '100%', borderCollapse: 'collapse', marginTop: 14 } },
+      ce('tbody', null,
+        ce('tr', null, labelCell('AGENT:'), valueCell(customer.agentName || ''), labelCell('BROKER:'), valueCell(customer.brokerName || '')),
+        ce('tr', null, labelCell('Date:'), valueCell(customer.agentCommissionDate || ''), labelCell('Commission:'), valueCell(customer.agentCommission ? fmt(customer.agentCommission) : '')),
+        ce('tr', null, labelCell('Signature:'), ce('td', { style: { ...cellStyle, height: 40 }, colSpan: 3 }, ' ')))),
+    ce('div', { style: { fontSize: 10, marginTop: 14, color: '#555' } }, `Printed: ${new Date().toLocaleString('en-PH')}`)
+  );
 }
 
 // ── Products panel ─────────────────────────────────────────────────────────
