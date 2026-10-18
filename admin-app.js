@@ -2498,6 +2498,7 @@ async function downloadCustomerSheet(d) {
     if (!p) return;
     kids(p, 'r').forEach(r => p.removeChild(r));
     const pPr = kids(p, 'pPr')[0];
+    if (pPr) kids(pPr, 'ind').forEach(n => pPr.removeChild(n)); // some cells have a negative indent that would push text out of the cell
     const mark = pPr ? kids(pPr, 'rPr')[0] : null;
     const r = doc.createElementNS(W, 'w:r');
     if (mark) r.appendChild(mark.cloneNode(true));
