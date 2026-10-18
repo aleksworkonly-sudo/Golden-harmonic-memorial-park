@@ -1892,6 +1892,7 @@ function CustomerDetailModal({
   const [editingPlan, setEditingPlan] = useState(false);
   // Sales (presale applications) bought by this customer, matched by mobile number, fill in the printed sheet.
   const [sales, setSales] = useState([]);
+  const [sheetQueue, setSheetQueue] = useState([]);
   useEffect(() => {
     const key = String(customer.phone || '').replace(/\D/g, '').slice(-10);
     if (key.length < 10) {
@@ -2427,23 +2428,20 @@ function CustomerDetailModal({
   }, /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline",
-    onClick: async () => {
-      try {
-        if (sales.length) {
-          for (const sale of sales) await downloadCustomerSheet({
-            ...customerSheetData(customer, payments),
-            ...presaleSheetData(sale)
-          });
-        } else await downloadCustomerSheet(customerSheetData(customer, payments));
-      } catch (e) {
-        onToast && onToast(e && e.message || 'Could not make the sheet');
-      }
-    }
-  }, "⬇ Customer sheet (Word)"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSheetQueue(sales.length ? sales.map(sale => ({
+      ...customerSheetData(customer, payments),
+      ...presaleSheetData(sale)
+    })) : [customerSheetData(customer, payments)])
+  }, "📝 Customer sheet (edit, then Word)"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline",
     onClick: onClose
-  }, "Close"))));
+  }, "Close")), sheetQueue.length > 0 && /*#__PURE__*/React.createElement(CustomerSheetEditor, {
+    key: sheetQueue.length,
+    data: sheetQueue[0],
+    onClose: () => setSheetQueue(q => q.slice(1)),
+    onToast: onToast
+  })));
 }
 
 // ── Customer monitoring sheet: the company's own Word form, filled in ──────
@@ -2475,6 +2473,104 @@ function presaleSheetData(a) {
     brokerName: a.brokerName || '',
     phaseNo: a.phaseNo || ''
   };
+}
+// Edit screen: staff can correct anything on the sheet before the Word file is made.
+function CustomerSheetEditor({ data, onClose, onToast }) {
+  const ce = React.createElement;
+  const toMs = v => v && v.toDate ? v.toDate().getTime() : typeof v === 'number' ? v : (typeof v === 'string' && /^\d+$/.test(v)) ? Number(v) : v ? new Date(v).getTime() : null;
+  const ymd = v => {
+    const ms = toMs(v);
+    if (!ms || isNaN(ms)) return '';
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const fromYmd = t => { // a date typed as YYYY-MM-DD, read as a local date
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t || '');
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime() : null;
+  };
+  const num = t => { const n = Number(String(t == null ? '' : t).replace(/[^0-9.]/g, '')); return n > 0 ? n : 0; };
+  const [f, setF] = React.useState(() => ({
+    fullName: data.fullName || '',
+    phone: data.phone || '',
+    blockId: data.blockId || '',
+    lotNo: data.lotNo || '',
+    typeName: data.typeName || '',
+    phaseNo: data.phaseNo || '',
+    contractPrice: data.contractPriceValue || '',
+    yearText: data.yearText || '',
+    date: ymd(data.createdAt),
+    amount: data.amountValue || '',
+    agentName: data.agentName || '',
+    commissionDate: ymd(data.agentCommissionDate),
+    agentCommission: data.agentCommission || '',
+    brokerName: data.brokerName || ''
+  }));
+  const [rows, setRows] = React.useState(() => [...(data.payments || [])].sort((x, y) => (toMs(x.date) || 0) - (toMs(y.date) || 0)).map(p => ({
+    date: ymd(p.date),
+    ref: p.ref || p.receipt || '',
+    amount: p.amount || '',
+    note: p.note || ''
+  })));
+  const [busy, setBusy] = React.useState(false);
+  const set = k => e => setF(x => ({ ...x, [k]: e.target.value }));
+  const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
+  const inp = { width: '100%', boxSizing: 'border-box', padding: 6, fontSize: 13 };
+  const field = (label, k, type) => ce('label', { style: { display: 'block', fontSize: 12, fontWeight: 600 } }, label, ce('input', { type: type || 'text', value: f[k], onChange: set(k), style: { ...inp, display: 'block', marginTop: 2, fontWeight: 400 } }));
+  const make = async () => {
+    setBusy(true);
+    try {
+      await downloadCustomerSheet({
+        fullName: f.fullName,
+        phone: f.phone,
+        blockId: f.blockId,
+        lotNo: f.lotNo,
+        typeName: f.typeName,
+        phaseNo: f.phaseNo,
+        contractPriceValue: num(f.contractPrice),
+        yearText: f.yearText,
+        createdAt: fromYmd(f.date),
+        amountValue: num(f.amount),
+        agentName: f.agentName,
+        agentCommissionDate: fromYmd(f.commissionDate),
+        agentCommission: num(f.agentCommission),
+        brokerName: f.brokerName,
+        payments: rows.filter(r => r.date || r.ref || num(r.amount) || r.note).map(r => ({ date: fromYmd(r.date), ref: r.ref, amount: num(r.amount), note: r.note }))
+      });
+      onClose();
+    } catch (e) {
+      onToast && onToast(e && e.message || 'Could not make the sheet');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return ce('div', { className: 'modal-bg', style: { zIndex: 200 } },
+    ce('div', { className: 'modal wide', style: { width: 820 } },
+      ce('h3', null, 'Customer monitoring sheet — check and edit, then download'),
+      ce('div', { className: 'modal-scroll' },
+        ce('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 } },
+          field('NAME', 'fullName'), field('CONTACT NO.', 'phone'),
+          field('BLOCK', 'blockId'), field('LOT TYPE', 'typeName'),
+          field('LOT NO.', 'lotNo'), field('PHASE NO.', 'phaseNo'),
+          field('CONTRACT PRICE (₱)', 'contractPrice', 'number'), field('YEAR CONRACT', 'yearText'),
+          field('DATE', 'date', 'date'), field('AMOUNT (₱)', 'amount', 'number')),
+        ce('div', { style: { fontWeight: 700, fontSize: 13, margin: '16px 0 6px' } }, 'Payments (oldest first, up to 60)'),
+        ce('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 12 } },
+          ce('thead', null, ce('tr', null, ['DATE', 'RECEIPT NO.', 'AMOUNT (₱)', 'REMARKS (Cash, GCash, Bank transfer)', ''].map((h, i) => ce('th', { key: i, style: { textAlign: 'left', padding: '2px 4px' } }, h)))),
+          ce('tbody', null, rows.map((r, i) => ce('tr', { key: i },
+            ce('td', { style: { padding: 2 } }, ce('input', { type: 'date', value: r.date, onChange: e => setRow(i, 'date', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('input', { value: r.ref, onChange: e => setRow(i, 'ref', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('input', { type: 'number', value: r.amount, onChange: e => setRow(i, 'amount', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('input', { value: r.note, onChange: e => setRow(i, 'note', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('button', { type: 'button', className: 'btn btn-outline btn-sm', onClick: () => setRows(rs => rs.filter((_, j) => j !== i)) }, '✕')))))),
+        rows.length < 60 && ce('button', { type: 'button', className: 'btn btn-outline btn-sm', style: { marginTop: 6 }, onClick: () => setRows(rs => [...rs, { date: ymd(Date.now()), ref: '', amount: '', note: '' }]) }, '+ Add payment row'),
+        ce('div', { style: { fontWeight: 700, fontSize: 13, margin: '16px 0 6px' } }, 'Agent and broker'),
+        ce('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 } },
+          field('AGENT', 'agentName'), field('BROKER', 'brokerName'),
+          field('Commission date', 'commissionDate', 'date'), field('Commission (₱)', 'agentCommission', 'number')),
+        ce('div', { style: { fontSize: 11, color: '#777', marginTop: 10 } }, 'Changes here only affect this sheet. They are not saved to the customer record.')),
+      ce('div', { className: 'modal-actions' },
+        ce('button', { type: 'button', className: 'btn btn-outline', onClick: onClose }, 'Cancel'),
+        ce('button', { type: 'button', className: 'btn btn-primary', disabled: busy, onClick: make }, busy ? 'Making…' : '⬇ Download Word sheet'))));
 }
 // Fills the company's own Word form (customer-monitoring-sheet.docx) with one customer's data
 // and downloads it. Only the empty cells are filled; the form itself is never changed.
@@ -3645,6 +3741,7 @@ function PresaleApplications({
   const [fBroker, setFBroker] = useState('');
   const [fPlot, setFPlot] = useState('');
   const [lastPay, setLastPay] = useState(null);
+  const [sheetData, setSheetData] = useState(null);
   const [autoSheet, setAutoSheet] = useState(() => {
     try {
       return localStorage.getItem('ghAutoSheet') !== '0';
@@ -3767,11 +3864,11 @@ function PresaleApplications({
       });
       setToast('Payment recorded');
       if (autoSheet) {
-        // The sheet is built from the sale as it is now, including the payment just recorded.
-        downloadCustomerSheet(presaleSheetData({
+        // Opens the sheet for review, built from the sale as it is now, including the payment just recorded.
+        setSheetData(presaleSheetData({
           ...a,
           payments: [...(a.payments || []), entry]
-        })).catch(e => setToast('Payment recorded, but the sheet could not be made: ' + (e && e.message || 'error')));
+        }));
       }
     } catch (err) {
       setToast(err && err.message || 'Could not save');
@@ -4641,7 +4738,11 @@ function PresaleApplications({
     type: "checkbox",
     checked: autoSheet,
     onChange: e => toggleAutoSheet(e.target.checked)
-  }), "Make the customer sheet (Word) automatically after each payment"), lastPay && lastPay.ref === sel.ref && plotEl("div", {
+  }), "Open the customer sheet for checking after each payment"), sheetData && plotEl(CustomerSheetEditor, {
+    data: sheetData,
+    onClose: () => setSheetData(null),
+    onToast: setToast
+  }), lastPay && lastPay.ref === sel.ref && plotEl("div", {
     style: {
       marginTop: 12,
       padding: 12,
@@ -4686,8 +4787,8 @@ function PresaleApplications({
     onClick: () => cancelApp(sel)
   }, "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
     className: "btn btn-outline btn-sm",
-    onClick: () => downloadCustomerSheet(presaleSheetData(sel)).catch(e => setToast(e && e.message || 'Could not make the sheet'))
-  }, "⬇ Customer sheet (Word)"), plotEl("button", {
+    onClick: () => setSheetData(presaleSheetData(sel))
+  }, "📝 Customer sheet (edit, then Word)"), plotEl("button", {
     className: "btn btn-outline btn-sm",
     onClick: () => setOpen(null)
   }, "Close")))));
