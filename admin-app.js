@@ -1255,7 +1255,11 @@ function Customers({
     }, /*#__PURE__*/React.createElement("button", {
       className: "btn btn-outline btn-sm",
       onClick: () => setOpenId(r._id)
-    }, "View"), plotsIndex[r._id] && /*#__PURE__*/React.createElement("button", {
+    }, "View"), /*#__PURE__*/React.createElement(CustomerSheetButton, {
+      customer: r,
+      plot: plotsIndex[r._id],
+      onToast: setToast
+    }), plotsIndex[r._id] && /*#__PURE__*/React.createElement("button", {
       className: "btn btn-gold btn-sm",
       title: `Block ${plotsIndex[r._id].blockId}, Lot ${plotsIndex[r._id].lotNo}`,
       onClick: () => goToPlot(plotsIndex[r._id])
@@ -2571,6 +2575,36 @@ function CustomerSheetEditor({ data, onClose, onToast }) {
       ce('div', { className: 'modal-actions' },
         ce('button', { type: 'button', className: 'btn btn-outline', onClick: onClose }, 'Cancel'),
         ce('button', { type: 'button', className: 'btn btn-primary', disabled: busy, onClick: make }, busy ? 'Making…' : '⬇ Download Word sheet'))));
+}
+// "📝 Sheet" button for the Customers list: finds the customer's sale (by mobile number), then opens the edit screen.
+function CustomerSheetButton({ customer, plot, label, onToast }) {
+  const ce = React.createElement;
+  const [queue, setQueue] = React.useState([]);
+  const [busy, setBusy] = React.useState(false);
+  const open = async () => {
+    setBusy(true);
+    try {
+      const key = String(customer.phone || '').replace(/\D/g, '').slice(-10);
+      let sales = [];
+      if (key.length >= 10) {
+        const snap = await window.db.collection('presaleApplications').where('mobileKey', '==', key).get();
+        sales = snap.docs.map(d => ({ _id: d.id, ...d.data() })).filter(x => x.status !== 'cancelled');
+      }
+      const base = customerSheetData({
+        ...customer,
+        blockId: customer.blockId || (plot && plot.blockId) || '',
+        lotNo: customer.lotNo || (plot && plot.lotNo) || ''
+      }, customer.payments || []);
+      setQueue(sales.length ? sales.map(sale => ({ ...base, ...presaleSheetData(sale) })) : [base]);
+    } catch (e) {
+      onToast && onToast('Could not open the sheet: ' + (e && e.message || 'error'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return ce(React.Fragment, null,
+    ce('button', { className: 'btn btn-outline btn-sm', disabled: busy, title: 'Customer monitoring sheet: check and edit, then download as Word', onClick: open }, label || '📝 Sheet'),
+    queue.length > 0 && ce(CustomerSheetEditor, { key: queue.length, data: queue[0], onClose: () => setQueue(q => q.slice(1)), onToast }));
 }
 // Fills the company's own Word form (customer-monitoring-sheet.docx) with one customer's data
 // and downloads it. Only the empty cells are filled; the form itself is never changed.
