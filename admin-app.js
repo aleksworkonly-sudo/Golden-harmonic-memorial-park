@@ -1890,6 +1890,19 @@ function CustomerDetailModal({
 }) {
   const [tab, setTab] = useState('payments');
   const [editingPlan, setEditingPlan] = useState(false);
+  // Sales (presale applications) bought by this customer, matched by mobile number, fill in the printed sheet.
+  const [sales, setSales] = useState([]);
+  useEffect(() => {
+    const key = String(customer.phone || '').replace(/\D/g, '').slice(-10);
+    if (key.length < 10) {
+      setSales([]);
+      return;
+    }
+    return window.db.collection('presaleApplications').where('mobileKey', '==', key).onSnapshot(snap => setSales(snap.docs.map(d => ({
+      _id: d.id,
+      ...d.data()
+    })).filter(x => x.status !== 'cancelled')), () => setSales([]));
+  }, [customer.phone]);
   const [plan, setPlan] = useState(customer.plan || (customer.interestedPlanId ? {
     tierId: customer.interestedPlanId,
     tierName: customer.interestedPlanName,
@@ -2421,13 +2434,52 @@ function CustomerDetailModal({
     onClick: onClose
   }, "Close"))), /*#__PURE__*/React.createElement("div", {
     className: "print-sheet"
+  }, sales.length ? sales.map((sale, i) => /*#__PURE__*/React.createElement("div", {
+    key: sale._id,
+    style: i ? {
+      pageBreakBefore: 'always'
+    } : undefined
   }, /*#__PURE__*/React.createElement(CustomerMonitoringSheet, {
+    customer: {
+      ...customer,
+      ...presaleSheetData(sale)
+    },
+    payments: presaleSheetData(sale).payments
+  }))) : /*#__PURE__*/React.createElement(CustomerMonitoringSheet, {
     customer: customer,
     payments: payments
   })));
 }
 
 // ── Customer monitoring sheet (printed layout matches the paper form) ──────
+// Turns a presale sale (presaleApplications doc) into the fields the paper sheet needs.
+function presaleSheetData(a) {
+  const plots = presalePlots(a);
+  const uniq = arr => [...new Set(arr.filter(v => v !== undefined && v !== null && v !== ''))];
+  const pays = (a.payments || []).map(p => ({
+    date: p.date,
+    ref: p.ref,
+    amount: p.amount,
+    method: p.method || a.method,
+    note: (PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || '') + (p.remarks ? ' — ' + p.remarks : '')
+  }));
+  const first = [...pays].sort((x, y) => Number(x.date) - Number(y.date))[0];
+  return {
+    fullName: a.name,
+    phone: a.mobile,
+    blockId: uniq(plots.map(x => x.blockId)).join(', '),
+    lotNo: uniq(plots.map(x => x.lotNo)).join(', '),
+    typeName: uniq(plots.map(x => PRESALE_TYPE_LABEL[x.typeId] || x.typeId)).join(', '),
+    contractPriceValue: a.totalPrice,
+    yearText: a.plan === 'cash' ? 'Spot cash' : a.years ? `${a.years} year${a.years > 1 ? 's' : ''}` : '',
+    createdAt: first ? first.date : a.createdAt,
+    amountValue: first ? first.amount : null,
+    payments: pays,
+    agentName: a.agentName || '',
+    agentCommission: a.agentCommission || 0,
+    brokerName: a.brokerName || ''
+  };
+}
 function CustomerMonitoringSheet({ customer, payments }) {
   // Layout copied from the paper "Customer Monitoring Sheet" (Word form):
   // header block, three 20-row payment ledgers, agent / broker block.
@@ -2451,8 +2503,8 @@ function CustomerMonitoringSheet({ customer, payments }) {
     ['NAME:', name, 'CONTACT NO.:', customer.phone],
     ['BLOCK:', customer.blockId, 'LOT TYPE:', plan.tierName || customer.typeName],
     ['LOT NO.:', customer.lotNo, 'PHASE NO.:', customer.phaseNo],
-    ['CONTRACT PRICE:', plan.price ? fmt(plan.price) : '', 'YEAR CONRACT:', plan.termLabel],
-    ['DATE:', fmtDate(customer.createdAt), 'AMOUNT:', plan.monthlyAmount ? fmt(plan.monthlyAmount) : '']
+    ['CONTRACT PRICE:', customer.contractPriceValue ? fmt(customer.contractPriceValue) : plan.price ? fmt(plan.price) : '', 'YEAR CONRACT:', customer.yearText || plan.termLabel],
+    ['DATE:', fmtDate(customer.createdAt), 'AMOUNT:', customer.amountValue ? fmt(customer.amountValue) : plan.monthlyAmount ? fmt(plan.monthlyAmount) : '']
   ];
   const headerTable = ce('table', { style: { ...tbl, marginBottom: 6 } },
     ce('colgroup', null, ce('col', { style: { width: '18%' } }), ce('col', { style: { width: '31%' } }), ce('col', { style: { width: '6px' } }), ce('col', { style: { width: '18%' } }), ce('col', { style: { width: '27%' } })),
@@ -4575,8 +4627,16 @@ function PresaleApplications({
     onClick: () => cancelApp(sel)
   }, "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
     className: "btn btn-outline btn-sm",
+    onClick: () => window.print()
+  }, "🖨 Print customer sheet"), plotEl("button", {
+    className: "btn btn-outline btn-sm",
     onClick: () => setOpen(null)
-  }, "Close")))));
+  }, "Close")), plotEl("div", {
+    className: "print-sheet"
+  }, plotEl(CustomerMonitoringSheet, {
+    customer: presaleSheetData(sel),
+    payments: presaleSheetData(sel).payments
+  })))));
 }
 
 // ── Agents and their 1-year commissions ──────────────────────────────────────
