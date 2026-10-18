@@ -2461,9 +2461,6 @@ function CustomerMonitoringSheet({ customer, payments }) {
   const ledgerHead = ce('tr', null, ...ledgerCols.flatMap(g => ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS (Cash, GCash, Bank transfer)'].map((h, i) => ce('th', { key: g + '-' + i, style: { ...cellStyle, fontWeight: 700, textAlign: 'center' } }, h))));
   const extra = ordered.length > 33 ? ce('div', { style: { fontSize: 11, marginTop: 4 } }, `${ordered.length - 33} more payment(s) are in the system and not shown on this sheet.`) : null;
   return ce('div', { style: { fontFamily: 'Arial, sans-serif', color: '#000' } },
-    ce('div', { style: { textAlign: 'center', marginBottom: 10 } },
-      ce('div', { style: { fontSize: 16, fontWeight: 700 } }, 'GOLDEN HARMONIC MEMORIAL PARK'),
-      ce('div', { style: { fontSize: 13, fontWeight: 700, marginTop: 2 } }, 'CUSTOMER MONITORING SHEET')),
     ce('table', { style: { width: '100%', borderCollapse: 'collapse', marginBottom: 12 } },
       ce('tbody', null, headRows.map((r, i) => ce('tr', { key: i }, labelCell(r[0]), valueCell(r[1]), labelCell(r[2]), valueCell(r[3]))))),
     ce('table', { style: { width: '100%', borderCollapse: 'collapse' } },
@@ -2472,11 +2469,11 @@ function CustomerMonitoringSheet({ customer, payments }) {
     extra,
     ce('table', { style: { width: '100%', borderCollapse: 'collapse', marginTop: 14 } },
       ce('tbody', null,
-        ce('tr', null, labelCell('AGENT:'), valueCell(customer.agentName || ''), labelCell('BROKER:'), valueCell(customer.brokerName || '')),
-        ce('tr', null, labelCell('Date:'), valueCell(customer.agentCommissionDate || ''), labelCell('Commission:'), valueCell(customer.agentCommission ? fmt(customer.agentCommission) : '')),
-        ce('tr', null, labelCell('Signature:'), ce('td', { style: { ...cellStyle, height: 40 }, colSpan: 3 }, ' ')))),
-    ce('div', { style: { fontSize: 10, marginTop: 14, color: '#555' } }, `Printed: ${new Date().toLocaleString('en-PH')}`)
-  );
+        ce('tr', null, labelCell('AGENT:'), ce('td', { style: cellStyle, colSpan: 3 }, customer.agentName || ' ')),
+        ce('tr', null, ce('th', { style: { ...cellStyle, fontWeight: 700, textAlign: 'center', width: '33%' } }, 'Date:'), ce('th', { style: { ...cellStyle, fontWeight: 700, textAlign: 'center', width: '33%' } }, 'Commission:'), ce('th', { style: { ...cellStyle, fontWeight: 700, textAlign: 'center', width: '34%' } }, 'Signature')),
+        ce('tr', null, ce('td', { style: { ...cellStyle, height: 28 } }, customer.agentCommissionDate || ' '), ce('td', { style: cellStyle }, customer.agentCommission ? fmt(customer.agentCommission) : ' '), ce('td', { style: cellStyle }, ' ')),
+        ce('tr', null, ce('td', { style: { ...cellStyle, height: 28 } }, ' '), ce('td', { style: cellStyle }, ' '), ce('td', { style: cellStyle }, ' ')),
+        ce('tr', null, labelCell('BROKER:'), ce('td', { style: cellStyle, colSpan: 3 }, customer.brokerName || ' ')))));
 }
 
 // ── Products panel ─────────────────────────────────────────────────────────
