@@ -2471,7 +2471,7 @@ function presaleSheetData(a) {
     amountValue: first ? first.amount : null,
     payments: pays,
     agentName: a.agentName || '',
-    agentCommission: a.agentCommission || 0,
+    agentCommission: a.agentId ? presaleCommission(a) : a.agentCommission || 0,
     brokerName: a.brokerName || '',
     phaseNo: a.phaseNo || ''
   };
@@ -3645,6 +3645,19 @@ function PresaleApplications({
   const [fBroker, setFBroker] = useState('');
   const [fPlot, setFPlot] = useState('');
   const [lastPay, setLastPay] = useState(null);
+  const [autoSheet, setAutoSheet] = useState(() => {
+    try {
+      return localStorage.getItem('ghAutoSheet') !== '0';
+    } catch (e) {
+      return true;
+    }
+  });
+  const toggleAutoSheet = on => {
+    setAutoSheet(on);
+    try {
+      localStorage.setItem('ghAutoSheet', on ? '1' : '0');
+    } catch (e) {}
+  };
   useEffect(() => window.db.collection('presaleSettings').doc('allocation').onSnapshot(sn => {
     if (!sn.exists) return;
     const d = sn.data();
@@ -3753,6 +3766,13 @@ function PresaleApplications({
         ...split
       });
       setToast('Payment recorded');
+      if (autoSheet) {
+        // The sheet is built from the sale as it is now, including the payment just recorded.
+        downloadCustomerSheet(presaleSheetData({
+          ...a,
+          payments: [...(a.payments || []), entry]
+        })).catch(e => setToast('Payment recorded, but the sheet could not be made: ' + (e && e.message || 'error')));
+      }
     } catch (err) {
       setToast(err && err.message || 'Could not save');
     } finally {
@@ -4609,7 +4629,19 @@ function PresaleApplications({
     className: "btn btn-primary",
     disabled: busy,
     onClick: () => confirmPaid(sel)
-  }, "Record payment received"), lastPay && lastPay.ref === sel.ref && plotEl("div", {
+  }, "Record payment received"), plotEl("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 8,
+      fontSize: 12
+    }
+  }, plotEl("input", {
+    type: "checkbox",
+    checked: autoSheet,
+    onChange: e => toggleAutoSheet(e.target.checked)
+  }), "Make the customer sheet (Word) automatically after each payment"), lastPay && lastPay.ref === sel.ref && plotEl("div", {
     style: {
       marginTop: 12,
       padding: 12,
