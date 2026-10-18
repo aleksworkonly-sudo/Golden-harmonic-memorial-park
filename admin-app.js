@@ -2427,31 +2427,26 @@ function CustomerDetailModal({
   }, /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline",
-    onClick: () => window.print()
-  }, "🖨 Print record"), /*#__PURE__*/React.createElement("button", {
+    onClick: async () => {
+      try {
+        if (sales.length) {
+          for (const sale of sales) await downloadCustomerSheet({
+            ...customerSheetData(customer, payments),
+            ...presaleSheetData(sale)
+          });
+        } else await downloadCustomerSheet(customerSheetData(customer, payments));
+      } catch (e) {
+        onToast && onToast(e && e.message || 'Could not make the sheet');
+      }
+    }
+  }, "⬇ Customer sheet (Word)"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline",
     onClick: onClose
-  }, "Close"))), /*#__PURE__*/React.createElement("div", {
-    className: "print-sheet"
-  }, sales.length ? sales.map((sale, i) => /*#__PURE__*/React.createElement("div", {
-    key: sale._id,
-    style: i ? {
-      pageBreakBefore: 'always'
-    } : undefined
-  }, /*#__PURE__*/React.createElement(CustomerMonitoringSheet, {
-    customer: {
-      ...customer,
-      ...presaleSheetData(sale)
-    },
-    payments: presaleSheetData(sale).payments
-  }))) : /*#__PURE__*/React.createElement(CustomerMonitoringSheet, {
-    customer: customer,
-    payments: payments
-  })));
+  }, "Close"))));
 }
 
-// ── Customer monitoring sheet (printed layout matches the paper form) ──────
+// ── Customer monitoring sheet: the company's own Word form, filled in ──────
 // Turns a presale sale (presaleApplications doc) into the fields the paper sheet needs.
 function presaleSheetData(a) {
   const plots = presalePlots(a);
@@ -2461,7 +2456,7 @@ function presaleSheetData(a) {
     ref: p.ref,
     amount: p.amount,
     method: p.method || a.method,
-    note: (PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || '') + (p.remarks ? ' — ' + p.remarks : '')
+    note: PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || ''
   }));
   const first = [...pays].sort((x, y) => Number(x.date) - Number(y.date))[0];
   return {
@@ -2477,83 +2472,114 @@ function presaleSheetData(a) {
     payments: pays,
     agentName: a.agentName || '',
     agentCommission: a.agentCommission || 0,
-    brokerName: a.brokerName || ''
+    brokerName: a.brokerName || '',
+    phaseNo: a.phaseNo || ''
   };
 }
-function CustomerMonitoringSheet({ customer, payments }) {
-  // Layout copied from the paper "Customer Monitoring Sheet" (Word form):
-  // header block, three 20-row payment ledgers, agent / broker block.
-  const ce = React.createElement;
-  const name = customer.fullName || [customer.firstName, customer.lastName].filter(Boolean).join(' ');
-  const plan = customer.plan || {};
+// Fills the company's own Word form (customer-monitoring-sheet.docx) with one customer's data
+// and downloads it. Only the empty cells are filled; the form itself is never changed.
+async function downloadCustomerSheet(d) {
+  if (!window.JSZip) throw new Error('The Word library did not load. Check the internet connection and refresh the page.');
+  const res = await fetch('customer-monitoring-sheet.docx', { cache: 'no-cache' });
+  if (!res.ok) throw new Error('Could not load the sheet template.');
+  const zip = await window.JSZip.loadAsync(await res.arrayBuffer());
+  const xml = await zip.file('word/document.xml').async('string');
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const kids = (el, name) => Array.from(el.childNodes).filter(n => n.localName === name);
+  const textOf = el => Array.from(el.getElementsByTagNameNS(W, 't')).map(t => t.textContent).join('');
+  const tables = Array.from(doc.getElementsByTagNameNS(W, 'tbl'));
+  const findTable = label => tables.find(t => textOf(t).includes(label));
+  const rowsOf = t => kids(t, 'tr');
+  const cellsOf = r => kids(r, 'tc');
+  const setCell = (tc, text) => {
+    if (!tc || text === undefined || text === null || text === '') return;
+    const p = kids(tc, 'p')[0];
+    if (!p) return;
+    kids(p, 'r').forEach(r => p.removeChild(r));
+    const pPr = kids(p, 'pPr')[0];
+    const mark = pPr ? kids(pPr, 'rPr')[0] : null;
+    const r = doc.createElementNS(W, 'w:r');
+    if (mark) r.appendChild(mark.cloneNode(true));
+    const t = doc.createElementNS(W, 'w:t');
+    t.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+    t.textContent = String(text);
+    r.appendChild(t);
+    p.appendChild(r);
+  };
   const toDate = v => v && v.toDate ? v.toDate() : (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))) ? new Date(Number(v)) : v ? new Date(v) : null;
-  const fmtDate = v => { const d = toDate(v); return d && !isNaN(d) ? d.toLocaleDateString('en-PH') : ''; };
-  const METHOD = { cash: 'Cash', gcash: 'GCash', bank: 'Bank transfer', cheque: 'Cheque' };
-  const ordered = [...(payments || [])].sort((x, y) => (toDate(x.date) || 0) - (toDate(y.date) || 0));
-  const LEDGER_ROWS = 20;
-  const cell = { border: '1px solid #000', padding: '1px 3px', fontSize: 10, lineHeight: '12px', verticalAlign: 'middle' };
-  const head = { ...cell, fontWeight: 700, textAlign: 'center', fontSize: 9 };
-  const label = { ...cell, fontWeight: 700, whiteSpace: 'nowrap' };
-  const spacer = { border: 'none', padding: 0, width: 6 };
-  const val = v => (v == null || v === '' ? ' ' : String(v));
-  const tbl = { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontFamily: 'Arial, sans-serif', color: '#000' };
+  const dateText = v => { const x = toDate(v); return x && !isNaN(x) ? x.toLocaleDateString('en-PH', { year: 'numeric', month: '2-digit', day: '2-digit' }) : ''; };
+  const money = n => n || n === 0 ? fmt2(n) : '';
 
-  // Header block: label | value | spacer | label | value
-  const headerRows = [
-    ['NAME:', name, 'CONTACT NO.:', customer.phone],
-    ['BLOCK:', customer.blockId, 'LOT TYPE:', plan.tierName || customer.typeName],
-    ['LOT NO.:', customer.lotNo, 'PHASE NO.:', customer.phaseNo],
-    ['CONTRACT PRICE:', customer.contractPriceValue ? fmt(customer.contractPriceValue) : plan.price ? fmt(plan.price) : '', 'YEAR CONRACT:', customer.yearText || plan.termLabel],
-    ['DATE:', fmtDate(customer.createdAt), 'AMOUNT:', customer.amountValue ? fmt(customer.amountValue) : plan.monthlyAmount ? fmt(plan.monthlyAmount) : '']
+  // Header block (NAME, BLOCK, LOT NO., CONTRACT PRICE, DATE) : value cells are 2nd and 5th
+  const header = findTable('NAME:');
+  const hv = [
+    [d.fullName, d.phone],
+    [d.blockId, d.typeName],
+    [d.lotNo, d.phaseNo],
+    [d.contractPriceValue ? money(d.contractPriceValue) : '', d.yearText],
+    [dateText(d.createdAt), d.amountValue ? money(d.amountValue) : '']
   ];
-  const headerTable = ce('table', { style: { ...tbl, marginBottom: 6 } },
-    ce('colgroup', null, ce('col', { style: { width: '18%' } }), ce('col', { style: { width: '31%' } }), ce('col', { style: { width: '6px' } }), ce('col', { style: { width: '18%' } }), ce('col', { style: { width: '27%' } })),
-    ce('tbody', null, headerRows.map((r, i) => ce('tr', { key: i, style: { height: 18 } },
-      ce('td', { style: label }, r[0]), ce('td', { style: cell }, val(r[1])),
-      ce('td', { style: spacer }, ' '),
-      ce('td', { style: label }, r[2]), ce('td', { style: cell }, val(r[3]))))));
+  rowsOf(header).forEach((row, ri) => {
+    const c = cellsOf(row);
+    if (hv[ri]) { setCell(c[1], hv[ri][0]); setCell(c[4], hv[ri][1]); }
+  });
 
-  // Payment ledger: three groups of DATE | RECEIPT NO. | AMOUNT | REMARKS, with spacer columns between.
-  const groupHead = ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS (Cash, GCash, Bank transfer)'];
-  const ledgerHead = ce('tr', null, ...[0, 1, 2].flatMap(g => [
-    ...groupHead.map((h, i) => ce('th', { key: `h${g}-${i}`, style: head }, h)),
-    g < 2 ? ce('th', { key: `hs${g}`, style: spacer }, ' ') : null
-  ]).filter(Boolean));
-  const ledgerRows = Array.from({ length: LEDGER_ROWS }, (_, r) => ce('tr', { key: r, style: { height: 14 } }, ...[0, 1, 2].flatMap(g => {
-    const p = ordered[g * LEDGER_ROWS + r];
-    const k = `${g}-${r}`;
-    return [
-      ce('td', { key: k + 'd', style: cell }, p ? fmtDate(p.date) : ' '),
-      ce('td', { key: k + 'r', style: cell }, p ? (p.ref || p.receipt || '') : ' '),
-      ce('td', { key: k + 'a', style: { ...cell, textAlign: 'right' } }, p ? fmt(p.amount) : ' '),
-      ce('td', { key: k + 'm', style: cell }, p ? (p.note || METHOD[p.method] || p.method || '') : ' '),
-      g < 2 ? ce('td', { key: k + 's', style: spacer }, ' ') : null
-    ].filter(Boolean);
-  })));
-  const ledgerTable = ce('table', { style: { ...tbl, marginBottom: 6 } },
-    ce('colgroup', null, ...[0, 1, 2].flatMap(g => [
-      ce('col', { key: g + 'c0', style: { width: '13%' } }), ce('col', { key: g + 'c1', style: { width: '11%' } }),
-      ce('col', { key: g + 'c2', style: { width: '11%' } }), ce('col', { key: g + 'c3', style: { width: '15%' } }),
-      g < 2 ? ce('col', { key: g + 'c4', style: { width: '6px' } }) : null
-    ].filter(Boolean))),
-    ce('thead', null, ledgerHead), ce('tbody', null, ledgerRows));
+  // Payment ledger: 3 groups of 20 rows, oldest payment first
+  const ledger = findTable('RECEIPT NO.');
+  const lrows = rowsOf(ledger);
+  const pays = [...(d.payments || [])].sort((x, y) => (toDate(x.date) || 0) - (toDate(y.date) || 0));
+  pays.slice(0, 60).forEach((p, i) => {
+    const row = lrows[1 + (i % 20)];
+    if (!row) return;
+    const c = cellsOf(row);
+    const b = Math.floor(i / 20) * 5;
+    setCell(c[b], dateText(p.date));
+    setCell(c[b + 1], p.ref || p.receipt || '');
+    setCell(c[b + 2], money(p.amount));
+    setCell(c[b + 3], p.note || '');
+  });
 
-  const extra = ordered.length > LEDGER_ROWS * 3 ? ce('div', { style: { fontSize: 10, marginBottom: 6 } }, `${ordered.length - LEDGER_ROWS * 3} more payment(s) are in the system and not shown on this sheet.`) : null;
+  // Agent and broker block
+  const agent = findTable('AGENT:');
+  const arows = rowsOf(agent);
+  setCell(cellsOf(arows[0])[1], d.agentName);
+  setCell(cellsOf(arows[2])[0], dateText(d.agentCommissionDate));
+  setCell(cellsOf(arows[2])[1], d.agentCommission ? money(d.agentCommission) : '');
+  const broker = arows.find(r => textOf(r).includes('BROKER:'));
+  if (broker) setCell(cellsOf(broker)[1], d.brokerName);
 
-  // Agent / broker block
-  const spacerRow = () => ce('tr', { style: { height: 4 } }, ce('td', { colSpan: 3, style: { border: 'none', padding: 0 } }, ' '));
-  const agentTable = ce('table', { style: tbl },
-    ce('colgroup', null, ce('col', { style: { width: '34%' } }), ce('col', { style: { width: '38%' } }), ce('col', { style: { width: '28%' } })),
-    ce('tbody', null,
-      ce('tr', { style: { height: 20 } }, ce('td', { style: label }, 'AGENT:'), ce('td', { colSpan: 2, style: cell }, val(customer.agentName))),
-      ce('tr', { style: { height: 14 } }, ce('td', { style: head }, 'Date:'), ce('td', { style: head }, 'Commission:'), ce('td', { style: head }, 'Signature')),
-      ce('tr', { style: { height: 26 } }, ce('td', { style: cell }, fmtDate(customer.agentCommissionDate) || ' '), ce('td', { style: cell }, customer.agentCommission ? fmt(customer.agentCommission) : ' '), ce('td', { style: cell }, ' ')),
-      spacerRow(),
-      ce('tr', { style: { height: 20 } }, ce('td', { style: label }, 'BROKER:'), ce('td', { colSpan: 2, style: cell }, val(customer.brokerName))),
-      spacerRow(),
-      ce('tr', { style: { height: 26 } }, ce('td', { style: cell }, ' '), ce('td', { style: cell }, ' '), ce('td', { style: cell }, ' '))));
-
-  return ce('div', { style: { fontFamily: 'Arial, sans-serif', color: '#000' } }, headerTable, ledgerTable, extra, agentTable);
+  const out = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(doc).replace(/^<\?xml[^>]*\?>\s*/, '');
+  zip.file('word/document.xml', out);
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Customer Monitoring Sheet - ${(d.fullName || 'customer').replace(/[^\w .-]/g, '')}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  return blob;
+}
+// Same fields for a CRM customer who has no sale yet
+function customerSheetData(customer, payments) {
+  const plan = customer.plan || {};
+  return {
+    fullName: customer.fullName || [customer.firstName, customer.lastName].filter(Boolean).join(' '),
+    phone: customer.phone,
+    blockId: customer.blockId,
+    lotNo: customer.lotNo,
+    phaseNo: customer.phaseNo,
+    typeName: plan.tierName || customer.typeName,
+    contractPriceValue: plan.price,
+    yearText: plan.termLabel,
+    createdAt: customer.createdAt,
+    amountValue: plan.monthlyAmount,
+    payments: (payments || []).map(p => ({ date: p.date, ref: p.ref, amount: p.amount, note: p.method || p.note || '' })),
+    agentName: customer.agentName,
+    agentCommission: customer.agentCommission,
+    brokerName: customer.brokerName
+  };
 }
 
 // ── Products panel ─────────────────────────────────────────────────────────
@@ -4627,16 +4653,11 @@ function PresaleApplications({
     onClick: () => cancelApp(sel)
   }, "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
     className: "btn btn-outline btn-sm",
-    onClick: () => window.print()
-  }, "🖨 Print customer sheet"), plotEl("button", {
+    onClick: () => downloadCustomerSheet(presaleSheetData(sel)).catch(e => setToast(e && e.message || 'Could not make the sheet'))
+  }, "⬇ Customer sheet (Word)"), plotEl("button", {
     className: "btn btn-outline btn-sm",
     onClick: () => setOpen(null)
-  }, "Close")), plotEl("div", {
-    className: "print-sheet"
-  }, plotEl(CustomerMonitoringSheet, {
-    customer: presaleSheetData(sel),
-    payments: presaleSheetData(sel).payments
-  })))));
+  }, "Close")))));
 }
 
 // ── Agents and their 1-year commissions ──────────────────────────────────────
