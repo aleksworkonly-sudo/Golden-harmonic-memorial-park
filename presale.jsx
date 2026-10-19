@@ -69,6 +69,7 @@
   ];
 
   const METHODS = [
+    { id: 'paymongo', label: 'Pay Online with PayMongo', hint: 'Instant ₱5,000/plot reservation fee via GCash, Maya, or Card.' },
     { id: 'cash', label: 'Cash', hint: 'Pay in person at our office.' },
     { id: 'gcash', label: 'GCash', hint: 'Send to our GCash account.' },
     { id: 'bank', label: 'Bank transfer', hint: 'Deposit or transfer to our bank account.' },
@@ -521,24 +522,69 @@
           })
         });
         const data = await res.json().catch(() => ({}));
-        if (res.ok && data.ok) { setDone(data); return; }
-        if (data.error === 'taken') {
-          const tb = data.block || block, tl = data.lot || lot;
-          const fresh = await loadTaken(tb);
-          const set = new Set(fresh || []);
-          const idx = more.findIndex((m) => m.block === tb && m.lot === tl);
-          if (idx >= 0) {
-            removeMore(idx);
-            setError('Sorry, someone just took plot ' + code(tb, tl) + '. We removed it from your list. You may add another plot, then press Send again.');
-          } else {
-            const next = nearestFree(tl, typeId, set);
-            if (next) setLot(next);
-            setError('Sorry, someone just took plot ' + code(tb, tl) + '. We moved your pin to the nearest free plot. Please check it and press Send again.');
+        if (res.ok && data.ok) {
+          if (method === 'paymongo') {
+            const depositAmount = 5000 * allLots.length;
+            try {
+              const pmRes = await fetch('/api/paymongo-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  type: 'presale_reservation',
+                  amount: depositAmount,
+                  description: `Plot Reservation Deposit (${allLots.length} plot${allLots.length > 1 ? 's' : ''}) - Ref ${data.ref}`,
+                  presaleRef: data.ref,
+                  customerName: form.name,
+                  customerEmail: form.email,
+                  customerPhone: form.mobile,
+                  plotCode: allLots.map((l) => code(l.block, l.lot)).join(', '),
+                  plots: allLots.map((l) => ({ blockId: l.block, lotNo: l.lot, plotCode: code(l.block, l.lot) }))
+                })
+              });
+              const pmData = await pmRes.json().catch(() => ({}));
+              if (pmRes.ok && pmData.checkoutUrl) {
+                window.location.href = pmData.checkoutUrl;
+                return;
+              } else if (pmData.error) {
+                setError('Reservation created (' + data.ref + '), but payment session could not be opened: ' + pmData.error);
+                setDone(data);
+                return;
+              }
+            } catch (pmErr) {
+              console.warn('[presale] PayMongo checkout redirect error:', pmErr);
+            }
           }
-        } else if (data.error === 'dup') {
-          setError('This mobile number already has a presale reservation. Please call us if you want to add more plots to it.');
-        } else {
-          setError(data.error || 'Something went wrong. Please try again or call us.');
+          setDone(data);
+          return;
+        }
+        if (!res.ok) {
+          if (res.status === 405) {
+            setError('The local preview server (Live Server) cannot process API payments. Please run via "vercel dev" or test on the deployed site.');
+            return;
+          }
+          if (res.status === 404) {
+            setError('The presale API endpoint (/api/presale) was not found. Please ensure serverless functions are deployed.');
+            return;
+          }
+          if (data.error === 'taken') {
+            const tb = data.block || block, tl = data.lot || lot;
+            const fresh = await loadTaken(tb);
+            const set = new Set(fresh || []);
+            const idx = more.findIndex((m) => m.block === tb && m.lot === tl);
+            if (idx >= 0) {
+              removeMore(idx);
+              setError('Sorry, someone just took plot ' + code(tb, tl) + '. We removed it from your list. You may add another plot, then press Send again.');
+            } else {
+              const next = nearestFree(tl, typeId, set);
+              if (next) setLot(next);
+              setError('Sorry, someone just took plot ' + code(tb, tl) + '. We moved your pin to the nearest free plot. Please check it and press Send again.');
+            }
+          } else if (data.error === 'dup') {
+            setError('This mobile number already has a presale reservation. Please call us if you want to add more plots to it.');
+          } else {
+            setError(data.error || ('Server error (' + res.status + '). Please try again or call us.'));
+          }
+          return;
         }
       } catch (err) {
         setError('We could not reach our server. Please check your internet and try again.');
@@ -589,8 +635,8 @@
     let body;
 
     if (done) {
-      const m = METHODS.find((x) => x.id === done.method);
-      const info = { cash: PAY_INFO.office, gcash: PAY_INFO.gcash, bank: PAY_INFO.bank, cheque: PAY_INFO.cheque }[done.method];
+      const m = METHODS.find((x) => x.id === done.method) || { label: 'PayMongo' };
+      const info = { cash: PAY_INFO.office, gcash: PAY_INFO.gcash, bank: PAY_INFO.bank, cheque: PAY_INFO.cheque, paymongo: 'PayMongo Gateway (GCash, Maya, Cards)' }[done.method];
       body = (
         <div style={S.wrap}>
           <div style={{ ...S.card, borderColor: '#2f5d4c', borderWidth: 2 }}>

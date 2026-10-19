@@ -3513,6 +3513,7 @@ function PendingPayments({
 // Buyers reserve through /api/presale, which writes presaleApplications/{ref}
 // and plots/{block}_{lot}. Staff verify by phone, then confirm payment here.
 const PRESALE_METHOD_LABEL = {
+  paymongo: 'PayMongo (Online)',
   cash: 'Cash',
   gcash: 'GCash',
   bank: 'Bank transfer',

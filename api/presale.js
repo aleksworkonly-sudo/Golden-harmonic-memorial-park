@@ -19,14 +19,22 @@
 
 const admin = require('firebase-admin');
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(
-      JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8'))
-    )
-  });
+function getDb() {
+  if (!admin.apps.length) {
+    const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
+    if (!b64) {
+      const err = new Error('FIREBASE_SERVICE_ACCOUNT_B64 is not set in environment variables');
+      err.code = 'NO_CRED';
+      throw err;
+    }
+    admin.initializeApp({
+      credential: admin.credential.cert(
+        JSON.parse(Buffer.from(b64, 'base64').toString('utf8'))
+      )
+    });
+  }
+  return admin.firestore();
 }
-const db = admin.firestore();
 
 const PRESALE_BLOCKS = ['A', 'B', 'C', 'D'];
 const COLS = 40;
@@ -40,7 +48,7 @@ const DEFAULT_PRICES = { regular: 30000, premium: 42500, 'corner-premium': 47500
 const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
 const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
 const SURCHARGE = { 1: 0.10, 2: 0.15, 3: 0.20, 5: 0.30 };
-const METHODS = ['cash', 'gcash', 'bank', 'cheque'];
+const METHODS = ['cash', 'gcash', 'bank', 'cheque', 'paymongo'];
 
 // Layer rule: outer 3 rings Corner Premium, next 5 rings Premium, rest Regular.
 function typeOfLot(lot) {
@@ -53,7 +61,7 @@ function typeOfLot(lot) {
   return 'regular';
 }
 
-async function priceFor(typeId) {
+async function priceFor(typeId, db) {
   try {
     const snap = await db.collection('products').doc(typeId).get();
     const p = snap.exists && Number(snap.data().price);
@@ -68,6 +76,14 @@ function clean(v, max) {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    console.error('[presale] DB initialization error:', err.message);
+    return res.status(500).json({ error: 'Server configuration error: ' + err.message });
+  }
 
   if (req.method === 'GET') {
     const block = clean(req.query.block, 2).toUpperCase();
@@ -112,7 +128,7 @@ module.exports = async function handler(req, res) {
   const plots = [];
   for (const w of wanted) {
     const typeId = typeOfLot(w.lot);
-    if (!(typeId in priceCache)) priceCache[typeId] = await priceFor(typeId);
+    if (!(typeId in priceCache)) priceCache[typeId] = await priceFor(typeId, db);
     plots.push({
       blockId: w.block, lotNo: w.lot, typeId, price: priceCache[typeId],
       plotCode: `${w.block}-${String(w.lot).padStart(4, '0')}`
