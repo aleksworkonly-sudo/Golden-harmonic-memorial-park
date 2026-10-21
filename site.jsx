@@ -1333,18 +1333,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
         <ul className="feature-list">
           {tier.features.map((f) => <li key={f}>{f}</li>)}
         </ul>
-        {isPresale ?
-        <button
-          type="button"
-          className="btn"
-          style={{
-            width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10,
-            background: 'var(--gold)', color: '#1f1607', border: 'none', fontWeight: 700, fontSize: 15,
-            padding: '10px 14px', minHeight: 44, boxShadow: '0 2px 8px rgba(0,0,0,.15)'
-          }}
-          onClick={() => openPresale(tier.id)}>
-          Choose my plot →
-        </button> :
+        {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
           <div style={{
             display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
