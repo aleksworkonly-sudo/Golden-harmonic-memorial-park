@@ -1255,7 +1255,11 @@ function Customers({
     }, /*#__PURE__*/React.createElement("button", {
       className: "btn btn-outline btn-sm",
       onClick: () => setOpenId(r._id)
-    }, "View"), plotsIndex[r._id] && /*#__PURE__*/React.createElement("button", {
+    }, "View"), /*#__PURE__*/React.createElement(CustomerSheetButton, {
+      customer: r,
+      plot: plotsIndex[r._id],
+      onToast: setToast
+    }), plotsIndex[r._id] && /*#__PURE__*/React.createElement("button", {
       className: "btn btn-gold btn-sm",
       title: `Block ${plotsIndex[r._id].blockId}, Lot ${plotsIndex[r._id].lotNo}`,
       onClick: () => goToPlot(plotsIndex[r._id])
@@ -1890,6 +1894,20 @@ function CustomerDetailModal({
 }) {
   const [tab, setTab] = useState('payments');
   const [editingPlan, setEditingPlan] = useState(false);
+  // Sales (presale applications) bought by this customer, matched by mobile number, fill in the printed sheet.
+  const [sales, setSales] = useState([]);
+  const [sheetQueue, setSheetQueue] = useState([]);
+  useEffect(() => {
+    const key = String(customer.phone || '').replace(/\D/g, '').slice(-10);
+    if (key.length < 10) {
+      setSales([]);
+      return;
+    }
+    return window.db.collection('presaleApplications').where('mobileKey', '==', key).onSnapshot(snap => setSales(snap.docs.map(d => ({
+      _id: d.id,
+      ...d.data()
+    })).filter(x => x.status !== 'cancelled')), () => setSales([]));
+  }, [customer.phone]);
   const [plan, setPlan] = useState(customer.plan || (customer.interestedPlanId ? {
     tierId: customer.interestedPlanId,
     tierName: customer.interestedPlanName,
@@ -2414,47 +2432,285 @@ function CustomerDetailModal({
   }, /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline",
-    onClick: () => window.print()
-  }, "🖨 Print record"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSheetQueue(sales.length ? sales.map(sale => ({
+      ...customerSheetData(customer, payments),
+      ...presaleSheetData(sale)
+    })) : [customerSheetData(customer, payments)])
+  }, "📝 Customer sheet (edit, then Word)"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline",
     onClick: onClose
-  }, "Close"))), /*#__PURE__*/React.createElement("div", {
-    className: "print-sheet"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "letterhead"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "brand"
-  }, "Golden Harmonic Memorial Park"), /*#__PURE__*/React.createElement("div", {
-    className: "sub"
-  }, "Customer Record — Internal Records")), /*#__PURE__*/React.createElement("div", {
-    className: "sub"
-  }, "Printed: ", new Date().toLocaleString('en-PH'))), /*#__PURE__*/React.createElement("h2", null, "Customer Information"), /*#__PURE__*/React.createElement("div", {
-    className: "meta-grid"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Name: "), /*#__PURE__*/React.createElement("strong", null, customer.fullName || `${customer.firstName} ${customer.lastName}`)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Pipeline stage: "), /*#__PURE__*/React.createElement("strong", null, STAGE_LABEL[normalizeStage(customer.status)])), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Email: "), customer.email || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Phone: "), customer.phone || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Preferred location: "), customer.preferredLocation || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Interest: "), customer.interest || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Lead source: "), customer.source || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Date added: "), customer.createdAt && customer.createdAt.toDate ? customer.createdAt.toDate().toLocaleDateString('en-PH') : customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('en-PH') : '—')), customer.plan && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Plan Details"), customer.plan.imageUrl && /*#__PURE__*/React.createElement("img", {
-    src: customer.plan.imageUrl,
-    alt: customer.plan.tierName,
-    style: {
-      width: '100%',
-      maxHeight: 220,
-      objectFit: 'cover',
-      borderRadius: 6,
-      marginBottom: 10
+  }, "Close")), sheetQueue.length > 0 && /*#__PURE__*/React.createElement(CustomerSheetEditor, {
+    key: sheetQueue.length,
+    data: sheetQueue[0],
+    onClose: () => setSheetQueue(q => q.slice(1)),
+    onToast: onToast
+  })));
+}
+
+// ── Customer monitoring sheet: the company's own Word form, filled in ──────
+// Turns a presale sale (presaleApplications doc) into the fields the paper sheet needs.
+function presaleSheetData(a) {
+  const plots = presalePlots(a);
+  const uniq = arr => [...new Set(arr.filter(v => v !== undefined && v !== null && v !== ''))];
+  const pays = (a.payments || []).map(p => ({
+    date: p.date,
+    ref: p.ref,
+    amount: p.amount,
+    method: p.method || a.method,
+    note: PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || ''
+  }));
+  const first = [...pays].sort((x, y) => Number(x.date) - Number(y.date))[0];
+  return {
+    fullName: a.name,
+    phone: a.mobile,
+    blockId: uniq(plots.map(x => x.blockId)).join(', '),
+    lotNo: uniq(plots.map(x => x.lotNo)).join(', '),
+    typeName: uniq(plots.map(x => PRESALE_TYPE_LABEL[x.typeId] || x.typeId)).join(', '),
+    contractPriceValue: a.totalPrice,
+    yearText: a.plan === 'cash' ? 'Spot cash' : a.years ? `${a.years} year${a.years > 1 ? 's' : ''}` : '',
+    createdAt: first ? first.date : a.createdAt,
+    amountValue: first ? first.amount : null,
+    payments: pays,
+    agentName: a.agentName || '',
+    agentCommission: a.agentId ? presaleCommission(a) : a.agentCommission || 0,
+    brokerName: a.brokerName || '',
+    phaseNo: a.phaseNo || ''
+  };
+}
+// Edit screen: staff can correct anything on the sheet before the Word file is made.
+function CustomerSheetEditor({ data, onClose, onToast }) {
+  const ce = React.createElement;
+  const toMs = v => v && v.toDate ? v.toDate().getTime() : typeof v === 'number' ? v : (typeof v === 'string' && /^\d+$/.test(v)) ? Number(v) : v ? new Date(v).getTime() : null;
+  const ymd = v => {
+    const ms = toMs(v);
+    if (!ms || isNaN(ms)) return '';
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const fromYmd = t => { // a date typed as YYYY-MM-DD, read as a local date
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t || '');
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime() : null;
+  };
+  const num = t => { const n = Number(String(t == null ? '' : t).replace(/[^0-9.]/g, '')); return n > 0 ? n : 0; };
+  const [f, setF] = React.useState(() => ({
+    fullName: data.fullName || '',
+    phone: data.phone || '',
+    blockId: data.blockId || '',
+    lotNo: data.lotNo || '',
+    typeName: data.typeName || '',
+    phaseNo: data.phaseNo || '',
+    contractPrice: data.contractPriceValue || '',
+    yearText: data.yearText || '',
+    date: ymd(data.createdAt),
+    amount: data.amountValue || '',
+    agentName: data.agentName || '',
+    commissionDate: ymd(data.agentCommissionDate),
+    agentCommission: data.agentCommission || '',
+    brokerName: data.brokerName || ''
+  }));
+  const [rows, setRows] = React.useState(() => [...(data.payments || [])].sort((x, y) => (toMs(x.date) || 0) - (toMs(y.date) || 0)).map(p => ({
+    date: ymd(p.date),
+    ref: p.ref || p.receipt || '',
+    amount: p.amount || '',
+    note: p.note || ''
+  })));
+  const [busy, setBusy] = React.useState(false);
+  const set = k => e => setF(x => ({ ...x, [k]: e.target.value }));
+  const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
+  const inp = { width: '100%', boxSizing: 'border-box', padding: 6, fontSize: 13 };
+  const field = (label, k, type) => ce('label', { style: { display: 'block', fontSize: 12, fontWeight: 600 } }, label, ce('input', { type: type || 'text', value: f[k], onChange: set(k), style: { ...inp, display: 'block', marginTop: 2, fontWeight: 400 } }));
+  const make = async () => {
+    setBusy(true);
+    try {
+      await downloadCustomerSheet({
+        fullName: f.fullName,
+        phone: f.phone,
+        blockId: f.blockId,
+        lotNo: f.lotNo,
+        typeName: f.typeName,
+        phaseNo: f.phaseNo,
+        contractPriceValue: num(f.contractPrice),
+        yearText: f.yearText,
+        createdAt: fromYmd(f.date),
+        amountValue: num(f.amount),
+        agentName: f.agentName,
+        agentCommissionDate: fromYmd(f.commissionDate),
+        agentCommission: num(f.agentCommission),
+        brokerName: f.brokerName,
+        payments: rows.filter(r => r.date || r.ref || num(r.amount) || r.note).map(r => ({ date: fromYmd(r.date), ref: r.ref, amount: num(r.amount), note: r.note }))
+      });
+      onClose();
+    } catch (e) {
+      onToast && onToast(e && e.message || 'Could not make the sheet');
+    } finally {
+      setBusy(false);
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "meta-grid"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Plan: "), /*#__PURE__*/React.createElement("strong", null, customer.plan.tierName)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Term: "), customer.plan.termLabel || '—'), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Plan price: "), fmt(customer.plan.price)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Monthly amount: "), fmt(customer.plan.monthlyAmount), "/mo"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Total paid to date: "), fmt(bal.paid)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Remaining balance: "), fmt(bal.balance)))), payments.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Payment History"), /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Amount"), /*#__PURE__*/React.createElement("th", null, "Method"), /*#__PURE__*/React.createElement("th", null, "Note"))), /*#__PURE__*/React.createElement("tbody", null, payments.map((p, i) => /*#__PURE__*/React.createElement("tr", {
-    key: i
-  }, /*#__PURE__*/React.createElement("td", null, p.date), /*#__PURE__*/React.createElement("td", null, fmt(p.amount)), /*#__PURE__*/React.createElement("td", null, p.method), /*#__PURE__*/React.createElement("td", null, p.note || '—')))))), customer.followUpAt && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", null, "Follow-up"), /*#__PURE__*/React.createElement("div", {
-    className: "meta-grid"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Date: "), customer.followUpAt), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, "Note: "), customer.followUpNote || '—'))), /*#__PURE__*/React.createElement("h2", null, "Activity & Notes"), activity.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    className: "activity-item"
-  }, "No activity recorded.") : activity.map((a, i) => /*#__PURE__*/React.createElement("div", {
-    className: "activity-item",
-    key: i
-  }, /*#__PURE__*/React.createElement("strong", null, a.at ? new Date(a.at).toLocaleString('en-PH') : '—'), " — ", a.text, a.author ? ` (${a.author})` : '')), /*#__PURE__*/React.createElement("div", {
-    className: "footer-note"
-  }, "This record was generated from the Golden Harmonic Memorial Park CRM for internal filing purposes.")));
+  };
+  return ce('div', { className: 'modal-bg', style: { zIndex: 200 } },
+    ce('div', { className: 'modal wide', style: { width: 820 } },
+      ce('h3', null, 'Customer monitoring sheet — check and edit, then download'),
+      ce('div', { className: 'modal-scroll' },
+        ce('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 } },
+          field('NAME', 'fullName'), field('CONTACT NO.', 'phone'),
+          field('BLOCK', 'blockId'), field('LOT TYPE', 'typeName'),
+          field('LOT NO.', 'lotNo'), field('PHASE NO.', 'phaseNo'),
+          field('CONTRACT PRICE (₱)', 'contractPrice', 'number'), field('YEAR CONRACT', 'yearText'),
+          field('DATE', 'date', 'date'), field('AMOUNT (₱)', 'amount', 'number')),
+        ce('div', { style: { fontWeight: 700, fontSize: 13, margin: '16px 0 6px' } }, 'Payments (oldest first, up to 60)'),
+        ce('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 12 } },
+          ce('thead', null, ce('tr', null, ['DATE', 'RECEIPT NO.', 'AMOUNT (₱)', 'REMARKS (Cash, GCash, Bank transfer)', ''].map((h, i) => ce('th', { key: i, style: { textAlign: 'left', padding: '2px 4px' } }, h)))),
+          ce('tbody', null, rows.map((r, i) => ce('tr', { key: i },
+            ce('td', { style: { padding: 2 } }, ce('input', { type: 'date', value: r.date, onChange: e => setRow(i, 'date', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('input', { value: r.ref, onChange: e => setRow(i, 'ref', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('input', { type: 'number', value: r.amount, onChange: e => setRow(i, 'amount', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('input', { value: r.note, onChange: e => setRow(i, 'note', e.target.value), style: inp })),
+            ce('td', { style: { padding: 2 } }, ce('button', { type: 'button', className: 'btn btn-outline btn-sm', onClick: () => setRows(rs => rs.filter((_, j) => j !== i)) }, '✕')))))),
+        rows.length < 60 && ce('button', { type: 'button', className: 'btn btn-outline btn-sm', style: { marginTop: 6 }, onClick: () => setRows(rs => [...rs, { date: ymd(Date.now()), ref: '', amount: '', note: '' }]) }, '+ Add payment row'),
+        ce('div', { style: { fontWeight: 700, fontSize: 13, margin: '16px 0 6px' } }, 'Agent and broker'),
+        ce('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 } },
+          field('AGENT', 'agentName'), field('BROKER', 'brokerName'),
+          field('Commission date', 'commissionDate', 'date'), field('Commission (₱)', 'agentCommission', 'number')),
+        ce('div', { style: { fontSize: 11, color: '#777', marginTop: 10 } }, 'Changes here only affect this sheet. They are not saved to the customer record.')),
+      ce('div', { className: 'modal-actions' },
+        ce('button', { type: 'button', className: 'btn btn-outline', onClick: onClose }, 'Cancel'),
+        ce('button', { type: 'button', className: 'btn btn-primary', disabled: busy, onClick: make }, busy ? 'Making…' : '⬇ Download Word sheet'))));
+}
+// "📝 Sheet" button for the Customers list: finds the customer's sale (by mobile number), then opens the edit screen.
+function CustomerSheetButton({ customer, plot, label, onToast }) {
+  const ce = React.createElement;
+  const [queue, setQueue] = React.useState([]);
+  const [busy, setBusy] = React.useState(false);
+  const open = async () => {
+    setBusy(true);
+    try {
+      const key = String(customer.phone || '').replace(/\D/g, '').slice(-10);
+      let sales = [];
+      if (key.length >= 10) {
+        const snap = await window.db.collection('presaleApplications').where('mobileKey', '==', key).get();
+        sales = snap.docs.map(d => ({ _id: d.id, ...d.data() })).filter(x => x.status !== 'cancelled');
+      }
+      const base = customerSheetData({
+        ...customer,
+        blockId: customer.blockId || (plot && plot.blockId) || '',
+        lotNo: customer.lotNo || (plot && plot.lotNo) || ''
+      }, customer.payments || []);
+      setQueue(sales.length ? sales.map(sale => ({ ...base, ...presaleSheetData(sale) })) : [base]);
+    } catch (e) {
+      onToast && onToast('Could not open the sheet: ' + (e && e.message || 'error'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return ce(React.Fragment, null,
+    ce('button', { className: 'btn btn-outline btn-sm', disabled: busy, title: 'Customer monitoring sheet: check and edit, then download as Word', onClick: open }, label || '📝 Sheet'),
+    queue.length > 0 && ce(CustomerSheetEditor, { key: queue.length, data: queue[0], onClose: () => setQueue(q => q.slice(1)), onToast }));
+}
+// Fills the company's own Word form (customer-monitoring-sheet.docx) with one customer's data
+// and downloads it. Only the empty cells are filled; the form itself is never changed.
+async function downloadCustomerSheet(d) {
+  if (!window.JSZip) throw new Error('The Word library did not load. Check the internet connection and refresh the page.');
+  const res = await fetch('customer-monitoring-sheet.docx', { cache: 'no-cache' });
+  if (!res.ok) throw new Error('Could not load the sheet template.');
+  const zip = await window.JSZip.loadAsync(await res.arrayBuffer());
+  const xml = await zip.file('word/document.xml').async('string');
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const kids = (el, name) => Array.from(el.childNodes).filter(n => n.localName === name);
+  const textOf = el => Array.from(el.getElementsByTagNameNS(W, 't')).map(t => t.textContent).join('');
+  const tables = Array.from(doc.getElementsByTagNameNS(W, 'tbl'));
+  const findTable = label => tables.find(t => textOf(t).includes(label));
+  const rowsOf = t => kids(t, 'tr');
+  const cellsOf = r => kids(r, 'tc');
+  const setCell = (tc, text) => {
+    if (!tc || text === undefined || text === null || text === '') return;
+    const p = kids(tc, 'p')[0];
+    if (!p) return;
+    kids(p, 'r').forEach(r => p.removeChild(r));
+    const pPr = kids(p, 'pPr')[0];
+    if (pPr) kids(pPr, 'ind').forEach(n => pPr.removeChild(n)); // some cells have a negative indent that would push text out of the cell
+    const mark = pPr ? kids(pPr, 'rPr')[0] : null;
+    const r = doc.createElementNS(W, 'w:r');
+    if (mark) r.appendChild(mark.cloneNode(true));
+    const t = doc.createElementNS(W, 'w:t');
+    t.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+    t.textContent = String(text);
+    r.appendChild(t);
+    p.appendChild(r);
+  };
+  const toDate = v => v && v.toDate ? v.toDate() : (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))) ? new Date(Number(v)) : v ? new Date(v) : null;
+  const dateText = v => { const x = toDate(v); return x && !isNaN(x) ? x.toLocaleDateString('en-PH', { year: 'numeric', month: '2-digit', day: '2-digit' }) : ''; };
+  const money = n => n || n === 0 ? fmt2(n) : '';
+
+  // Header block (NAME, BLOCK, LOT NO., CONTRACT PRICE, DATE) : value cells are 2nd and 5th
+  const header = findTable('NAME:');
+  const hv = [
+    [d.fullName, d.phone],
+    [d.blockId, d.typeName],
+    [d.lotNo, d.phaseNo],
+    [d.contractPriceValue ? money(d.contractPriceValue) : '', d.yearText],
+    [dateText(d.createdAt), d.amountValue ? money(d.amountValue) : '']
+  ];
+  rowsOf(header).forEach((row, ri) => {
+    const c = cellsOf(row);
+    if (hv[ri]) { setCell(c[1], hv[ri][0]); setCell(c[4], hv[ri][1]); }
+  });
+
+  // Payment ledger: 3 groups of 20 rows, oldest payment first
+  const ledger = findTable('RECEIPT NO.');
+  const lrows = rowsOf(ledger);
+  const pays = [...(d.payments || [])].sort((x, y) => (toDate(x.date) || 0) - (toDate(y.date) || 0));
+  pays.slice(0, 60).forEach((p, i) => {
+    const row = lrows[1 + (i % 20)];
+    if (!row) return;
+    const c = cellsOf(row);
+    const b = Math.floor(i / 20) * 5;
+    setCell(c[b], dateText(p.date));
+    setCell(c[b + 1], p.ref || p.receipt || '');
+    setCell(c[b + 2], money(p.amount));
+    setCell(c[b + 3], p.note || '');
+  });
+
+  // Agent and broker block
+  const agent = findTable('AGENT:');
+  const arows = rowsOf(agent);
+  setCell(cellsOf(arows[0])[1], d.agentName);
+  setCell(cellsOf(arows[2])[0], dateText(d.agentCommissionDate));
+  setCell(cellsOf(arows[2])[1], d.agentCommission ? money(d.agentCommission) : '');
+  const broker = arows.find(r => textOf(r).includes('BROKER:'));
+  if (broker) setCell(cellsOf(broker)[1], d.brokerName);
+
+  const out = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(doc).replace(/^<\?xml[^>]*\?>\s*/, '');
+  zip.file('word/document.xml', out);
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Customer Monitoring Sheet - ${(d.fullName || 'customer').replace(/[^\w .-]/g, '')}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  return blob;
+}
+// Same fields for a CRM customer who has no sale yet
+function customerSheetData(customer, payments) {
+  const plan = customer.plan || {};
+  return {
+    fullName: customer.fullName || [customer.firstName, customer.lastName].filter(Boolean).join(' '),
+    phone: customer.phone,
+    blockId: customer.blockId,
+    lotNo: customer.lotNo,
+    phaseNo: customer.phaseNo,
+    typeName: plan.tierName || customer.typeName,
+    contractPriceValue: plan.price,
+    yearText: plan.termLabel,
+    createdAt: customer.createdAt,
+    amountValue: plan.monthlyAmount,
+    payments: (payments || []).map(p => ({ date: p.date, ref: p.ref, amount: p.amount, note: p.method || p.note || '' })),
+    agentName: customer.agentName,
+    agentCommission: customer.agentCommission,
+    brokerName: customer.brokerName
+  };
 }
 
 // ── Products panel ─────────────────────────────────────────────────────────
@@ -3253,6 +3509,1748 @@ function PendingPayments({
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
+// ── Presale applications (Blocks A, B, C, D) ──────────────────────────────────
+// Buyers reserve through /api/presale, which writes presaleApplications/{ref}
+// and plots/{block}_{lot}. Staff verify by phone, then confirm payment here.
+const PRESALE_METHOD_LABEL = {
+  paymongo: 'PayMongo (Online)',
+  cash: 'Cash',
+  gcash: 'GCash',
+  bank: 'Bank transfer',
+  cheque: 'Cheque'
+};
+const PRESALE_TYPE_LABEL = {
+  'regular': 'Regular',
+  'premium': 'Premium',
+  'corner-premium': 'Corner Premium'
+};
+function presalePlots(a) {
+  return Array.isArray(a.plots) && a.plots.length ? a.plots : [{
+    blockId: a.blockId,
+    lotNo: a.lotNo,
+    plotCode: a.plotCode,
+    typeId: a.typeId
+  }];
+}
+function presalePlanText(a) {
+  return a.plan === 'cash' ? 'Spot cash' : `${a.years} years · ${fmt(a.monthly)}/mo`;
+}
+// Payment ledger: every payment staff receive is added to a.payments. Extra money
+// automatically covers the next months, so the months left go down on their own.
+// VAT: prices are treated as VAT-INCLUSIVE. Change the rate here if it ever changes.
+const PRESALE_VAT_RATE = 0.12;
+function presaleVat(gross) {
+  const g = Number(gross) || 0;
+  const net = Math.round(g / (1 + PRESALE_VAT_RATE) * 100) / 100;
+  return {
+    gross: g,
+    net,
+    vat: Math.round((g - net) * 100) / 100
+  };
+}
+function fmt2(n) {
+  return '₱' + (Number(n) || 0).toLocaleString('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+const PRESALE_SURCHARGE = {
+  1: 0.10,
+  2: 0.15,
+  3: 0.20,
+  5: 0.30
+};
+// Splits a reservation's total into the plot price and the installment surcharge.
+function presaleSplit(a) {
+  const total = a.totalPrice || 0;
+  const rate = a.plan === 'installment' ? PRESALE_SURCHARGE[a.years] || 0 : 0;
+  const base = rate ? Math.round(total / (1 + rate)) : total;
+  return {
+    total,
+    base,
+    surcharge: total - base,
+    ratio: total ? (total - base) / total : 0
+  };
+}
+// SOP: allocation of each payment into Agent Commission / Broker & Agent Compensation / Company.
+// Only the FIRST payment (the down payment) is split. Later payments go fully to the company
+// until management sets the installment commission policy. No agent on the sale = all company.
+// The three rates below are the defaults; an admin can change them in the Allocation view
+// (saved in presaleSettings/allocation). A payment recorded for a sale that has an agent keeps
+// the split it was recorded with, so later rule changes do not rewrite past reports.
+const SOP_RULES = {
+  commissionRate: 0.07,   // 7% of the plot price (spot cash price) when no commission amount was typed
+  agentFirstShare: 0.5,   // 50% of the commission is released from the down payment
+  brokerRate: 0.03        // 3% of the down payment is held for broker and agent compensation
+};
+function presaleCommission(a) {
+  if (!a.agentId) return 0;
+  const base = a.spotPrice || presaleSplit(a).base;
+  return a.agentCommission > 0 ? a.agentCommission : Math.round(base * SOP_RULES.commissionRate);
+}
+function presaleAllocOne(a, amount, index) {
+  const amt = Number(amount) || 0;
+  const c2 = n => Math.round(n * 100) / 100;
+  if (!a.agentId || index > 0) return { agent: 0, broker: 0, company: amt };
+  const agent = Math.min(Math.round(presaleCommission(a) * SOP_RULES.agentFirstShare), amt);
+  const broker = Math.min(c2(amt * SOP_RULES.brokerRate), amt - agent);
+  return { agent, broker, company: c2(amt - agent - broker) };
+}
+function presaleAlloc(a) {
+  return presaleLedger(a).list.map((x, i) => x.alloc ? x.alloc : presaleAllocOne(a, x.amount, i));
+}
+function presaleMonthKey(ms) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function presaleMonthLabel(k) {
+  const [y, m] = k.split('-');
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleString('en-PH', {
+    month: 'long',
+    year: 'numeric'
+  });
+}
+function presaleLedger(a) {
+  const total = a.totalPrice || 0;
+  const monthly = a.plan === 'cash' ? total : a.monthly || 0;
+  let list = Array.isArray(a.payments) ? a.payments : [];
+  if (!list.length && a.status === 'paid') list = [{
+    amount: a.plan === 'cash' ? total : monthly,
+    date: a.paymentConfirmedAt,
+    ref: a.paymentReference
+  }];
+  const paid = list.reduce((n, x) => n + (Number(x.amount) || 0), 0);
+  const balance = Math.max(0, total - paid);
+  const monthsPaid = monthly > 0 ? Math.min(a.years * 12 || 1, Math.floor((paid + 0.5) / monthly)) : 0;
+  const monthsLeft = balance <= 0 ? 0 : monthly > 0 ? Math.ceil((balance - 0.5) / monthly) : 0;
+  const first = list.length ? list[0].date : null;
+  let nextDue = null;
+  if (a.plan === 'installment' && first && balance > 0) {
+    nextDue = new Date(first);
+    nextDue.setMonth(nextDue.getMonth() + monthsPaid);
+  }
+  return {
+    list, paid, balance, monthly, monthsPaid, monthsLeft, nextDue, full: total > 0 && balance <= 0
+  };
+}
+// Rows of money received on one day (YYYY-MM-DD), with the SOP split of each payment.
+function presalePaymentsOn(live, dk) {
+  const key = ms => {
+    if (!ms) return '';
+    const d = new Date(ms);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  const out = [];
+  live.forEach(r => {
+    const A0 = presaleAlloc(r);
+    presaleLedger(r).list.forEach((x, i) => {
+      if (key(x.date) !== dk) return;
+      const amt = Number(x.amount) || 0;
+      const al = A0[i] || { agent: 0, broker: 0, company: amt };
+      out.push({ date: x.date, receipt: x.ref || '', ref: r.ref, name: r.name, plots: presalePlots(r).map(p => p.plotCode).join(' '), agentName: r.agentName || '', brokerName: r.brokerName || '', method: PRESALE_METHOD_LABEL[x.method || r.method] || x.method || r.method || '', amount: amt, agent: al.agent, broker: al.broker, company: al.company, remarks: x.remarks || '' });
+    });
+  });
+  return out;
+}
+const EOD_ACCOUNTS = { company: 'Company operating account', agent: 'Agent commission account', broker: 'Broker and agent compensation account' };
+// Deposit instructions and the end-of-day report for one day (SOP sections 5, 6, 9).
+function PresaleEod({ day, rows, actor, setToast }) {
+  const [deposits, setDeposits] = useState([]);
+  const [report, setReport] = useState(null);
+  const [verif, setVerif] = useState('pending');
+  const [disc, setDisc] = useState('');
+  const [busy, setBusy] = useState(false);
+  const nowTime = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const blank = { ref: '', amount: '', type: 'cash', allocation: 'company', staff: actor, bank: '', account: '', depositDate: day, depositTime: nowTime() };
+  const [f, setF] = useState(blank);
+  useEffect(() => window.db.collection('presaleDeposits').where('day', '==', day).onSnapshot(s => setDeposits(s.docs.map(d => ({ _id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))), () => {}), [day]);
+  useEffect(() => window.db.collection('presaleEodReports').doc(day).onSnapshot(sn => {
+    const d = sn.exists ? sn.data() : null;
+    setReport(d);
+    setVerif(d && d.verification || 'pending');
+    setDisc(d && d.discrepancies || '');
+  }, () => {}), [day]);
+  const sum = (arr, k) => arr.reduce((n, x) => n + (Number(x[k]) || 0), 0);
+  const T = { count: rows.length, received: sum(rows, 'amount'), agent: sum(rows, 'agent'), broker: sum(rows, 'broker'), company: sum(rows, 'company') };
+  const depCash = deposits.filter(d => d.type === 'cash').reduce((n, d) => n + d.amount, 0);
+  const depOnline = deposits.filter(d => d.type === 'online').reduce((n, d) => n + d.amount, 0);
+  const depCompany = deposits.filter(d => d.allocation === 'company').reduce((n, d) => n + d.amount, 0);
+  const gap = Math.round((T.company - depCompany) * 100) / 100;
+  const dayLabel = new Date(day + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+  const field = (label, el) => plotEl("label", { key: label, style: { display: 'block', fontSize: 13, fontWeight: 600 } }, label, el);
+  const inp = (k, props) => plotEl("input", { value: f[k], onChange: set(k), style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 }, ...props });
+  const sel = (k, opts) => plotEl("select", { value: f[k], onChange: set(k), style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 } }, opts.map(([v, l]) => plotEl("option", { key: v, value: v }, l)));
+  const saveDeposit = async () => {
+    const amount = Math.round(Number(String(f.amount).replace(/[^0-9.]/g, '')) * 100) / 100;
+    if (!(amount > 0)) { setToast('Please write the amount to be deposited.'); return; }
+    if (!f.bank.trim() || !f.account.trim() || !f.staff.trim()) { setToast('Please fill in the bank name, account number and responsible staff.'); return; }
+    setBusy(true);
+    try {
+      await window.db.collection('presaleDeposits').add({ day, ref: f.ref.trim() || `DEP-${day.replace(/-/g, '')}-${deposits.length + 1}`, amount, type: f.type, allocation: f.allocation, staff: f.staff.trim(), bank: f.bank.trim(), account: f.account.trim(), depositDate: f.depositDate || day, depositTime: f.depositTime || '', createdAt: Date.now(), createdBy: actor });
+      setF({ ...blank, bank: f.bank, account: f.account, staff: f.staff });
+      setToast('Deposit instruction saved');
+    } catch (err) { setToast(err && err.message || 'Could not save'); } finally { setBusy(false); }
+  };
+  const delDeposit = async d => {
+    if (!window.confirm(`Delete deposit ${d.ref}?`)) return;
+    try { await window.db.collection('presaleDeposits').doc(d._id).delete(); } catch (err) { setToast(err && err.message || 'Could not delete'); }
+  };
+  const snapshot = () => ({ day, verification: verif, discrepancies: disc.trim(), transactions: T.count, received: T.received, agentTotal: T.agent, brokerAndCompensationTotal: T.broker, companyTotal: T.company, cashDeposits: depCash, onlineTransfers: depOnline, notYetDeposited: gap, updatedAt: Date.now(), updatedBy: actor });
+  const saveReport = async extra => {
+    setBusy(true);
+    try { await window.db.collection('presaleEodReports').doc(day).set({ ...snapshot(), ...extra }, { merge: true }); setToast('End-of-day report saved'); }
+    catch (err) { setToast(err && err.message || 'Could not save'); } finally { setBusy(false); }
+  };
+  const approve = () => {
+    if (verif !== 'verified' && !window.confirm('Receipts are not marked as Verified. Approve anyway?')) return;
+    if (Math.abs(gap) > 0.5 && !disc.trim() && !window.confirm(`The company share is not fully deposited (${fmt2(gap)} difference) and no discrepancy note was written. Approve anyway?`)) return;
+    saveReport({ approvedBy: actor, approvedAt: Date.now() });
+  };
+  const reopen = () => { if (window.confirm('Re-open this report for changes?')) saveReport({ approvedBy: '', approvedAt: null }); };
+  const approved = !!(report && report.approvedAt);
+  const VER = { pending: 'Pending', verified: 'Verified', issues: 'Has problems' };
+  const printEod = () => {
+    const w = window.open('', '_blank');
+    if (!w) { setToast('Please allow pop-ups to print.'); return; }
+    const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const m = n => (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const kv = (k, v, b) => '<tr><td>' + k + '</td><td class="n">' + (b ? '<b>' + v + '</b>' : v) + '</td></tr>';
+    const depRows = deposits.map(d => '<tr><td>' + e(d.ref) + '</td><td>' + e(d.type === 'cash' ? 'Cash deposit' : 'Online transfer') + '</td><td>' + e(EOD_ACCOUNTS[d.allocation] || d.allocation) + '</td><td>' + e(d.bank) + ' / ' + e(d.account) + '</td><td>' + e(d.depositDate) + ' ' + e(d.depositTime) + '</td><td>' + e(d.staff) + '</td><td class="n">' + m(d.amount) + '</td></tr>').join('') || '<tr><td colspan="7">No deposits recorded.</td></tr>';
+    w.document.write('<html><head><title>End-of-Day Report</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%;margin-bottom:14px}th,td{border:1px solid #999;padding:5px 7px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 2px}h3{margin:14px 0 6px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div><b>End-of-Day Report</b> - ' + e(dayLabel) + '</div><h3>Totals</h3><table>' + kv('Total transactions', T.count) + kv('Total amount received', m(T.received), 1) + kv('Agent commission allocation total', m(T.agent)) + kv('Broker fee and agent compensation allocation total (3%)', m(T.broker)) + kv('Company deposit total', m(T.company), 1) + '</table><h3>Deposits made</h3><table><tr><th>Reference</th><th>Type</th><th>Account allocation</th><th>Bank / account no.</th><th>Deposit date and time</th><th>Responsible staff</th><th class="n">Amount</th></tr>' + depRows + '</table><table>' + kv('Cash deposits made', m(depCash)) + kv('Online transfers made', m(depOnline)) + kv('Company share not yet deposited', m(gap), 1) + '</table><table>' + kv('Receipt verification status', e(VER[verif] || verif)) + kv('Discrepancies', e(disc || 'None')) + kv('Final approval', approved ? e(report.approvedBy) + ' - ' + new Date(report.approvedAt).toLocaleString('en-PH') : 'Not yet approved') + '</table><p>Prepared by: ____________________ &nbsp;&nbsp; Approved by: ____________________</p></body></html>');
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+  const card = (title, ...kids) => plotEl("div", { style: { padding: 12, borderRadius: 8, background: '#f6f1e8', marginBottom: 12 } }, plotEl("b", null, title), ...kids);
+  const line = (k, v, bold) => plotEl("div", { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 12, padding: '3px 0', fontWeight: bold ? 700 : 400 } }, plotEl("span", null, k), plotEl("span", null, v));
+  return plotEl("div", null, plotEl("div", { style: { fontWeight: 700, marginBottom: 8 } }, dayLabel), card('End-of-day report (filled in automatically from the payments recorded)', plotEl("div", { style: { marginTop: 6 } }, line('Total transactions', T.count), line('Total amount received', fmt2(T.received), true), line('Agent commission allocation total', fmt2(T.agent)), line('Broker fee and agent compensation allocation total (3%)', fmt2(T.broker)), line('Company deposit total', fmt2(T.company), true), line('Cash deposits made', fmt2(depCash)), line('Online transfers made', fmt2(depOnline)), line('Company share not yet deposited', fmt2(gap), true))), card('Deposit instruction', plotEl("div", { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10, marginTop: 8 } }, field('Transaction reference', inp('ref', { placeholder: `DEP-${day.replace(/-/g, '')}-${deposits.length + 1}` })), field('Amount to be deposited (₱)', inp('amount', { inputMode: 'decimal', placeholder: gap > 0 ? String(gap) : '' })), field('Payment type', sel('type', [['cash', 'Cash deposit'], ['online', 'Online transfer']])), field('Account allocation', sel('allocation', Object.entries(EOD_ACCOUNTS))), field('Responsible staff', inp('staff')), field('Bank name', inp('bank')), field('Account number', inp('account')), field('Deposit date', inp('depositDate', { type: 'date' })), field('Deposit time', inp('depositTime', { type: 'time' }))), plotEl("button", { className: "btn btn-primary btn-sm", style: { marginTop: 10 }, disabled: busy, onClick: saveDeposit }, "Save deposit instruction"), deposits.length > 0 && plotEl("table", { style: { marginTop: 10 } }, plotEl("thead", null, plotEl("tr", null, ['Reference', 'Type', 'Allocation', 'Bank / account', 'Date and time', 'Staff', 'Amount', ''].map(h => plotEl("th", { key: h }, h)))), plotEl("tbody", null, deposits.map(d => plotEl("tr", { key: d._id }, plotEl("td", null, d.ref), plotEl("td", null, d.type === 'cash' ? 'Cash' : 'Online'), plotEl("td", null, EOD_ACCOUNTS[d.allocation] || d.allocation), plotEl("td", null, d.bank, ' / ', d.account), plotEl("td", null, d.depositDate, ' ', d.depositTime), plotEl("td", null, d.staff), plotEl("td", { style: { textAlign: 'right' } }, fmt2(d.amount)), plotEl("td", null, plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => delDeposit(d) }, "Delete"))))))), card('Verification and approval', plotEl("div", { style: { marginTop: 8 } }, plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600 } }, 'Receipt verification status', plotEl("select", { value: verif, disabled: approved, onChange: e => setVerif(e.target.value), style: { display: 'block', padding: 8, marginTop: 3, fontWeight: 400 } }, Object.entries(VER).map(([v, l]) => plotEl("option", { key: v, value: v }, l)))), plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600, marginTop: 8 } }, 'Discrepancies (write "None" if all matches)', plotEl("textarea", { value: disc, disabled: approved, onChange: e => setDisc(e.target.value), rows: 3, style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 } })), approved ? plotEl("div", { style: { marginTop: 8 } }, plotEl("b", null, "✔ Approved by "), report.approvedBy, " · ", new Date(report.approvedAt).toLocaleString('en-PH')) : null, plotEl("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 } }, !approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: () => saveReport({}) }, "Save report"), !approved && plotEl("button", { className: "btn btn-primary btn-sm", disabled: busy, onClick: approve }, "Final approval"), approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: reopen }, "Re-open"), plotEl("button", { className: "btn btn-outline btn-sm", onClick: printEod }, "🖨 Print end-of-day report")))));
+}
+
+// Admin-only editor for the allocation rates (stored in presaleSettings/allocation).
+function PresaleRules({ canEdit, tick, setToast, actor }) {
+  const pct = n => String(Math.round(n * 10000) / 100);
+  const [f, setF] = useState({ commissionRate: pct(SOP_RULES.commissionRate), agentFirstShare: pct(SOP_RULES.agentFirstShare), brokerRate: pct(SOP_RULES.brokerRate) });
+  const [open, setOpen] = useState(false);
+  useEffect(() => setF({ commissionRate: pct(SOP_RULES.commissionRate), agentFirstShare: pct(SOP_RULES.agentFirstShare), brokerRate: pct(SOP_RULES.brokerRate) }), [tick]);
+  const save = async () => {
+    const v = {};
+    for (const k of Object.keys(f)) {
+      const n = Number(f[k]);
+      if (!(n >= 0 && n <= 100)) { setToast('Each rate must be between 0 and 100.'); return; }
+      v[k] = Math.round(n * 100) / 10000;
+    }
+    try {
+      await window.db.collection('presaleSettings').doc('allocation').set({ ...v, updatedAt: Date.now(), updatedBy: actor });
+      setToast('Allocation rules saved. They apply to payments recorded from now on.');
+      setOpen(false);
+    } catch (err) { setToast(err && err.message || 'Could not save'); }
+  };
+  const labels = [['commissionRate', 'Agent commission (% of plot price)'], ['agentFirstShare', 'Share of commission released from the down payment (%)'], ['brokerRate', 'Broker and agent compensation (% of the down payment)']];
+  return plotEl("div", { style: { padding: 10, borderRadius: 8, background: '#f1f8ec', marginBottom: 12, fontSize: 13, lineHeight: 1.6 } }, plotEl("b", null, "Allocation rules: "), `agent commission ${pct(SOP_RULES.commissionRate)}% of the plot price, ${pct(SOP_RULES.agentFirstShare)}% of it released from the down payment, ${pct(SOP_RULES.brokerRate)}% of the down payment held for broker and agent compensation, the rest to the company. `, canEdit ? plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => setOpen(!open) }, open ? "Close" : "Change rules") : plotEl("em", null, "(only an admin can change these)"), open && canEdit && plotEl("div", { style: { marginTop: 8 } }, labels.map(([k, l]) => plotEl("label", { key: k, style: { display: 'block', marginBottom: 6 } }, l, plotEl("input", { value: f[k], inputMode: "decimal", onChange: e => setF({ ...f, [k]: e.target.value }), style: { display: 'block', padding: 6, width: 120 } }))), plotEl("button", { className: "btn btn-primary btn-sm", onClick: save }, "Save rules")));
+}
+
+function PresaleApplications({
+  currentUser,
+  canEditRules
+}) {
+  const [rows, setRows] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [open, setOpen] = useState(null);
+  const [refText, setRefText] = useState('');
+  const [amtText, setAmtText] = useState('');
+  const [agentList, setAgentList] = useState([]);
+  const [agentPick, setAgentPick] = useState('');
+  const [commText, setCommText] = useState('');
+  const [brokerText, setBrokerText] = useState('');
+  const [allocDay, setAllocDay] = useState('');
+  const todayKey = () => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  const [reportDay, setReportDay] = useState(todayKey());
+  const [remarksText, setRemarksText] = useState('');
+  const [ruleTick, setRuleTick] = useState(0);
+  const [fAgent, setFAgent] = useState('');
+  const [fBroker, setFBroker] = useState('');
+  const [fPlot, setFPlot] = useState('');
+  const [lastPay, setLastPay] = useState(null);
+  const [sheetData, setSheetData] = useState(null);
+  const [autoSheet, setAutoSheet] = useState(() => {
+    try {
+      return localStorage.getItem('ghAutoSheet') !== '0';
+    } catch (e) {
+      return true;
+    }
+  });
+  const toggleAutoSheet = on => {
+    setAutoSheet(on);
+    try {
+      localStorage.setItem('ghAutoSheet', on ? '1' : '0');
+    } catch (e) {}
+  };
+  useEffect(() => window.db.collection('presaleSettings').doc('allocation').onSnapshot(sn => {
+    if (!sn.exists) return;
+    const d = sn.data();
+    ['commissionRate', 'agentFirstShare', 'brokerRate'].forEach(k => {
+      if (typeof d[k] === 'number') SOP_RULES[k] = d[k];
+    });
+    setRuleTick(t => t + 1);
+  }, () => {}), []);
+  useEffect(() => window.db.collection('agents').onSnapshot(s => setAgentList(s.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  }))), () => {}), []);
+  const [salesView, setSalesView] = useState('summary'); // summary | sales | vat
+  const [period, setPeriod] = useState('all'); // 'all' or 'YYYY-MM' for the Sales and VAT box
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState('');
+  useEffect(() => window.db.collection('presaleApplications').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  })))), []);
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(''), 2400);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
+  if (!rows) return plotEl("div", {
+    className: "loading"
+  }, plotEl("div", {
+    className: "spinner"
+  }), plotEl("div", null, "Loading presale applications…"));
+  const sel = open ? rows.find(r => r._id === open) : null;
+  const actor = currentUser && currentUser.email || 'staff';
+  const update = async (a, patch, msg) => {
+    setBusy(true);
+    try {
+      await window.db.collection('presaleApplications').doc(a._id).update(patch);
+      setToast(msg);
+    } catch (err) {
+      setToast(err && err.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const confirmPaid = async a => {
+    const amount = Math.round(Number(String(amtText).replace(/[^0-9.]/g, '')));
+    if (!(amount > 0)) {
+      setToast('Please write the amount received.');
+      return;
+    }
+    if (!refText.trim()) {
+      setToast('Please write the receipt, cheque or GCash reference first.');
+      return;
+    }
+    const L = presaleLedger(a);
+    // A custom amount can never be less than the chosen monthly installment.
+    // (Only the last, smaller balance may be paid as it is.)
+    const minPay = Math.min(L.monthly, L.balance);
+    if (amount < minPay - 0.5) {
+      setToast(`The amount cannot be less than ${fmt(minPay)}${a.plan === 'cash' ? '' : ' (the monthly installment)'}.`);
+      return;
+    }
+    if (amount > L.balance + 0.5) {
+      if (!window.confirm(`${fmt(amount)} is more than the balance of ${fmt(L.balance)}. Record it anyway?`)) return;
+    }
+    setBusy(true);
+    try {
+      const now = Date.now();
+      const entry = {
+        amount,
+        date: now,
+        ref: refText.trim(),
+        method: a.method,
+        remarks: remarksText.trim(),
+        by: actor
+      };
+      const split = presaleAllocOne(a, amount, L.list.length);
+      if (a.agentId) entry.alloc = {
+        ...split,
+        rates: {
+          ...SOP_RULES
+        }
+      };
+      const patch = {
+        payments: firebase.firestore.FieldValue.arrayUnion(entry),
+        status: 'paid',
+        paymentReference: refText.trim(),
+        paymentConfirmedAt: a.paymentConfirmedAt || now,
+        confirmedBy: actor
+      };
+      await window.db.collection('presaleApplications').doc(a._id).update(patch);
+      await Promise.all(presalePlots(a).map(x => window.db.collection('plots').doc(`${x.blockId}_${x.lotNo}`).update({
+        hold: false
+      }).catch(() => {})));
+      setRefText('');
+      setAmtText('');
+      setRemarksText('');
+      setLastPay({
+        ref: a.ref,
+        receipt: entry.ref,
+        name: a.name,
+        plots: presalePlots(a).map(p => p.plotCode).join(' '),
+        amount,
+        when: now,
+        method: PRESALE_METHOD_LABEL[a.method] || a.method,
+        ...split
+      });
+      setToast('Payment recorded');
+      if (autoSheet) {
+        // Opens the sheet for review, built from the sale as it is now, including the payment just recorded.
+        setSheetData(presaleSheetData({
+          ...a,
+          payments: [...(a.payments || []), entry]
+        }));
+      }
+    } catch (err) {
+      setToast(err && err.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const attachAgent = async a => {
+    const agent = agentList.find(x => x._id === agentPick);
+    const comm = Math.round(Number(String(commText).replace(/[^0-9.]/g, '')) || 0);
+    if (!agent) {
+      setToast('Please choose the agent.');
+      return;
+    }
+    if (!(comm > 0)) {
+      setToast('Please write the commission amount.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const saleMs = a.createdAt || Date.now();
+      const dates = agentDates(saleMs);
+      const ref = await window.db.collection('agentCommissions').add({
+        agentId: agent._id,
+        agentName: agent.name,
+        agentEmail: agent.email || '',
+        buyer: a.name,
+        ref: `${a.ref} · ${presalePlots(a).map(x => x.plotCode).join(' ')}`,
+        saleAmount: a.totalPrice || 0,
+        commission: comm,
+        saleDate: saleMs,
+        ...dates,
+        status: 'pending',
+        notifiedAt: null,
+        appRef: a.ref,
+        createdAt: Date.now(),
+        createdBy: actor
+      });
+      await window.db.collection('presaleApplications').doc(a._id).update({
+        agentId: agent._id,
+        agentName: agent.name,
+        agentCommission: comm,
+        agentCommissionId: ref.id
+      });
+      setAgentPick('');
+      setCommText('');
+      setToast('Agent and commission saved');
+    } catch (err) {
+      setToast(err && err.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const cancelApp = async a => {
+    if (!window.confirm(`Cancel ${a.ref} and free ${presalePlots(a).length > 1 ? 'all ' + presalePlots(a).length + ' plots' : 'plot ' + a.plotCode}? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      await window.db.collection('presaleApplications').doc(a._id).update({
+        status: 'cancelled',
+        cancelledAt: Date.now(),
+        cancelledBy: actor
+      });
+      await Promise.all(presalePlots(a).map(x => window.db.collection('plots').doc(`${x.blockId}_${x.lotNo}`).delete()));
+      setToast(presalePlots(a).length > 1 ? 'The plots are free again' : `${a.plotCode} is free again`);
+      setOpen(null);
+    } catch (err) {
+      setToast(err && err.message || 'Could not cancel');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const live = rows.filter(r => r.status !== 'cancelled');
+  const stat = (n, label) => plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, n), plotEl("div", {
+    className: "stat-lbl"
+  }, label)));
+  const allPaid = live.reduce((n, r) => n + presaleLedger(r).paid, 0);
+  const allVat = presaleVat(allPaid);
+  const shown = rows.filter(r => filter === 'all' ? true : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : r.status === filter);
+  const statusBadge = (s, r) => plotEl("span", {
+    className: s === 'paid' ? 'badge badge-converted' : s === 'cancelled' ? 'badge' : s === 'verified' ? 'badge badge-contacted' : 'badge badge-new'
+  }, s === 'new' ? 'New' : s === 'verified' ? 'Verified' : s === 'paid' ? r && r.plan === 'installment' && !presaleLedger(r).full ? `Paying · ${presaleLedger(r).monthsLeft} mo left` : 'Paid in full' : 'Cancelled');
+  return plotEl("div", null, toast && plotEl(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), plotEl("div", {
+    className: "section-hd"
+  }, plotEl("h2", null, "Presale applications")), plotEl("div", {
+    className: "stats-row",
+    style: {
+      gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))',
+      marginBottom: 16
+    }
+  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed'), stat(fmt2(allVat.net), 'Sales (without tax)'), stat(fmt2(allVat.vat), 'Tax (VAT 12%) collected')), (() => {
+    // Booked sales are counted in the month the reservation was made; collections in the month each payment was received.
+    const monthSet = new Set();
+    rows.forEach(r => {
+      monthSet.add(presaleMonthKey(r.createdAt));
+      presaleLedger(r).list.forEach(x => monthSet.add(presaleMonthKey(x.date)));
+    });
+    monthSet.delete('');
+    const months = [...monthSet].sort().reverse();
+    const inPeriod = ms => period === 'all' || presaleMonthKey(ms) === period;
+    const bookedRows = live.filter(r => inPeriod(r.createdAt));
+    const booked = {
+      base: 0,
+      surcharge: 0
+    };
+    bookedRows.forEach(r => {
+      const sp = presaleSplit(r);
+      booked.base += sp.base;
+      booked.surcharge += sp.surcharge;
+    });
+    const coll = {
+      base: 0,
+      surcharge: 0
+    };
+    const payRows = [];
+    live.forEach(r => {
+      const sp = presaleSplit(r);
+      const allList = presaleLedger(r).list;
+      const allAlloc = presaleAlloc(r);
+      allList.filter(x => inPeriod(x.date)).forEach(x => {
+        const al = allAlloc[allList.indexOf(x)] || { agent: 0, broker: 0, company: Number(x.amount) || 0 };
+        const amt = Number(x.amount) || 0;
+        coll.surcharge += amt * sp.ratio;
+        coll.base += amt * (1 - sp.ratio);
+        const v = presaleVat(amt);
+        payRows.push({
+          date: x.date,
+          ref: r.ref,
+          name: r.name,
+          receipt: x.ref || '',
+          amount: amt,
+          net: v.net,
+          vat: v.vat,
+          agentName: r.agentName || '',
+          brokerName: r.brokerName || '',
+          agent: al.agent,
+          broker: al.broker,
+          company: al.company,
+          time: x.date ? new Date(x.date).toLocaleTimeString('en-PH', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }) : '',
+          plots: presalePlots(r).map(p => p.plotCode).join(' '),
+          method: PRESALE_METHOD_LABEL[x.method || r.method] || x.method || r.method || '',
+          remarks: x.remarks || ''
+        });
+      });
+    });
+    payRows.sort((p, q) => (p.date || 0) - (q.date || 0));
+    const saleRows = bookedRows.slice().sort((p, q) => (p.createdAt || 0) - (q.createdAt || 0)).map(r => {
+      const sp = presaleSplit(r);
+      const v = presaleVat(sp.total);
+      return {
+        date: r.createdAt,
+        ref: r.ref,
+        name: r.name,
+        plots: presalePlots(r).map(x => x.plotCode).join(' '),
+        base: sp.base,
+        surcharge: sp.surcharge,
+        total: sp.total,
+        net: v.net,
+        vat: v.vat
+      };
+    });
+    const line = (label, v) => {
+      const total = v.base + v.surcharge;
+      const t = presaleVat(total);
+      return {
+        label,
+        base: v.base,
+        surcharge: v.surcharge,
+        vat: t.vat,
+        net: t.net,
+        total
+      };
+    };
+    const out = [line(`Booked sales (${bookedRows.length} reservations)`, booked), line('Collected (payments received)', coll)];
+    const R = {
+      textAlign: 'right'
+    };
+    const sum = (arr, k) => arr.reduce((n, x) => n + (x[k] || 0), 0);
+    const day = ms => ms ? new Date(ms).toLocaleDateString('en-PH') : '';
+    const periodName = period === 'all' ? 'all-time' : period;
+    const download = (name, header, lines) => {
+      const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const csv = [header, ...lines].map(l => l.map(esc).join(',')).join('\r\n');
+      const url = URL.createObjectURL(new Blob(['﻿' + csv], {
+        type: 'text/csv;charset=utf-8'
+      }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    const taxMonths = {};
+    payRows.forEach(x => {
+      const k = presaleMonthKey(x.date);
+      if (!taxMonths[k]) taxMonths[k] = { month: k, amount: 0, net: 0, vat: 0 };
+      taxMonths[k].amount += x.amount;
+      taxMonths[k].net += x.net;
+      taxMonths[k].vat += x.vat;
+    });
+    const taxRows = Object.values(taxMonths).sort((p, q) => p.month < q.month ? -1 : 1);
+    const taxCollected = sum(payRows, 'vat');
+    const taxBooked = sum(saleRows, 'vat');
+    const taxCard = (label, v, note, color) => plotEl("div", {
+      key: label,
+      style: {
+        flex: '1 1 200px',
+        padding: 14,
+        borderRadius: 10,
+        background: color
+      }
+    }, plotEl("div", {
+      style: {
+        fontSize: 13,
+        color: '#444'
+      }
+    }, label), plotEl("div", {
+      style: {
+        fontSize: 26,
+        fontWeight: 800
+      }
+    }, fmt2(v)), plotEl("div", {
+      style: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 2
+      }
+    }, note));
+    const printDaily = () => {
+      const dk = ms => {
+        if (!ms) return '';
+        const d = new Date(ms);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      };
+      const day0 = reportDay || todayKey();
+      const newRes = live.filter(r => dk(r.createdAt) === day0);
+      const pays = [];
+      live.forEach(r => {
+        const L0 = presaleLedger(r);
+        const A0 = presaleAlloc(r);
+        L0.list.forEach((x, i) => {
+          if (dk(x.date) !== day0) return;
+          const amt = Number(x.amount) || 0;
+          const v = presaleVat(amt);
+          const al = A0[i] || { agent: 0, broker: 0, company: amt };
+          pays.push({ ref: r.ref, name: r.name, receipt: x.ref || '', method: PRESALE_METHOD_LABEL[r.method] || r.method || '', amount: amt, net: v.net, vat: v.vat, agent: al.agent, broker: al.broker, company: al.company });
+        });
+      });
+      const w = window.open('', '_blank');
+      if (!w) { setToast('Please allow pop-ups to print.'); return; }
+      const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const m = n => (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const tot = k => pays.reduce((n, x) => n + x[k], 0);
+      const dayLabel = new Date(day0 + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const resRows = newRes.map(r => '<tr><td>' + e(r.ref) + '</td><td>' + e(r.name) + '</td><td>' + e(presalePlots(r).map(x => x.plotCode).join(' ')) + '</td><td>' + (r.plan === 'cash' ? 'Spot cash' : r.years + '-year monthly') + '</td><td class="n">' + m(r.totalPrice) + '</td></tr>').join('') || '<tr><td colspan="5">No new reservations.</td></tr>';
+      const payRowsHtml = pays.map(x => '<tr><td>' + e(x.ref) + '</td><td>' + e(x.name) + '</td><td>' + e(x.method) + ' ' + e(x.receipt) + '</td><td class="n">' + m(x.amount) + '</td><td class="n">' + m(x.net) + '</td><td class="n">' + m(x.vat) + '</td></tr>').join('') || '<tr><td colspan="6">No payments received.</td></tr>';
+      w.document.write('<html><head><title>Daily Sales Report</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:13px}table{border-collapse:collapse;width:100%;margin-bottom:16px}th,td{border:1px solid #999;padding:5px 7px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 2px}h3{margin:14px 0 6px}.box td{font-size:14px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div><b>Daily Sales Report</b> - ' + e(dayLabel) + '</div><h3>New reservations (' + newRes.length + ')</h3><table><tr><th>Ref</th><th>Buyer</th><th>Plots</th><th>Plan</th><th class="n">Total price</th></tr>' + resRows + '</table><h3>Payments received (' + pays.length + ')</h3><table><tr><th>Ref</th><th>Buyer</th><th>Paid by / receipt</th><th class="n">Amount received</th><th class="n">Sales (no tax)</th><th class="n">Tax (VAT ' + Math.round(PRESALE_VAT_RATE * 100) + '%)</th></tr>' + payRowsHtml + '<tr><th colspan="3">Total</th><th class="n">' + m(tot('amount')) + '</th><th class="n">' + m(tot('net')) + '</th><th class="n">' + m(tot('vat')) + '</th></tr></table><h3>Where the money goes</h3><table class="box"><tr><td>Agent commission</td><td class="n">' + m(tot('agent')) + '</td></tr><tr><td>Broker and agent compensation (held)</td><td class="n">' + m(tot('broker')) + '</td></tr><tr><th>Company deposit</th><th class="n">' + m(tot('company')) + '</th></tr></table><p>Prepared by: ____________________ &nbsp;&nbsp; Verified by: ____________________</p></body></html>');
+      w.document.close();
+      w.focus();
+      w.print();
+    };
+    const dayKey = ms => {
+      if (!ms) return '';
+      const d = new Date(ms);
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    };
+    const match = (v, q) => !q.trim() || String(v || '').toLowerCase().includes(q.trim().toLowerCase());
+    const allocRows = (allocDay ? payRows.filter(x => dayKey(x.date) === allocDay) : payRows).filter(x => match(x.agentName, fAgent) && match(x.brokerName, fBroker) && match(x.plots, fPlot));
+    const fApps = live.filter(r => match(r.agentName, fAgent) && match(r.brokerName, fBroker) && match(presalePlots(r).map(p => p.plotCode).join(' '), fPlot));
+    const allocCols = [['Date', 'date'], ['Time', 'time'], ['Transaction reference', 'receipt'], ['Buyer', 'name'], ['Plot / unit', 'plots'], ['Agent', 'agentName'], ['Broker', 'brokerName'], ['Payment type', 'method'], ['Amount received', 'amount', 1], ['Agent commission', 'agent', 1], ['Broker fee & agent compensation', 'broker', 1], ['Company share', 'company', 1], ['Remarks', 'remarks']];
+    const allocHead = allocCols.map(c => c[0]);
+    const allocLine = x => allocCols.map(c => c[1] === 'date' ? day(x.date) : x[c[1]]);
+    const printAlloc = () => {
+      const w = window.open('', '_blank');
+      if (!w) { setToast('Please allow pop-ups to print.'); return; }
+      const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const m = n => (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const title = 'Payment Allocation Report - ' + (allocDay ? new Date(allocDay + 'T00:00:00').toLocaleDateString('en-PH') : period === 'all' ? 'All payments' : presaleMonthLabel(period));
+      w.document.write('<html><head><title>' + e(title) + '</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:4px 6px;text-align:left}td.n,th.n{text-align:right}h2{margin:0 0 4px}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div>' + e(title) + '</div><br><table><tr>' + allocCols.map(c => '<th class="' + (c[2] ? 'n' : '') + '">' + e(c[0]) + '</th>').join('') + '</tr>' + allocRows.map(x => '<tr>' + allocCols.map(c => c[2] ? '<td class="n">' + m(x[c[1]]) + '</td>' : '<td>' + e(c[1] === 'date' ? day(x.date) : x[c[1]]) + '</td>').join('') + '</tr>').join('') + '<tr><th colspan="8">Total</th><th class="n">' + m(sum(allocRows, 'amount')) + '</th><th class="n">' + m(sum(allocRows, 'agent')) + '</th><th class="n">' + m(sum(allocRows, 'broker')) + '</th><th class="n">' + m(sum(allocRows, 'company')) + '</th><th></th></tr></table><p><b>Deposit to company bank account: PHP ' + m(sum(allocRows, 'company')) + '</b></p><p>Prepared by: ____________________ &nbsp;&nbsp; Verified by: ____________________</p></body></html>');
+      w.document.close();
+      w.focus();
+      w.print();
+    };
+    const exportCsv = () => {
+      if (salesView === 'alloc') {
+        download(`presale-allocation-${allocDay || periodName}.csv`, allocHead, allocRows.map(allocLine));
+      } else if (salesView === 'vat') {
+        download(`presale-tax-vat-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Receipt/Reference', 'Amount received', 'Sales without VAT', 'VAT'], payRows.map(x => [day(x.date), x.ref, x.name, x.receipt, x.amount.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]));
+      } else {
+        download(`presale-sales-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Plots', 'Plot price', 'Installment surcharge', 'Total with VAT', 'Sales without VAT', 'VAT'], saleRows.map(x => [day(x.date), x.ref, x.name, x.plots, x.base.toFixed(2), x.surcharge.toFixed(2), x.total.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]));
+      }
+    };
+    const th = (h, r) => plotEl("th", {
+      key: h || 'x',
+      style: r ? R : null
+    }, h);
+    const td = (v, bold) => plotEl("td", {
+      style: {
+        ...R,
+        fontWeight: bold ? 700 : 400
+      }
+    }, fmt2(v));
+    let tbl;
+    const taxHead = plotEl("div", null, plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 12,
+          flexWrap: 'wrap',
+          marginBottom: 12
+        }
+      }, taxCard('Total tax collected (VAT)', taxCollected, `on ${fmt2(sum(payRows, 'amount'))} received`, '#fff3c9'), taxCard('Tax on all booked sales', taxBooked, `on ${fmt2(sum(saleRows, 'total'))} sold`, '#eef3fb'), taxCard('Tax still to come in', Math.max(0, taxBooked - taxCollected), 'booked sales not yet paid', '#f1f8ec')), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Month', false], ['Amount received', true], ['Sales without VAT', true], ['Tax (VAT)', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, taxRows.map(x => plotEl("tr", {
+        key: x.month
+      }, plotEl("td", null, presaleMonthLabel(x.month)), td(x.amount), td(x.net), td(x.vat, true))), plotEl("tr", {
+        style: {
+          fontWeight: 700,
+          borderTop: '2px solid #ccc'
+        }
+      }, plotEl("td", null, "Total tax"), td(sum(payRows, 'amount'), true), td(sum(payRows, 'net'), true), td(taxCollected, true)))));
+    if (salesView === 'eod') {
+      tbl = plotEl(PresaleEod, {
+        key: allocDay || todayKey(),
+        day: allocDay || todayKey(),
+        rows: presalePaymentsOn(live, allocDay || todayKey()),
+        actor,
+        setToast
+      });
+    } else if (salesView === 'alloc') {
+      const grp = {};
+      allocRows.forEach(x => {
+        const k = x.agentName || 'No agent';
+        if (!grp[k]) grp[k] = { name: k, n: 0, amount: 0, agent: 0, broker: 0, company: 0 };
+        grp[k].n += 1;
+        grp[k].amount += x.amount;
+        grp[k].agent += x.agent;
+        grp[k].broker += x.broker;
+        grp[k].company += x.company;
+      });
+      const pendAgent = fApps.reduce((n, r) => n + Math.max(0, presaleCommission(r) - presaleAlloc(r).reduce((m, x) => m + x.agent, 0)), 0);
+      const heldBroker = fApps.reduce((n, r) => n + presaleAlloc(r).reduce((m, x) => m + x.broker, 0), 0);
+      const dash = (label, v, color, note) => plotEl("div", {
+        key: label,
+        style: {
+          flex: '1 1 170px',
+          padding: 12,
+          borderRadius: 10,
+          background: color
+        }
+      }, plotEl("div", {
+        style: {
+          fontSize: 12,
+          color: '#444'
+        }
+      }, label), plotEl("div", {
+        style: {
+          fontSize: 22,
+          fontWeight: 800
+        }
+      }, fmt2(v)), note && plotEl("div", {
+        style: {
+          fontSize: 11,
+          color: '#666'
+        }
+      }, note));
+      const filt = (label, v, set) => plotEl("label", {
+        key: label,
+        style: {
+          fontSize: 13
+        }
+      }, label, " ", plotEl("input", {
+        value: v,
+        onChange: e => set(e.target.value),
+        style: {
+          padding: 5,
+          width: 120
+        }
+      }));
+      const statusOf = r => {
+        const L1 = presaleLedger(r);
+        return L1.full ? 'Paid in full' : L1.paid > 0 ? `Paying · ${L1.monthsLeft} mo left` : 'No payment yet';
+      };
+      const secTitle = t => plotEl("div", {
+        style: {
+          fontWeight: 700,
+          margin: '14px 0 6px'
+        }
+      }, t);
+      tbl = plotEl("div", null, plotEl(PresaleRules, {
+        canEdit: !!canEditRules,
+        tick: ruleTick,
+        setToast,
+        actor
+      }), plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          marginBottom: 10
+        }
+      }, plotEl("b", {
+        style: {
+          fontSize: 13
+        }
+      }, "Filter:"), filt('Agent', fAgent, setFAgent), filt('Broker', fBroker, setFBroker), filt('Plot / unit', fPlot, setFPlot)), plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+          marginBottom: 6
+        }
+      }, dash('Total payments received', sum(allocRows, 'amount'), '#fff3c9'), dash('Agent commission allocated', sum(allocRows, 'agent'), '#eef3fb'), dash('Broker / agent compensation allocated', sum(allocRows, 'broker'), '#f3e9fb'), dash('Company funds', sum(allocRows, 'company'), '#f1f8ec')), plotEl("div", {
+        style: {
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap'
+        }
+      }, dash('Pending release: agent commission', pendAgent, '#fde8e6', 'commission still to be released (all time)'), dash('Held: broker / agent compensation', heldBroker, '#fde8e6', 'set aside, waiting for management rules (all time)')), secTitle('By agent'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Agent', false], ['Transactions', true], ['Received', true], ['Commission', true], ['Compensation', true], ['Company', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, Object.values(grp).map(g => plotEl("tr", {
+        key: g.name
+      }, plotEl("td", null, g.name), plotEl("td", {
+        style: R
+      }, g.n), td(g.amount), td(g.agent), td(g.broker), td(g.company))))), secTitle('Status by client'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Client', false], ['Plot / unit', false], ['Agent', false], ['Status', false], ['Paid', true], ['Balance', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, fApps.map(r => plotEl("tr", {
+        key: r._id || r.ref
+      }, plotEl("td", null, r.name), plotEl("td", null, presalePlots(r).map(p => p.plotCode).join(' ')), plotEl("td", null, r.agentName || '—'), plotEl("td", null, statusOf(r)), td(presaleLedger(r).paid), td(presaleLedger(r).balance))))), secTitle('Transaction log'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, allocCols.map(c => th(c[0], !!c[2])))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
+        key: x.ref + i
+      }, allocCols.map(c => c[2] ? td(x[c[1]], c[1] === 'amount') : plotEl("td", {
+        key: c[1]
+      }, c[1] === 'date' ? day(x.date) : x[c[1]] || '—')))), plotEl("tr", {
+        style: {
+          fontWeight: 700,
+          borderTop: '2px solid #ccc'
+        }
+      }, plotEl("td", {
+        colSpan: 8
+      }, "Total · deposit to company bank account: ", fmt2(sum(allocRows, 'company'))), td(sum(allocRows, 'amount'), true), td(sum(allocRows, 'agent'), true), td(sum(allocRows, 'broker'), true), td(sum(allocRows, 'company'), true), plotEl("td", null, "")))));
+    } else if (salesView === 'sales') {
+      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Plots', false], ['Plot price', true], ['Surcharge', true], ['Total (with VAT)', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, saleRows.map(x => plotEl("tr", {
+        key: x.ref
+      }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.plots), td(x.base), td(x.surcharge), td(x.total, true), td(x.net), td(x.vat))), plotEl("tr", {
+        style: {
+          fontWeight: 700,
+          borderTop: '2px solid #ccc'
+        }
+      }, plotEl("td", {
+        colSpan: 4
+      }, "Total"), td(sum(saleRows, 'base'), true), td(sum(saleRows, 'surcharge'), true), td(sum(saleRows, 'total'), true), td(sum(saleRows, 'net'), true), td(sum(saleRows, 'vat'), true))));
+    } else if (salesView === 'vat') {
+      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Receipt / reference', false], ['Amount received', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, payRows.map((x, i) => plotEl("tr", {
+        key: x.ref + i
+      }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.receipt), td(x.amount, true), td(x.net), td(x.vat))), plotEl("tr", {
+        style: {
+          fontWeight: 700,
+          borderTop: '2px solid #ccc'
+        }
+      }, plotEl("td", {
+        colSpan: 4
+      }, "Total VAT collected"), td(sum(payRows, 'amount'), true), td(sum(payRows, 'net'), true), td(sum(payRows, 'vat'), true))));
+    } else {
+      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['', false], ['Plot price', true], ['Installment surcharge', true], ['Total (with VAT)', true], ['VAT', true], ['Sales without VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, out.map(o => plotEl("tr", {
+        key: o.label
+      }, plotEl("td", null, o.label), td(o.base), td(o.surcharge), td(o.total, true), td(o.vat), td(o.net)))));
+    }
+    if (salesView === 'vat') tbl = plotEl("div", null, taxHead, plotEl("div", {
+      style: {
+        fontWeight: 700,
+        margin: '14px 0 6px'
+      }
+    }, "Tax on each payment received"), tbl);
+    const noRows = salesView === 'alloc' && !allocRows.length || salesView === 'sales' && !saleRows.length || salesView === 'vat' && !payRows.length;
+    return plotEl("div", {
+      className: "table-card",
+      style: {
+        padding: 16,
+        marginBottom: 16,
+        overflowX: 'auto'
+      }
+    }, plotEl("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 10
+      }
+    }, plotEl("div", {
+      style: {
+        fontWeight: 700
+      }
+    }, "Sales and VAT (", Math.round(PRESALE_VAT_RATE * 100), "% VAT, prices include VAT)"), plotEl("label", {
+      style: {
+        fontSize: 13
+      }
+    }, "Period: ", plotEl("select", {
+      value: period,
+      onChange: e => setPeriod(e.target.value),
+      style: {
+        padding: 6,
+        marginLeft: 4
+      }
+    }, plotEl("option", {
+      value: "all"
+    }, "All time"), months.map(k => plotEl("option", {
+      key: k,
+      value: k
+    }, presaleMonthLabel(k)))))), plotEl("div", {
+      style: {
+        display: 'flex',
+        gap: 6,
+        flexWrap: 'wrap',
+        marginBottom: 10,
+        alignItems: 'center'
+      }
+    }, [['summary', 'Summary'], ['sales', 'Sales'], ['vat', 'Tax (VAT)'], ['alloc', 'Allocation'], ['eod', 'Deposit & end of day']].map(([id, label]) => plotEl("button", {
+      key: id,
+      className: `btn btn-sm ${salesView === id ? 'btn-primary' : 'btn-outline'}`,
+      onClick: () => setSalesView(id)
+    }, label)), (salesView === 'alloc' || salesView === 'eod') && plotEl("label", {
+      style: {
+        fontSize: 13,
+        marginLeft: 8
+      }
+    }, "Day: ", plotEl("input", {
+      type: "date",
+      value: allocDay,
+      onChange: e => setAllocDay(e.target.value),
+      style: {
+        padding: 5
+      }
+    }), allocDay && plotEl("button", {
+      className: "btn btn-sm btn-outline",
+      style: {
+        marginLeft: 4
+      },
+      onClick: () => setAllocDay('')
+    }, "All days")), salesView === 'alloc' && plotEl("button", {
+      className: "btn btn-sm btn-outline",
+      style: {
+        marginLeft: 'auto'
+      },
+      disabled: noRows,
+      onClick: printAlloc
+    }, "🖨 Print transaction log"), salesView !== 'summary' && salesView !== 'eod' && plotEl("button", {
+      className: "btn btn-sm btn-outline",
+      style: salesView === 'alloc' ? null : {
+        marginLeft: 'auto'
+      },
+      disabled: noRows,
+      onClick: exportCsv
+    }, "⬇ Download (Excel/CSV)")), plotEl("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        margin: '4px 0 10px',
+        padding: 10,
+        borderRadius: 8,
+        background: '#f6f1e8',
+        fontSize: 13
+      }
+    }, plotEl("b", null, "Daily sales report:"), plotEl("input", {
+      type: "date",
+      value: reportDay,
+      onChange: e => setReportDay(e.target.value),
+      style: {
+        padding: 5
+      }
+    }), plotEl("button", {
+      className: "btn btn-sm btn-primary",
+      onClick: printDaily
+    }, "🖨 Print daily sales report")), noRows ? plotEl("div", {
+      style: {
+        padding: 12,
+        color: '#777'
+      }
+    }, "Nothing in this period yet.") : tbl, plotEl("div", {
+      style: {
+        fontSize: 12,
+        color: '#777',
+        marginTop: 6
+      }
+    }, salesView === 'eod' ? "The totals fill in by themselves from the payments recorded on that day. Deposit instructions, the verification status and the final approval are saved for your records." : salesView === 'alloc' ? "Each sale's FIRST payment is split: 50% of the agent commission (7% of the plot price unless a commission amount was typed), 3% for broker and agent compensation, and the rest to the company. Later payments go fully to the company. Sales with no agent go fully to the company." : salesView === 'vat' ? "Tax is the 12% VAT inside the prices, figured on the money actually received in the chosen period (payments recorded by staff). Please confirm the rate and whether it applies with your accountant." : salesView === 'sales' ? "Sales are listed in the month the reservation was made. The installment surcharge is shown apart from the plot price." : "The installment surcharge (+10/15/20/30%) is shown apart from the plot price. VAT is taken out of the total."));
+  })(), plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginBottom: 14
+    }
+  }, [['all', 'All'], ['new', 'New'], ['verified', 'Verified'], ['paid', 'Paid'], ['cash', 'Spot cash'], ['installment', 'Monthly'], ['cancelled', 'Cancelled']].map(([id, label]) => plotEl("button", {
+    key: id,
+    className: `btn btn-sm ${filter === id ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setFilter(id)
+  }, label))), plotEl("div", {
+    className: "table-card"
+  }, shown.length === 0 ? plotEl("div", {
+    style: {
+      padding: 24
+    }
+  }, "No presale applications here yet.") : plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status'].map(h => plotEl("th", {
+    key: h
+  }, h)))), plotEl("tbody", null, shown.map(r => plotEl("tr", {
+    key: r._id,
+    style: {
+      cursor: 'pointer'
+    },
+    onClick: () => {
+      setOpen(r._id);
+      setRefText('');
+      setAmtText(String(Math.min(presaleLedger(r).balance || r.totalPrice, r.plan === 'cash' ? r.totalPrice : r.monthly)));
+    }
+  }, plotEl("td", null, r.ref), plotEl("td", null, r.name, plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, r.mobile)), plotEl("td", null, presalePlots(r).map(x => x.plotCode).join(', '), plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r))))))), sel && plotEl("div", {
+    className: "modal-bg",
+    onClick: e => e.target === e.currentTarget && setOpen(null)
+  }, plotEl("div", {
+    className: "modal"
+  }, plotEl("h3", null, sel.ref, " · ", presalePlots(sel).length > 1 ? `${presalePlots(sel).length} plots` : `${sel.plotCode} · ${PRESALE_TYPE_LABEL[sel.typeId]}`), presalePlots(sel).length > 1 && plotEl("div", {
+    style: {
+      lineHeight: 1.6,
+      marginBottom: 6
+    }
+  }, presalePlots(sel).map(x => plotEl("div", {
+    key: x.plotCode
+  }, plotEl("b", null, x.plotCode), " · ", PRESALE_TYPE_LABEL[x.typeId], x.price ? ` · ${fmt(x.price)}` : ''))), statusBadge(sel.status, sel), plotEl("div", {
+    style: {
+      margin: '12px 0',
+      padding: 12,
+      borderRadius: 8,
+      background: sel.plan === 'cash' ? '#e8f5e9' : '#fff3e0'
+    }
+  }, plotEl("b", null, sel.plan === 'cash' ? 'SPOT CASH' : 'MONTHLY INSTALLMENT'), plotEl("div", null, sel.plan === 'cash' ? `Pays ${fmt(sel.totalPrice)} in full` : `${sel.years} years · ${fmt(sel.monthly)} a month · total ${fmt(sel.totalPrice)}` + (sel.customMonthly > 0 ? ` · buyer plans to pay ${fmt(sel.customMonthly)} a month` : '')), plotEl("div", null, "Pays by: ", plotEl("b", null, PRESALE_METHOD_LABEL[sel.method] || sel.method))), plotEl("div", {
+    style: {
+      lineHeight: 1.7
+    }
+  }, plotEl("div", null, plotEl("b", null, "Name: "), sel.name), plotEl("div", null, plotEl("b", null, "Address: "), sel.address), plotEl("div", null, plotEl("b", null, "Mobile: "), sel.mobile), plotEl("div", null, plotEl("b", null, "Email: "), sel.email), plotEl("div", null, plotEl("b", null, "Sent: "), fmtDate(sel.createdAt))), sel.status !== 'cancelled' && (() => {
+    const L = presaleLedger(sel);
+    return plotEl("div", {
+      style: {
+        marginTop: 12,
+        padding: 12,
+        borderRadius: 8,
+        background: L.full ? '#e8f5e9' : '#f6f1e8'
+      }
+    }, plotEl("b", null, "Payments"), (() => {
+      const v = presaleVat(sel.totalPrice);
+      const sp = presaleSplit(sel);
+      return plotEl("div", {
+        style: {
+          fontSize: 13,
+          color: '#555',
+          margin: '2px 0 6px',
+          lineHeight: 1.5
+        }
+      }, sel.plan === 'installment' && plotEl("div", null, "Plot price ", fmt2(sp.base), " + installment surcharge ", fmt2(sp.surcharge), " = ", fmt2(sp.total)), plotEl("div", null, "Sales ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross)));
+    })(), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("table", {
+      style: {
+        width: '100%',
+        fontSize: 13,
+        marginTop: 8
+      }
+    }, plotEl("tbody", null, L.list.map((x, i) => plotEl("tr", {
+      key: i
+    }, plotEl("td", null, fmtDate(x.date)), plotEl("td", null, fmt(x.amount)), plotEl("td", null, x.ref || ''), plotEl("td", null, x.by || ''))))));
+  })(), sel.status !== 'cancelled' && plotEl("div", {
+    style: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 8,
+      background: '#eef3fb'
+    }
+  }, plotEl("b", null, "Agent commission"), sel.agentId ? plotEl("div", null, sel.agentName, " · ", fmt(sel.agentCommission || 0), " · due 1 year after the sale (", fmtDate(agentDates(sel.createdAt || Date.now()).dueDate), ")") : plotEl("div", null, plotEl("select", {
+    style: {
+      padding: 8,
+      width: '100%',
+      boxSizing: 'border-box',
+      marginTop: 6
+    },
+    value: agentPick,
+    onChange: e => {
+      const id = e.target.value;
+      setAgentPick(id);
+      const ag = agentList.find(x => x._id === id);
+      if (ag && ag.rate) setCommText(String(Math.round(presaleSplit(sel).base * ag.rate / 100)));
+    }
+  }, plotEl("option", {
+    value: ""
+  }, "No agent / choose agent…"), agentList.map(a => plotEl("option", {
+    key: a._id,
+    value: a._id
+  }, a.name))), agentPick && plotEl("div", null, plotEl("input", {
+    style: {
+      padding: 8,
+      width: '100%',
+      boxSizing: 'border-box',
+      marginTop: 6
+    },
+    inputMode: "numeric",
+    placeholder: "Commission amount (₱)",
+    value: commText,
+    onChange: e => setCommText(e.target.value)
+  }), plotEl("button", {
+    className: "btn btn-primary btn-sm",
+    style: {
+      marginTop: 6
+    },
+    disabled: busy,
+    onClick: () => attachAgent(sel)
+  }, "Save agent and commission")))), sel.status !== 'cancelled' && plotEl("div", {
+    style: {
+      marginTop: 12,
+      padding: 10,
+      borderRadius: 8,
+      background: '#eef3fb'
+    }
+  }, plotEl("b", null, "Broker (optional)"), sel.brokerName && plotEl("div", null, sel.brokerName), plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginTop: 6
+    }
+  }, plotEl("input", {
+    style: {
+      padding: 8,
+      flex: 1,
+      boxSizing: 'border-box'
+    },
+    placeholder: "Broker name",
+    value: brokerText,
+    onChange: e => setBrokerText(e.target.value)
+  }), plotEl("button", {
+    className: "btn btn-primary btn-sm",
+    disabled: busy || !brokerText.trim(),
+    onClick: async () => {
+      setBusy(true);
+      try {
+        await window.db.collection('presaleApplications').doc(sel._id).update({
+          brokerName: brokerText.trim()
+        });
+        setBrokerText('');
+        setToast('Broker saved');
+      } catch (err) {
+        setToast(err && err.message || 'Could not save');
+      } finally {
+        setBusy(false);
+      }
+    }
+  }, "Save"))), (() => {
+    const al = presaleAlloc(sel);
+    if (!sel.agentId || !al.length) return null;
+    const t = k => al[0][k];
+    return plotEl("div", {
+      style: {
+        marginTop: 12,
+        padding: 10,
+        borderRadius: 8,
+        background: '#f1f8ec',
+        fontSize: 13,
+        lineHeight: 1.6
+      }
+    }, plotEl("b", null, "Where the first payment goes"), plotEl("div", null, "Agent commission: ", fmt2(t('agent'))), plotEl("div", null, "Broker and agent compensation (held): ", fmt2(t('broker'))), plotEl("div", null, "Company deposit: ", fmt2(t('company'))));
+  })(), plotEl("div", {
+    style: {
+      marginTop: 12,
+      padding: 10,
+      borderRadius: 8,
+      background: '#f6f1e8',
+      fontSize: 13
+    }
+  }, "Identity check: call the buyer, or meet at the office, and confirm the name and address above."), sel.status !== 'cancelled' && !presaleLedger(sel).full && plotEl("div", {
+    style: {
+      marginTop: 12
+    }
+  }, sel.status === 'new' && plotEl("button", {
+    className: "btn btn-outline",
+    disabled: busy,
+    style: {
+      marginBottom: 10
+    },
+    onClick: () => update(sel, {
+      status: 'verified',
+      verifiedBy: actor,
+      verifiedAt: Date.now()
+    }, 'Marked as verified')
+  }, "✔ Name and address checked"), plotEl("label", {
+    style: {
+      display: 'block',
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 4
+    }
+  }, "Amount received (₱) — you may enter more than the monthly, never less", plotEl("div", {
+    style: {
+      fontWeight: 400,
+      color: '#777'
+    }
+  }, (() => {
+    const L = presaleLedger(sel);
+    return `Minimum: ${fmt(Math.min(L.monthly, L.balance))}`;
+  })())), plotEl("input", {
+    style: {
+      width: '100%',
+      boxSizing: 'border-box',
+      padding: 8,
+      marginBottom: 10
+    },
+    inputMode: "numeric",
+    value: amtText,
+    onChange: e => setAmtText(e.target.value)
+  }), plotEl("label", {
+    style: {
+      display: 'block',
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 4
+    }
+  }, sel.method === 'cheque' ? 'Cheque number' : sel.method === 'cash' ? 'Official receipt number' : sel.method === 'gcash' ? 'GCash reference number' : 'Bank reference number'), plotEl("input", {
+    style: {
+      width: '100%',
+      boxSizing: 'border-box',
+      padding: 8,
+      marginBottom: 10
+    },
+    value: refText,
+    onChange: e => setRefText(e.target.value)
+  }), plotEl("input", {
+    style: {
+      width: '100%',
+      boxSizing: 'border-box',
+      padding: 8,
+      marginBottom: 10
+    },
+    placeholder: "Remarks (optional)",
+    value: remarksText,
+    onChange: e => setRemarksText(e.target.value)
+  }), plotEl("button", {
+    className: "btn btn-primary",
+    disabled: busy,
+    onClick: () => confirmPaid(sel)
+  }, "Record payment received"), plotEl("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 8,
+      fontSize: 12
+    }
+  }, plotEl("input", {
+    type: "checkbox",
+    checked: autoSheet,
+    onChange: e => toggleAutoSheet(e.target.checked)
+  }), "Open the customer sheet for checking after each payment"), sheetData && plotEl(CustomerSheetEditor, {
+    data: sheetData,
+    onClose: () => setSheetData(null),
+    onToast: setToast
+  }), lastPay && lastPay.ref === sel.ref && plotEl("div", {
+    style: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 8,
+      background: '#e8f5e9',
+      border: '2px solid #2e9e5b',
+      lineHeight: 1.6,
+      fontSize: 14
+    }
+  }, plotEl("b", null, "✔ Payment received"), plotEl("div", null, "Reference: ", lastPay.receipt, " · ", lastPay.method), plotEl("div", null, lastPay.name, " · ", lastPay.plots), plotEl("div", null, new Date(lastPay.when).toLocaleString('en-PH')), plotEl("div", {
+    style: {
+      fontWeight: 700
+    }
+  }, "Amount: ", fmt2(lastPay.amount)), plotEl("div", {
+    style: {
+      marginTop: 6
+    }
+  }, plotEl("b", null, "Allocation breakdown")), plotEl("div", null, "Agent commission: ", fmt2(lastPay.agent)), plotEl("div", null, "Broker and agent compensation (held): ", fmt2(lastPay.broker)), plotEl("div", null, "Company operating account: ", fmt2(lastPay.company)), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    style: {
+      marginTop: 8
+    },
+    onClick: () => {
+      const w = window.open('', '_blank');
+      if (!w) return;
+      const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      w.document.write('<html><head><title>Payment Confirmation</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:14px;line-height:1.7}h2{margin:0}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div><b>Payment Confirmation</b></div><br>Reference: ' + e(lastPay.receipt) + ' (' + e(lastPay.method) + ')<br>Application: ' + e(lastPay.ref) + '<br>Client: ' + e(lastPay.name) + '<br>Plot / unit: ' + e(lastPay.plots) + '<br>Date and time: ' + e(new Date(lastPay.when).toLocaleString('en-PH')) + '<br><b>Amount received: ' + e(fmt2(lastPay.amount)) + '</b><br><br><b>Allocation breakdown</b><br>Agent commission: ' + e(fmt2(lastPay.agent)) + '<br>Broker and agent compensation (held): ' + e(fmt2(lastPay.broker)) + '<br>Company operating account: ' + e(fmt2(lastPay.company)) + '<br><br>Received by: ____________________' + '</body></html>');
+      w.document.close();
+      w.focus();
+      w.print();
+    }
+  }, "🖨 Print confirmation"))), plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginTop: 16,
+      justifyContent: 'space-between'
+    }
+  }, sel.status !== 'cancelled' && sel.status !== 'paid' ? plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    disabled: busy,
+    onClick: () => cancelApp(sel)
+  }, "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setSheetData(presaleSheetData(sel))
+  }, "📝 Customer sheet (edit, then Word)"), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setOpen(null)
+  }, "Close")))));
+}
+
+// ── Agents and their 1-year commissions ──────────────────────────────────────
+// agents/{id}: the sales agents. agentCommissions/{id}: one record per sale an agent
+// earns commission on. The commission falls due 12 months after the sale date and
+// staff are warned (here and by email, via /api/send-agent-commissions) at month 11.
+const AGENT_DUE_MONTHS = 12;
+const AGENT_NOTIFY_MONTHS = 11;
+function agentAddMonths(ms, n) {
+  const d = new Date(ms);
+  d.setMonth(d.getMonth() + n);
+  return d.getTime();
+}
+function agentDates(saleMs) {
+  return {
+    notifyDate: agentAddMonths(saleMs, AGENT_NOTIFY_MONTHS),
+    dueDate: agentAddMonths(saleMs, AGENT_DUE_MONTHS)
+  };
+}
+// 'paid' | 'overdue' | 'soon' (past month 11, not yet due) | 'waiting'
+function agentCommStatus(c, now) {
+  if (c.status === 'paid') return 'paid';
+  if (now >= c.dueDate) return 'overdue';
+  if (now >= c.notifyDate) return 'soon';
+  return 'waiting';
+}
+function agentDaysLeft(c, now) {
+  return Math.ceil((c.dueDate - now) / 86400000);
+}
+function AgentsTab({
+  currentUser
+}) {
+  const [agents, setAgents] = useState(null);
+  const [comms, setComms] = useState(null);
+  const [filter, setFilter] = useState('alert');
+  const [toast, setToast] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [af, setAf] = useState({
+    name: '',
+    mobile: '',
+    email: '',
+    rate: ''
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  const [cf, setCf] = useState({
+    agentId: '',
+    buyer: '',
+    ref: '',
+    saleDate: today,
+    saleAmount: '',
+    commission: ''
+  });
+  useEffect(() => window.db.collection('agents').orderBy('createdAt', 'desc').onSnapshot(s => setAgents(s.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  }))), () => setAgents([])), []);
+  useEffect(() => window.db.collection('agentCommissions').orderBy('dueDate', 'asc').onSnapshot(s => setComms(s.docs.map(d => ({
+    _id: d.id,
+    ...d.data()
+  }))), () => setComms([])), []);
+  if (!agents || !comms) return plotEl("div", {
+    className: "loading"
+  }, plotEl("div", {
+    className: "spinner"
+  }), plotEl("div", null, "Loading agents…"));
+  const actor = currentUser && currentUser.email || 'staff';
+  const now = Date.now();
+  const money = v => Math.round(Number(String(v).replace(/[^0-9.]/g, '')) || 0);
+  const addAgent = async () => {
+    if (af.name.trim().length < 2) {
+      setToast('Please write the agent name.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await window.db.collection('agents').add({
+        name: af.name.trim(),
+        mobile: af.mobile.trim(),
+        email: af.email.trim(),
+        rate: Number(af.rate) || 0,
+        active: true,
+        createdAt: Date.now(),
+        createdBy: actor
+      });
+      setAf({
+        name: '',
+        mobile: '',
+        email: '',
+        rate: ''
+      });
+      setToast('Agent added');
+    } catch (e) {
+      setToast(e.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const removeAgent = async a => {
+    if (!window.confirm(`Remove agent ${a.name}? Their commission records stay.`)) return;
+    try {
+      await window.db.collection('agents').doc(a._id).delete();
+    } catch (e) {
+      setToast(e.message || 'Could not remove');
+    }
+  };
+  const addCommission = async () => {
+    const agent = agents.find(a => a._id === cf.agentId);
+    if (!agent) {
+      setToast('Please choose the agent.');
+      return;
+    }
+    const comm = money(cf.commission);
+    if (!(comm > 0)) {
+      setToast('Please write the commission amount.');
+      return;
+    }
+    const saleMs = new Date(cf.saleDate + 'T00:00:00').getTime();
+    if (!saleMs) {
+      setToast('Please choose the sale date.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await window.db.collection('agentCommissions').add({
+        agentId: agent._id,
+        agentName: agent.name,
+        agentEmail: agent.email || '',
+        buyer: cf.buyer.trim(),
+        ref: cf.ref.trim(),
+        saleAmount: money(cf.saleAmount),
+        commission: comm,
+        saleDate: saleMs,
+        ...agentDates(saleMs),
+        status: 'pending',
+        notifiedAt: null,
+        createdAt: Date.now(),
+        createdBy: actor
+      });
+      setCf({
+        agentId: '',
+        buyer: '',
+        ref: '',
+        saleDate: today,
+        saleAmount: '',
+        commission: ''
+      });
+      setToast('Commission recorded');
+    } catch (e) {
+      setToast(e.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const markPaid = async c => {
+    if (!window.confirm(`Mark the ${fmt(c.commission)} commission for ${c.agentName} as PAID?`)) return;
+    try {
+      await window.db.collection('agentCommissions').doc(c._id).update({
+        status: 'paid',
+        paidAt: Date.now(),
+        paidBy: actor
+      });
+      setToast('Marked as paid');
+    } catch (e) {
+      setToast(e.message || 'Could not save');
+    }
+  };
+  const removeComm = async c => {
+    if (!window.confirm('Delete this commission record?')) return;
+    try {
+      await window.db.collection('agentCommissions').doc(c._id).delete();
+    } catch (e) {
+      setToast(e.message || 'Could not delete');
+    }
+  };
+  const withState = comms.map(c => ({
+    ...c,
+    st: agentCommStatus(c, now)
+  }));
+  const alerts = withState.filter(c => c.st === 'soon' || c.st === 'overdue');
+  const pendingTotal = withState.filter(c => c.st !== 'paid').reduce((n, c) => n + (c.commission || 0), 0);
+  const shown = withState.filter(c => filter === 'all' ? true : filter === 'alert' ? c.st === 'soon' || c.st === 'overdue' : filter === 'pending' ? c.st !== 'paid' : c.st === 'paid');
+  const stat = (n, label) => plotEl("div", {
+    className: "stat-card"
+  }, plotEl("div", null, plotEl("div", {
+    className: "stat-num"
+  }, n), plotEl("div", {
+    className: "stat-lbl"
+  }, label)));
+  const badge = c => c.st === 'paid' ? plotEl("span", {
+    className: "badge badge-converted"
+  }, "Paid") : c.st === 'overdue' ? plotEl("span", {
+    className: "badge",
+    style: {
+      background: '#fde8e6',
+      color: '#a33'
+    }
+  }, "Due now / overdue") : c.st === 'soon' ? plotEl("span", {
+    className: "badge badge-new"
+  }, `Due in ${agentDaysLeft(c, now)} days`) : plotEl("span", {
+    className: "badge badge-contacted"
+  }, "Waiting");
+  const inp = {
+    padding: 8,
+    width: '100%',
+    boxSizing: 'border-box'
+  };
+  const lbl = {
+    fontSize: 12,
+    fontWeight: 600,
+    display: 'block',
+    marginBottom: 2
+  };
+  const pickAgent = id => {
+    const a = agents.find(x => x._id === id);
+    setCf(f => ({
+      ...f,
+      agentId: id,
+      commission: a && a.rate && f.saleAmount ? String(Math.round(money(f.saleAmount) * a.rate / 100)) : f.commission
+    }));
+  };
+  const setSaleAmount = v => {
+    const a = agents.find(x => x._id === cf.agentId);
+    setCf(f => ({
+      ...f,
+      saleAmount: v,
+      commission: a && a.rate ? String(Math.round(money(v) * a.rate / 100)) : f.commission
+    }));
+  };
+  return plotEl("div", null, toast && plotEl(Toast, {
+    msg: toast,
+    onDone: () => setToast('')
+  }), plotEl("div", {
+    className: "section-hd"
+  }, plotEl("h2", null, "Agents and commissions")), plotEl("div", {
+    className: "stats-row",
+    style: {
+      gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
+      marginBottom: 16
+    }
+  }, stat(agents.length, 'Agents'), stat(alerts.length, 'Commissions to prepare'), stat(withState.filter(c => c.st !== 'paid').length, 'Unpaid commissions'), stat(fmt(pendingTotal), 'Unpaid total')), alerts.length > 0 && plotEl("div", {
+    style: {
+      background: '#fff3c9',
+      border: '2px solid #d9a62e',
+      borderRadius: 10,
+      padding: 14,
+      marginBottom: 16
+    }
+  }, plotEl("b", null, "🔔 Commissions due soon (the 1-year mark is near)"), alerts.map(c => plotEl("div", {
+    key: c._id,
+    style: {
+      marginTop: 6
+    }
+  }, c.agentName, " · ", fmt(c.commission), " · ", c.buyer || c.ref || 'sale', " · due ", fmtDate(c.dueDate), c.st === 'overdue' ? ' (now due)' : ` (in ${agentDaysLeft(c, now)} days)`))), plotEl("div", {
+    className: "table-card",
+    style: {
+      padding: 16,
+      marginBottom: 16
+    }
+  }, plotEl("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 8
+    }
+  }, "Add an agent"), plotEl("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+      gap: 10
+    }
+  }, [['name', 'Name'], ['mobile', 'Mobile'], ['email', 'Email (for notices)'], ['rate', 'Commission % (optional)']].map(([k, label]) => plotEl("div", {
+    key: k
+  }, plotEl("label", {
+    style: lbl
+  }, label), plotEl("input", {
+    style: inp,
+    value: af[k],
+    onChange: e => setAf({
+      ...af,
+      [k]: e.target.value
+    })
+  })))), plotEl("button", {
+    className: "btn btn-primary",
+    style: {
+      marginTop: 10
+    },
+    disabled: busy,
+    onClick: addAgent
+  }, "Add agent"), agents.length > 0 && plotEl("table", {
+    style: {
+      marginTop: 12
+    }
+  }, plotEl("thead", null, plotEl("tr", null, ['Agent', 'Mobile', 'Email', 'Commission %', ''].map(h => plotEl("th", {
+    key: h || 'x'
+  }, h)))), plotEl("tbody", null, agents.map(a => plotEl("tr", {
+    key: a._id
+  }, plotEl("td", null, a.name), plotEl("td", null, a.mobile), plotEl("td", null, a.email), plotEl("td", null, a.rate ? a.rate + '%' : '—'), plotEl("td", null, plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => removeAgent(a)
+  }, "Remove"))))))), plotEl("div", {
+    className: "table-card",
+    style: {
+      padding: 16,
+      marginBottom: 16
+    }
+  }, plotEl("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Record a commission"), plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777',
+      marginBottom: 8
+    }
+  }, "The commission falls due 1 year after the sale date. We warn you (and email you and the agent) when 11 months have passed."), plotEl("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+      gap: 10
+    }
+  }, plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Agent"), plotEl("select", {
+    style: inp,
+    value: cf.agentId,
+    onChange: e => pickAgent(e.target.value)
+  }, plotEl("option", {
+    value: ""
+  }, "Choose…"), agents.map(a => plotEl("option", {
+    key: a._id,
+    value: a._id
+  }, a.name)))), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Buyer name"), plotEl("input", {
+    style: inp,
+    value: cf.buyer,
+    onChange: e => setCf({
+      ...cf,
+      buyer: e.target.value
+    })
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Reference (e.g. PS-0001, plot)"), plotEl("input", {
+    style: inp,
+    value: cf.ref,
+    onChange: e => setCf({
+      ...cf,
+      ref: e.target.value
+    })
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Sale date"), plotEl("input", {
+    type: "date",
+    style: inp,
+    value: cf.saleDate,
+    onChange: e => setCf({
+      ...cf,
+      saleDate: e.target.value
+    })
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Sale amount (₱)"), plotEl("input", {
+    style: inp,
+    inputMode: "numeric",
+    value: cf.saleAmount,
+    onChange: e => setSaleAmount(e.target.value)
+  })), plotEl("div", null, plotEl("label", {
+    style: lbl
+  }, "Commission amount (₱)"), plotEl("input", {
+    style: inp,
+    inputMode: "numeric",
+    value: cf.commission,
+    onChange: e => setCf({
+      ...cf,
+      commission: e.target.value
+    })
+  }))), plotEl("button", {
+    className: "btn btn-primary",
+    style: {
+      marginTop: 10
+    },
+    disabled: busy,
+    onClick: addCommission
+  }, "Save commission")), plotEl("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginBottom: 14
+    }
+  }, [['alert', 'Due soon'], ['pending', 'Unpaid'], ['paid', 'Paid'], ['all', 'All']].map(([id, label]) => plotEl("button", {
+    key: id,
+    className: `btn btn-sm ${filter === id ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setFilter(id)
+  }, label))), plotEl("div", {
+    className: "table-card"
+  }, shown.length === 0 ? plotEl("div", {
+    style: {
+      padding: 24
+    }
+  }, "No commissions here yet.") : plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['Agent', 'Sale', 'Sale date', 'Commission', 'Due date', 'Status', ''].map(h => plotEl("th", {
+    key: h || 'x'
+  }, h)))), plotEl("tbody", null, shown.map(c => plotEl("tr", {
+    key: c._id
+  }, plotEl("td", null, c.agentName), plotEl("td", null, c.buyer || '—', plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, c.ref)), plotEl("td", null, fmtDate(c.saleDate)), plotEl("td", null, fmt(c.commission)), plotEl("td", null, fmtDate(c.dueDate), plotEl("div", {
+    style: {
+      fontSize: 12,
+      color: '#777'
+    }
+  }, "warn on ", fmtDate(c.notifyDate))), plotEl("td", null, badge(c)), plotEl("td", null, c.st !== 'paid' && plotEl("button", {
+    className: "btn btn-primary btn-sm",
+    onClick: () => markPaid(c)
+  }, "Mark paid"), ' ', plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => removeComm(c)
+  }, "✕"))))))));
+}
+
 const TABS = [{
   id: 'pipeline',
   label: 'Pipeline',
@@ -3273,6 +5271,16 @@ const TABS = [{
   label: 'Pending Payments',
   ico: '⏳',
   badge: 4
+}, {
+  id: 'presale',
+  label: 'Presale',
+  ico: '📋',
+  badge: 2
+}, {
+  id: 'agents',
+  label: 'Agents',
+  ico: '🤝',
+  badge: 0
 }, {
   id: 'products',
   label: 'Products',
@@ -3312,7 +5320,9 @@ function Dashboard({
     products: 0,
     users: 0,
     trash: 0,
-    pending: 0
+    pending: 0,
+    presale: 0,
+    agents: 0
   });
   // myRole is looked up from users/{uid} — the doc ID MUST equal the Firebase Auth UID
   // for this (and the Firestore security rules) to work. 'unlinked' means this login
@@ -3337,6 +5347,18 @@ function Dashboard({
     // 'pending' isn't its own collection — it's a count of paymentSubmissions
     // with status:'pending' nested inside every customer doc, so it needs
     // its own listener that reduces across all customers.
+    const presaleUnsub = window.db.collection('presaleApplications').onSnapshot(snap => setCounts(c => ({
+      ...c,
+      presale: snap.docs.filter(d => d.data().status === 'new').length
+    })), () => {});
+    // Agents tab badge: unpaid commissions that reached month 11
+    const agentsUnsub = window.db.collection('agentCommissions').onSnapshot(snap => setCounts(c => ({
+      ...c,
+      agents: snap.docs.filter(d => {
+        const x = d.data();
+        return x.status !== 'paid' && Date.now() >= x.notifyDate;
+      }).length
+    })), () => {});
     const pendingUnsub = window.db.collection('customers').onSnapshot(snap => {
       let n = 0;
       snap.docs.forEach(d => {
@@ -3352,6 +5374,8 @@ function Dashboard({
     return () => {
       unsubs.forEach(u => u());
       pendingUnsub();
+      presaleUnsub();
+      agentsUnsub();
     };
   }, []);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -3455,6 +5479,11 @@ function Dashboard({
   }), tab === 'customers' && /*#__PURE__*/React.createElement(Customers, {
     currentUser: user
   }), tab === 'pending' && /*#__PURE__*/React.createElement(PendingPayments, {
+    currentUser: user
+  }), tab === 'presale' && /*#__PURE__*/React.createElement(PresaleApplications, {
+    currentUser: user,
+    canEditRules: isAdminOrHigher
+  }), tab === 'agents' && /*#__PURE__*/React.createElement(AgentsTab, {
     currentUser: user
   }), tab === 'products' && isAdminOrHigher && /*#__PURE__*/React.createElement(Products, null), tab === 'users' && isAdminOrHigher && /*#__PURE__*/React.createElement(Users, {
     currentUser: user,

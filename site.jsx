@@ -488,6 +488,56 @@ function App() {
   const [baseTiers, setBaseTiers] = useState(BASE_TIERS);
   const [selectedTierId, setSelectedTierId] = useState(null);
   const [portalOpen, setPortalOpen] = useState(false);
+  const [paymentNotice, setPaymentNotice] = useState(null);
+  const [presale, setPresale] = useState(null); // null = closed, otherwise { type }
+
+  // Detect PayMongo payment returns (?payment_status=success|cancelled)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const status = params.get('payment_status');
+      const type = params.get('type');
+      const ref = params.get('ref');
+      if (status === 'success') {
+        setPaymentNotice({
+          status: 'success',
+          type,
+          ref,
+          message: type === 'presale_reservation'
+            ? `Reservation deposit received! Your plot reservation (Ref: ${ref || 'Presale'}) is secured. Our team will contact you shortly.`
+            : `Payment received! Your payment via PayMongo has been recorded and credited to your plan.`
+        });
+        if (type === 'portal_installment') setPortalOpen(true);
+        window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+      } else if (status === 'cancelled') {
+        setPaymentNotice({
+          status: 'cancelled',
+          message: 'PayMongo checkout was cancelled. No charges were made.'
+        });
+        window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+      }
+    } catch (e) {}
+  }, []);
+
+  // The presale lives on its own page (/presale) and opens in its own browser tab.
+  // Old links to /#presale are sent there.
+  const goPresale = (type) => {
+    const url = '/presale' + (type ? '?type=' + encodeURIComponent(type) : '');
+    const w = window.open(url, '_blank');
+    if (!w) window.location.assign(url); // pop-up blocked: open it in this tab instead
+  };
+  useEffect(() => {
+    const check = () => { if (window.location.hash === '#presale') window.location.replace('/presale'); };
+    check();
+    window.addEventListener('hashchange', check);
+    return () => window.removeEventListener('hashchange', check);
+  }, []);
+  const closePresale = () => {
+    setPresale(null);
+    if (window.location.hash === '#presale') {
+      try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch (err) { /* ignore */ }
+    }
+  };
 
   // Cart: persisted to localStorage so it survives a refresh, but never
   // touches Firestore until the customer actually submits an order.
@@ -570,6 +620,7 @@ function App() {
 
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
+    <window.PresaleContext.Provider value={{ openPresale: goPresale }}>
     <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, cartCount, cartOpen, setCartOpen }}>
       <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12}
         style={{ position: 'fixed', zIndex: 0 }} />
@@ -588,12 +639,31 @@ function App() {
           <FAQ />
         </main>
         <Footer />
+        {paymentNotice && (
+          <div style={{
+            position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 9999, background: paymentNotice.status === 'success' ? '#2f5d4c' : '#7f2323',
+            color: '#fff', padding: '14px 20px', borderRadius: 12, boxShadow: '0 12px 35px rgba(0,0,0,0.3)',
+            display: 'flex', alignItems: 'center', gap: 12, maxWidth: 540, width: '92%', animation: 'fadeIn .3s ease'
+          }}>
+            <span style={{ fontSize: 24 }}>{paymentNotice.status === 'success' ? '✅' : 'ℹ️'}</span>
+            <div style={{ flex: 1, fontSize: 14, lineHeight: 1.4 }}>{paymentNotice.message}</div>
+            <button
+              onClick={() => setPaymentNotice(null)}
+              aria-label="Dismiss notice"
+              style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: '4px 8px' }}>
+              ✕
+            </button>
+          </div>
+        )}
         <CustomerPortal open={portalOpen} onClose={() => setPortalOpen(false)} />
         <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
         <Tweaks t={t} setTweak={setTweak} priceMult={priceMult} />
+        {presale && <window.PresaleFlow tiers={tiers} startType={presale.type} onClose={closePresale} />}
       </LightboxRoot>
       </div>
     </CartContext.Provider>
+    </window.PresaleContext.Provider>
     </PlanSelectionContext.Provider>);
 }
 
@@ -632,6 +702,9 @@ function Header() {
   const btnPadX = 28 - scrolled * 8;
 
   const navItems = [
+    { href: '/presale', newTab: true, label: 'Presale', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>
+    ) },
     { href: '#tiers', label: 'Plots & Pricing', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     ) },
@@ -717,7 +790,7 @@ function Header() {
                 transition: 'gap .35s cubic-bezier(.25,.1,.25,1), margin-top .35s cubic-bezier(.25,.1,.25,1)'
               }}>
               {navItems.map(item => (
-                <a key={item.href} href={item.href} className="nav-link-icon"
+                <a key={item.href} href={item.href} className="nav-link-icon" {...(item.newTab ? { target: '_blank', rel: 'noopener' } : {})}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
                     padding: `${navPadY}px ${navPadX}px`, fontSize: navFontSize,
                     borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
@@ -768,7 +841,7 @@ function Header() {
         <div className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`} onClick={() => setMobileOpen(false)}>
           <div className="inner" onClick={(e) => e.stopPropagation()}>
             {navItems.map(item => (
-              <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+              <a key={item.href} href={item.href} {...(item.newTab ? { target: '_blank', rel: 'noopener' } : {})} onClick={() => setMobileOpen(false)}>
                 <span style={{ display: 'inline-flex', marginRight: 10 }}>{item.icon}</span>
                 {item.label}
               </a>
@@ -1222,6 +1295,8 @@ function tierSceneKey(t) {
 function Tier({ tier, i = 0, allTiers = [] }) {
   const { selectedTierId, selectTier } = usePlanSelection();
   const { cart, addToCart } = useCart();
+  const { openPresale } = React.useContext(window.PresaleContext);
+  const isPresale = (window.PRESALE_TYPE_IDS || []).includes(tier.id);
   const inCartItem = cart.find((c) => c.id === tier.id);
   const [qty, setQty] = useState(1);
   const group = allTiers.length ?
@@ -1258,6 +1333,18 @@ function Tier({ tier, i = 0, allTiers = [] }) {
         <ul className="feature-list">
           {tier.features.map((f) => <li key={f}>{f}</li>)}
         </ul>
+        {isPresale ?
+        <button
+          type="button"
+          className="btn"
+          style={{
+            width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10,
+            background: 'var(--gold)', color: '#1f1607', border: 'none', fontWeight: 700, fontSize: 15,
+            padding: '10px 14px', minHeight: 44, boxShadow: '0 2px 8px rgba(0,0,0,.15)'
+          }}
+          onClick={() => openPresale(tier.id)}>
+          Choose my plot →
+        </button> :
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
           <div style={{
             display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
@@ -1309,7 +1396,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
               </>}
 
           </button>
-        </div>
+        </div>}
         <a
           href="#plans"
           onClick={() => selectTier(tier.id)}
@@ -2196,9 +2283,68 @@ function PortalDashboard({ customer, onLogout }) {
   const pendingRows = (customer.paymentSubmissions || []).map(p => ({ ...p, _kind: 'submission' }));
   const history = [...confirmedRows, ...pendingRows].sort((a, b) => (a.date < b.date ? 1 : -1));
 
+  // Payment method tab: 'online' (PayMongo) | 'manual' (Reference)
+  const [payTab, setPayTab] = useState('online');
+
+  // Online PayMongo state
+  const [onlineType, setOnlineType] = useState('monthly'); // 'monthly' | 'full' | 'custom'
+  const [customOnlineAmt, setCustomOnlineAmt] = useState('');
+  const [onlineBusy, setOnlineBusy] = useState(false);
+  const [onlineErr, setOnlineErr] = useState('');
+
+  // Manual submission state
   const [form, setForm] = useState({ method: 'gcash', referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
+
+  // Online amounts & fee calculation
+  const monthlyDue = Number(customer.plan?.monthlyAmount) || 0;
+  const rawTargetAmount = onlineType === 'monthly'
+    ? monthlyDue
+    : onlineType === 'full'
+    ? Math.max(0, bal.balance)
+    : Number(customOnlineAmt) || 0;
+
+  const convenienceFee = Math.round(rawTargetAmount * 0.025 * 100) / 100;
+  const totalToPay = rawTargetAmount + convenienceFee;
+
+  const handlePayMongoCheckout = async () => {
+    if (rawTargetAmount < 50) {
+      setOnlineErr('Please enter an amount of at least ₱50.');
+      return;
+    }
+    setOnlineBusy(true);
+    setOnlineErr('');
+    try {
+      const res = await fetch('/api/paymongo-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'portal_installment',
+          amount: rawTargetAmount,
+          description: `Plan Installment: ${customer.plan?.tierName || 'Memorial Plot'} (${customer.firstName || customer.fullName || 'Customer'})`,
+          customerId: customer._id,
+          customerEmail: customer.email || '',
+          customerName: customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim(),
+          customerPhone: customer.phone || ''
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        if (res.status === 405) {
+          setOnlineErr('The local preview server (Live Server) cannot process API payments. Please run via "vercel dev" or test on the deployed site.');
+        } else {
+          setOnlineErr(data.error || 'Failed to start PayMongo checkout (status ' + res.status + '). Please try again.');
+        }
+      }
+    } catch (ex) {
+      setOnlineErr('Connection error. Please check your internet connection.');
+    } finally {
+      setOnlineBusy(false);
+    }
+  };
 
   const submitReference = async (e) => {
     e.preventDefault();
@@ -2263,6 +2409,199 @@ function PortalDashboard({ customer, onLogout }) {
         </React.Fragment>
       )}
 
+      {/* Payment Options Header / Tabs */}
+      <div className="gh-portal-section">
+        <h4>Make a payment</h4>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button
+            type="button"
+            onClick={() => setPayTab('online')}
+            style={{
+              flex: 1, padding: '10px 14px', borderRadius: 10, fontSize: 13.5, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+              border: payTab === 'online' ? '2px solid var(--accent)' : '1px solid var(--line)',
+              background: payTab === 'online' ? 'var(--accent)' : 'var(--bg)',
+              color: payTab === 'online' ? 'var(--accent-ink)' : 'var(--ink)'
+            }}>
+            ⚡ Pay Online (PayMongo)
+          </button>
+          <button
+            type="button"
+            onClick={() => setPayTab('manual')}
+            style={{
+              flex: 1, padding: '10px 14px', borderRadius: 10, fontSize: 13.5, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+              border: payTab === 'manual' ? '2px solid var(--accent)' : '1px solid var(--line)',
+              background: payTab === 'manual' ? 'var(--accent)' : 'var(--bg)',
+              color: payTab === 'manual' ? 'var(--accent-ink)' : 'var(--ink)'
+            }}>
+            📝 Submit Reference
+          </button>
+        </div>
+
+        {payTab === 'online' ? (
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+            <p className="gh-portal-help" style={{ marginBottom: 12 }}>
+              Pay directly using <b>GCash, Maya, Cards (Visa/Mastercard), GrabPay, or BillEase</b>. Your payment is verified automatically and credited to your balance instantly.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 14 }}>
+              {monthlyDue > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => { setOnlineType('monthly'); setCustomOnlineAmt(''); }}
+                  style={{
+                    padding: '10px 12px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                    border: onlineType === 'monthly' ? '2px solid var(--accent)' : '1px solid var(--line)',
+                    background: onlineType === 'monthly' ? '#eaf2ec' : 'var(--card)',
+                    color: 'var(--ink)'
+                  }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-2)', fontWeight: 600 }}>MONTHLY DUE</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{fmt(monthlyDue)}</div>
+                </button>
+              ) : null}
+
+              {bal.balance > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => { setOnlineType('full'); setCustomOnlineAmt(''); }}
+                  style={{
+                    padding: '10px 12px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                    border: onlineType === 'full' ? '2px solid var(--accent)' : '1px solid var(--line)',
+                    background: onlineType === 'full' ? '#eaf2ec' : 'var(--card)',
+                    color: 'var(--ink)'
+                  }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-2)', fontWeight: 600 }}>FULL BALANCE</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{fmt(bal.balance)}</div>
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => setOnlineType('custom')}
+                style={{
+                  padding: '10px 12px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                  border: onlineType === 'custom' ? '2px solid var(--accent)' : '1px solid var(--line)',
+                  background: onlineType === 'custom' ? '#eaf2ec' : 'var(--card)',
+                  color: 'var(--ink)'
+                }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-2)', fontWeight: 600 }}>OTHER AMOUNT</div>
+                <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>Custom ₱</div>
+              </button>
+            </div>
+
+            {onlineType === 'custom' ? (
+              <div style={{ marginBottom: 14 }}>
+                <label htmlFor="gh-custom-online-amt" style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 5 }}>Enter amount to pay (₱)</label>
+                <input
+                  id="gh-custom-online-amt"
+                  type="number"
+                  min="50"
+                  max={bal.balance || 1000000}
+                  placeholder="e.g. 2500"
+                  value={customOnlineAmt}
+                  onChange={(e) => setCustomOnlineAmt(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14, boxSizing: 'border-box' }}
+                />
+              </div>
+            ) : null}
+
+            {rawTargetAmount > 0 ? (
+              <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 12.5 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: 'var(--ink-2)' }}>Credited toward plan:</span>
+                  <span style={{ fontWeight: 600 }}>{fmt(rawTargetAmount)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: 'var(--ink-2)' }}>Processing fee (2.5%):</span>
+                  <span style={{ color: 'var(--ink-2)' }}>{fmt(convenienceFee)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--line)', paddingTop: 6, fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
+                  <span>Total at checkout:</span>
+                  <span style={{ color: 'var(--accent)' }}>{fmt(totalToPay)}</span>
+                </div>
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              disabled={onlineBusy || rawTargetAmount < 50}
+              onClick={handlePayMongoCheckout}
+              className="gh-portal-btn-primary"
+              style={{ marginTop: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {onlineBusy ? 'Connecting to PayMongo…' : `Pay ${rawTargetAmount > 0 ? fmt(totalToPay) : ''} Online →`}
+            </button>
+
+            {onlineErr ? <div className="gh-portal-err">{onlineErr}</div> : null}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 12, opacity: 0.8, fontSize: 11, color: 'var(--ink-2)' }}>
+              <span>📱 GCash</span> &bull; <span>💚 Maya</span> &bull; <span>💳 Visa/Mastercard</span> &bull; <span>⚡ BillEase</span>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p className="gh-portal-help">
+              {form.method === 'bank'
+                ? "Send your payment to our business bank account, then submit the transfer reference below. Our staff will confirm it against the transaction and update your balance."
+                : form.method === 'cash'
+                ? "If you've paid in cash at our office, let us know here so our staff can confirm it and update your balance."
+                : "Pay via our GCash for Business QR code, then send us the reference number. Our staff will confirm it against the transaction and update your balance."}
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {[
+                { key: 'gcash', label: 'GCash' },
+                { key: 'bank', label: 'Bank Transfer' },
+                { key: 'cash', label: 'Cash' }
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, method: opt.key }))}
+                  style={{
+                    flex: 1, padding: '10px 12px', borderRadius: 10, fontSize: 13.5, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    border: form.method === opt.key ? '1px solid var(--accent)' : '1px solid var(--line)',
+                    background: form.method === opt.key ? 'var(--accent)' : 'var(--bg)',
+                    color: form.method === opt.key ? 'var(--accent-ink)' : 'var(--ink)'
+                  }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <form onSubmit={submitReference} className="gh-portal-form-grid">
+              <div>
+                <label htmlFor="gh-pay-ref">
+                  {form.method === 'bank' ? 'Bank transfer reference no.' : form.method === 'cash' ? 'Receipt/OR number (if any)' : 'GCash reference number'}
+                </label>
+                <input
+                  id="gh-pay-ref" type="text" required={form.method !== 'cash'}
+                  value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))}
+                  placeholder={form.method === 'bank' ? 'e.g. BDO-88213410' : form.method === 'cash' ? 'e.g. OR-1042 (optional)' : 'e.g. GC-99214870'} />
+              </div>
+              <div>
+                <label htmlFor="gh-pay-amount">Amount paid</label>
+                <input id="gh-pay-amount" type="number" required min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+              </div>
+              <div>
+                <label htmlFor="gh-pay-date">Date of payment</label>
+                <input id="gh-pay-date" type="date" required value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label htmlFor="gh-pay-mobile">
+                  {form.method === 'bank' ? 'Sending bank (optional)' : form.method === 'cash' ? 'Received by (optional)' : 'Your GCash mobile no. (optional)'}
+                </label>
+                <input
+                  id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))}
+                  placeholder={form.method === 'bank' ? 'e.g. BDO, BPI' : form.method === 'cash' ? 'e.g. staff name' : '09XX XXX XXXX'} />
+              </div>
+              <div className="full">
+                <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting…' : 'Submit for confirmation'}</button>
+              </div>
+            </form>
+            {toast && <div className="gh-portal-toast">{toast}</div>}
+          </div>
+        )}
+      </div>
+
       <div className="gh-portal-section">
         <h4>Payment history</h4>
         {history.length === 0 ? (
@@ -2275,13 +2614,13 @@ function PortalDashboard({ customer, onLogout }) {
                 <tr key={i}>
                   <td>{p.date}</td>
                   <td>{p.method || 'GCash'}</td>
-                  <td>{p.referenceNumber || '—'}</td>
+                  <td>{p.referenceNumber || p.ref || '—'}</td>
                   <td>{fmt(p.amount)}</td>
                   <td>
-                    {p._kind === 'confirmed'
+                    {p._kind === 'confirmed' || p.status === 'confirmed'
                       ? <span className="gh-pill confirmed">Confirmed</span>
-                      : <span className={`gh-pill ${p.status === 'rejected' ? 'rejected' : p.status === 'confirmed' ? 'confirmed' : 'pending'}`}>
-                          {p.status === 'rejected' ? 'Needs attention' : p.status === 'confirmed' ? 'Confirmed' : 'Awaiting confirmation'}
+                      : <span className={`gh-pill ${p.status === 'rejected' ? 'rejected' : 'pending'}`}>
+                          {p.status === 'rejected' ? 'Needs attention' : 'Awaiting confirmation'}
                         </span>}
                   </td>
                 </tr>
@@ -2290,72 +2629,10 @@ function PortalDashboard({ customer, onLogout }) {
           </table>
         )}
       </div>
-
-      <div className="gh-portal-section">
-        <h4>Submit a payment reference</h4>
-        <p className="gh-portal-help">
-          {form.method === 'bank'
-            ? "Send your payment to our business bank account, then submit the transfer reference below. Our staff will confirm it against the transaction and update your balance."
-            : form.method === 'cash'
-            ? "If you've paid in cash at our office, let us know here so our staff can confirm it and update your balance."
-            : "Pay via our GCash for Business QR code, then send us the reference number. Our staff will confirm it against the transaction and update your balance."}
-        </p>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {[
-            { key: 'gcash', label: 'GCash' },
-            { key: 'bank', label: 'Bank Transfer' },
-            { key: 'cash', label: 'Cash' }
-          ].map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => setForm(f => ({ ...f, method: opt.key }))}
-              style={{
-                flex: 1, padding: '10px 12px', borderRadius: 10, fontSize: 13.5, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit',
-                border: form.method === opt.key ? '1px solid var(--accent)' : '1px solid var(--line)',
-                background: form.method === opt.key ? 'var(--accent)' : 'var(--bg)',
-                color: form.method === opt.key ? 'var(--accent-ink)' : 'var(--ink)'
-              }}>
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <form onSubmit={submitReference} className="gh-portal-form-grid">
-          <div>
-            <label htmlFor="gh-pay-ref">
-              {form.method === 'bank' ? 'Bank transfer reference no.' : form.method === 'cash' ? 'Receipt/OR number (if any)' : 'GCash reference number'}
-            </label>
-            <input
-              id="gh-pay-ref" type="text" required={form.method !== 'cash'}
-              value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))}
-              placeholder={form.method === 'bank' ? 'e.g. BDO-88213410' : form.method === 'cash' ? 'e.g. OR-1042 (optional)' : 'e.g. GC-99214870'} />
-          </div>
-          <div>
-            <label htmlFor="gh-pay-amount">Amount paid</label>
-            <input id="gh-pay-amount" type="number" required min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
-          </div>
-          <div>
-            <label htmlFor="gh-pay-date">Date of payment</label>
-            <input id="gh-pay-date" type="date" required value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-          </div>
-          <div>
-            <label htmlFor="gh-pay-mobile">
-              {form.method === 'bank' ? 'Sending bank (optional)' : form.method === 'cash' ? 'Received by (optional)' : 'Your GCash mobile no. (optional)'}
-            </label>
-            <input
-              id="gh-pay-mobile" type="text" value={form.mobileNumber} onChange={e => setForm(f => ({ ...f, mobileNumber: e.target.value }))}
-              placeholder={form.method === 'bank' ? 'e.g. BDO, BPI' : form.method === 'cash' ? 'e.g. staff name' : '09XX XXX XXXX'} />
-          </div>
-          <div className="full">
-            <button type="submit" className="gh-portal-btn-gold" disabled={busy}>{busy ? 'Submitting…' : 'Submit for confirmation'}</button>
-          </div>
-        </form>
-        {toast && <div className="gh-portal-toast">{toast}</div>}
-      </div>
     </div>
   );
 }
+
 
 function CustomerPortal({ open, onClose }) {
   const [authUser, setAuthUser] = useState(undefined); // undefined = checking, null = logged out
@@ -2405,7 +2682,7 @@ function CustomerPortal({ open, onClose }) {
     <div className="gh-portal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <style>{`
         .gh-portal-overlay{ position:fixed; inset:0; background:rgba(20,20,18,.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
-        .gh-portal-card{ background:var(--card); border-radius:16px; max-width:420px; width:100%; max-height:88vh;
+        .gh-portal-card{ background:var(--card); border-radius:16px; max-width:540px; width:100%; max-height:88vh;
           overflow-y:auto; position:relative; box-shadow:0 20px 50px rgba(0,0,0,.28); border:1px solid var(--line); }
         .gh-portal-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-2); line-height:1; z-index:2; }
         .gh-portal-header-block{ padding:32px 32px 30px; background:var(--card); }
