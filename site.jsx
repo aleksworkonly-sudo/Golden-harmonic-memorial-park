@@ -519,9 +519,15 @@ function App() {
     } catch (e) {}
   }, []);
 
-  // Direct link: opening the site at /#presale shows the presale site plan straight away.
+  // The presale lives on its own page (/presale) and opens in its own browser tab.
+  // Old links to /#presale are sent there.
+  const goPresale = (type) => {
+    const url = '/presale' + (type ? '?type=' + encodeURIComponent(type) : '');
+    const w = window.open(url, '_blank');
+    if (!w) window.location.assign(url); // pop-up blocked: open it in this tab instead
+  };
   useEffect(() => {
-    const check = () => { if (window.location.hash === '#presale') setPresale((cur) => cur || { type: '' }); };
+    const check = () => { if (window.location.hash === '#presale') window.location.replace('/presale'); };
     check();
     window.addEventListener('hashchange', check);
     return () => window.removeEventListener('hashchange', check);
@@ -614,7 +620,7 @@ function App() {
 
   return (
     <PlanSelectionContext.Provider value={{ selectedTierId, selectTier: setSelectedTierId }}>
-    <window.PresaleContext.Provider value={{ openPresale: (type) => setPresale({ type }) }}>
+    <window.PresaleContext.Provider value={{ openPresale: goPresale }}>
     <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, cartCount, cartOpen, setCartOpen }}>
       <Velaris bg="#f6f1e8" colors={['#e6d9b8', '#d9c48f', '#8fae9c', '#2f5d4c']} speed={0.5} grain={0.12}
         style={{ position: 'fixed', zIndex: 0 }} />
@@ -696,6 +702,9 @@ function Header() {
   const btnPadX = 28 - scrolled * 8;
 
   const navItems = [
+    { href: '/presale', newTab: true, label: 'Presale', icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>
+    ) },
     { href: '#tiers', label: 'Plots & Pricing', icon: (
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     ) },
@@ -781,7 +790,7 @@ function Header() {
                 transition: 'gap .35s cubic-bezier(.25,.1,.25,1), margin-top .35s cubic-bezier(.25,.1,.25,1)'
               }}>
               {navItems.map(item => (
-                <a key={item.href} href={item.href} className="nav-link-icon"
+                <a key={item.href} href={item.href} className="nav-link-icon" {...(item.newTab ? { target: '_blank', rel: 'noopener' } : {})}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
                     padding: `${navPadY}px ${navPadX}px`, fontSize: navFontSize,
                     borderRadius: 9, textDecoration: 'none', color: 'var(--ink-2)',
@@ -832,7 +841,7 @@ function Header() {
         <div className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`} onClick={() => setMobileOpen(false)}>
           <div className="inner" onClick={(e) => e.stopPropagation()}>
             {navItems.map(item => (
-              <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+              <a key={item.href} href={item.href} {...(item.newTab ? { target: '_blank', rel: 'noopener' } : {})} onClick={() => setMobileOpen(false)}>
                 <span style={{ display: 'inline-flex', marginRight: 10 }}>{item.icon}</span>
                 {item.label}
               </a>

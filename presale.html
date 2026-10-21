@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Presale — Golden Harmonic Memorial Park</title>
+<meta name="description" content="Choose your plot in Blocks A, B, C and D. First come, first served. Golden Harmonic Memorial Park, Taytay, Palawan." />
+<link rel="icon" type="image/png" href="/favicon-32.png" />
+<link rel="apple-touch-icon" href="/logo-192.png" />
+<meta name="theme-color" content="#2f5d4c" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script>window.React || document.write('<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js"><\/script>');</script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script>window.ReactDOM || document.write('<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js"><\/script>');</script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>window.Babel || document.write('<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.0/babel.min.js"><\/script>');</script>
+
+<!-- Firebase (Firestore + Auth) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+  :root {
+    --bg: #f6f1e8;
+    --bg-2: #ece4d3;
+    --ink: #1f2a26;
+    --ink-2: #4a564f;
+    --line: #d9cfbb;
+    --accent: #2f5d4c;
+    --accent-ink: #f6f1e8;
+    --gold: #b08544;
+    --terracotta: #b8593a;
+    --card: #fbf7ee;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .display, h1, h2, h3 { font-family: 'Newsreader', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; margin: 0; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  a { color: inherit; }
+  .loading { min-height: 100vh; display: grid; place-items: center; font-size: 20px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+
+<div id="root"><div class="loading">Loading the presale…</div></div>
+<noscript><p style="padding:24px;font-size:18px">Please turn on JavaScript to choose your plot, or call our office and we will help you.</p></noscript>
+
+<script type="text/babel" src="presale.jsx"></script>
+<script type="text/babel">
+  // The presale on its own page, so it opens in its own browser tab (/presale or /presale?type=regular).
+  function PresalePage() {
+    const [tiers, setTiers] = React.useState([]);
+    React.useEffect(() => {
+      // Same product prices as the main site; the flow has built-in prices if this cannot load.
+      if (!window.db) return;
+      window.db.collection('products').orderBy('sortOrder').get()
+        .then((snap) => { if (!snap.empty) setTiers(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); })
+        .catch(() => {});
+    }, []);
+    const startType = new URLSearchParams(window.location.search).get('type') || '';
+    const goHome = () => {
+      // Closes this tab when the site opened it; otherwise goes back to the main site.
+      try { window.close(); } catch (e) {}
+      setTimeout(() => { window.location.href = '/'; }, 250);
+    };
+    return <window.PresaleFlow tiers={tiers} startType={startType} onClose={goHome} />;
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<PresalePage />);
+</script>
+</body>
+</html>
