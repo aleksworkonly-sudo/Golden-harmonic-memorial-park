@@ -154,12 +154,12 @@
 
   /* ---------- steps 1 and 2: the aerial site plan, with zoom ---------- */
   // Slow, gentle scroll (about 1.4 s) inside the presale screen, so buyers can follow where the page goes.
-  function slowScroll(el, offset, ms) {
+  function slowScroll(el, offset, ms, toTop) {
     const box = el && el.closest('[role="dialog"]');
     if (!box) { try { el && el.scrollIntoView(); } catch (e) {} return; }
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const from = box.scrollTop;
-    const to = Math.max(0, from + el.getBoundingClientRect().top - box.getBoundingClientRect().top - (offset || 0));
+    const to = toTop ? 0 : Math.max(0, from + el.getBoundingClientRect().top - box.getBoundingClientRect().top - (offset || 0));
     if (reduce || Math.abs(to - from) < 2) { box.scrollTop = to; return; }
     const t0 = performance.now(), dur = ms || 1400;
     const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
@@ -451,6 +451,7 @@
     const [error, setError] = useState('');
     const [done, setDone] = useState(null);
     const topRef = useRef(null);
+    const detailsRef = useRef(null);
     // Keep what the buyer typed, so an accidental close does not lose it.
     useEffect(() => {
       try {
@@ -468,7 +469,7 @@
     }, []);
 
     useEffect(() => { BLOCKS.forEach((b) => loadTaken(b)); }, [loadTaken]);
-    useEffect(() => { if (topRef.current) slowScroll(topRef.current, 0, 1200); }, [step, done]);
+    useEffect(() => { if (topRef.current) slowScroll(topRef.current, 0, 1200, true); }, [step, done]);
 
     // Plots the buyer already added count as taken, so the same plot cannot be picked twice.
     const taken = useMemo(() => {
@@ -703,6 +704,11 @@
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Choose your exact plot</div>
             {notice ? <div style={{ ...S.note, marginBottom: 10 }}>{notice}</div> : null}
             {lot ? <PlotPicker block={block} typeId={typeId} lot={lot} setLot={setLot} taken={taken} notify={setNotice} /> : <div>Loading plots...</div>}
+            {lot ? (
+              <button type="button" onClick={() => slowScroll(detailsRef.current, 80, 1400)}
+                style={{ marginTop: 14, width: '100%', minHeight: 60, fontSize: 21, fontWeight: 800, borderRadius: 12, border: 0, background: '#2f5d4c', color: '#fff', cursor: 'pointer' }}>
+                ✔ This is my plot ({code(block, lot)}). Next: write my name ↓
+              </button>) : null}
           </div>
 
           <div style={{ ...S.card, marginBottom: 16 }}>
@@ -760,7 +766,7 @@
             </div>
           </div>
 
-          <div style={{ ...S.card, marginBottom: 16 }}>
+          <div ref={detailsRef} style={{ ...S.card, marginBottom: 16 }}>
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Your details</div>
             <label style={S.label} htmlFor="ps-name">Full name</label>
             <input id="ps-name" style={S.input} value={form.name} onChange={(e) => setF('name', e.target.value)} autoComplete="name" />
