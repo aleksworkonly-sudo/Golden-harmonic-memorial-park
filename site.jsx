@@ -1333,18 +1333,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
         <ul className="feature-list">
           {tier.features.map((f) => <li key={f}>{f}</li>)}
         </ul>
-        {isPresale ?
-        <button
-          type="button"
-          className="btn"
-          style={{
-            width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10,
-            background: 'var(--gold)', color: '#1f1607', border: 'none', fontWeight: 700, fontSize: 15,
-            padding: '10px 14px', minHeight: 44, boxShadow: '0 2px 8px rgba(0,0,0,.15)'
-          }}
-          onClick={() => openPresale(tier.id)}>
-          Choose my plot →
-        </button> :
+        {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
           <div style={{
             display: 'flex', alignItems: 'center', border: '1px solid var(--line)',
@@ -2790,6 +2779,7 @@ function CustomerPortal({ open, onClose }) {
    GCash details the same way they do for every other lead today. */
 function CartDrawer({ open, onClose }) {
   const { cart, removeFromCart, updateQty, clearCart } = useCart();
+  const { openPresale } = React.useContext(window.PresaleContext);
   const [step, setStep] = useState('cart'); // 'cart' | 'checkout' | 'sent'
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', paymentMethod: 'gcash', term: 'cash' });
   const [saving, setSaving] = useState(false);
@@ -2817,6 +2807,15 @@ function CartDrawer({ open, onClose }) {
   if (!open) return null;
 
   const selectedTerm = PLAN_TERMS.find((t) => t.key === form.term) || PLAN_TERMS[0];
+  // Burial plots (Regular, Premium, Corner Premium) are reserved on the presale page, not through this cart order.
+  const plotItems = cart.filter((i) => (window.PRESALE_TYPE_IDS || []).includes(i.id));
+  const otherItems = cart.filter((i) => !(window.PRESALE_TYPE_IDS || []).includes(i.id));
+  const reservePlots = () => {
+    const first = plotItems[0];
+    plotItems.forEach((p) => removeFromCart(p.id));
+    onClose();
+    openPresale(first.id);
+  };
   const rawSubtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   const subtotal = rawSubtotal * (1 + selectedTerm.surcharge);
   const monthly = selectedTerm.months ? subtotal / selectedTerm.months : null;
@@ -2997,10 +2996,29 @@ function CartDrawer({ open, onClose }) {
                     <span className="lbl">Subtotal</span>
                     <span className="val">{fmt(rawSubtotal)}</span>
                   </div>
-                  <button className="gh-cart-btn" disabled={cart.length === 0} onClick={() => setStep('checkout')}>
-                    Proceed to Checkout
-                  </button>
-                  <p className="gh-cart-note">No payment is taken yet — you'll confirm your details next.</p>
+                  {plotItems.length > 0 ? (
+                    <React.Fragment>
+                      <div style={{ background: '#fff3c9', border: '1.5px solid #d9a62e', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, lineHeight: 1.5, color: '#3b2a05', marginBottom: 10 }}>
+                        Plots are reserved first come, first served. Press the button below to choose your exact plot on the map and fill in your details.
+                      </div>
+                      <button className="gh-cart-btn" onClick={reservePlots}>
+                        Choose my plot and reserve →
+                      </button>
+                      {otherItems.length > 0 && (
+                        <button className="gh-cart-btn" style={{ marginTop: 8, background: 'transparent', color: 'var(--ink)', border: '1px solid var(--line)' }} onClick={() => { plotItems.forEach((p) => removeFromCart(p.id)); setStep('checkout'); }}>
+                          Checkout the other items only
+                        </button>
+                      )}
+                      <p className="gh-cart-note">Opens in a new tab. No payment is taken yet.</p>
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment>
+                      <button className="gh-cart-btn" disabled={cart.length === 0} onClick={() => setStep('checkout')}>
+                        Proceed to Checkout
+                      </button>
+                      <p className="gh-cart-note">No payment is taken yet — you'll confirm your details next.</p>
+                    </React.Fragment>
+                  )}
                 </div>
               </React.Fragment>
             ) : (
