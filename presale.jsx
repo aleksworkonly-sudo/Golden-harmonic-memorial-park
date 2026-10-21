@@ -153,7 +153,7 @@
   }
 
   /* ---------- steps 1 and 2: the aerial site plan, with zoom ---------- */
-  function SitePlan({ block, setBlock, freeCounts, priceOf, descOf, onChooseType, phone }) {
+  function SitePlan({ block, setBlock, freeCounts, priceOf, descOf, onChooseType, phone, wrapStyle }) {
     const isBlock = !!block;
     let sc = 1, tx = 0, ty = 0;
     if (isBlock) {
@@ -164,7 +164,7 @@
     }
     const fc = isBlock ? freeCounts(block) : { 'regular': TYPE_TOTALS['regular'], 'premium': TYPE_TOTALS['premium'], 'corner-premium': TYPE_TOTALS['corner-premium'] };
     return (
-      <div style={{ ...S.wrap, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ ...(wrapStyle || S.wrap), display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 44, lineHeight: 1.1, fontWeight: 800, color: '#0f2a21' }}>Choose your plot</h1>
@@ -394,6 +394,7 @@
 
   /* ---------- the flow ---------- */
   function PresaleFlow({ tiers, startType, onClose, fullPage }) {
+    const WRAP = fullPage ? { ...S.wrap, padding: '22px clamp(20px, 3vw, 56px)' } : S.wrap;
     const priceOf = (id) => {
       const t = (tiers || []).find((x) => x.id === id);
       return t && t.price > 0 ? Math.round(t.price) : TYPES[id].fallback;
@@ -638,7 +639,7 @@
       const m = METHODS.find((x) => x.id === done.method) || { label: 'PayMongo' };
       const info = { cash: PAY_INFO.office, gcash: PAY_INFO.gcash, bank: PAY_INFO.bank, cheque: PAY_INFO.cheque, paymongo: 'PayMongo Gateway (GCash, Maya, Cards)' }[done.method];
       body = (
-        <div style={S.wrap}>
+        <div style={WRAP}>
           <div style={{ ...S.card, borderColor: '#2f5d4c', borderWidth: 2 }}>
             <div style={{ fontSize: 44 }}>✅</div>
             <h2 style={S.h2}>{done.plots && done.plots.length > 1 ? 'Your ' + done.plots.length + ' plots are reserved' : 'Your plot is reserved'}</h2>
@@ -657,11 +658,11 @@
           </div>
         </div>);
     } else if (step !== 3) {
-      body = <SitePlan block={block} setBlock={(id) => (id ? goBlock(id) : back())} freeCounts={freeCounts} priceOf={priceOf} descOf={descOf} onChooseType={chooseType} phone={PAY_INFO.phone} />;
+      body = <SitePlan block={block} setBlock={(id) => (id ? goBlock(id) : back())} freeCounts={freeCounts} priceOf={priceOf} descOf={descOf} onChooseType={chooseType} phone={PAY_INFO.phone} wrapStyle={WRAP} />;
     } else {
       const t = TYPES[typeId];
       body = (
-        <form onSubmit={submit} style={{ ...S.wrap, maxWidth: fullPage ? 1240 : 980, margin: '0 auto' }}>
+        <form onSubmit={submit} style={{ ...WRAP, maxWidth: fullPage ? 1240 : 980, margin: '0 auto' }}>
           <Steps step={3} />
           <h2 style={S.h2}>Your plot and your details</h2>
           <div style={{ ...S.card, marginBottom: 16, display: 'flex', gap: 14, alignItems: 'center' }}>
@@ -759,7 +760,7 @@
 
     return (
       <div style={fullPage ? { ...S.overlay, background: 'var(--bg, #f6f1e8)' } : S.overlay} role="dialog" aria-modal="true" aria-label="Presale plot reservation">
-        <div style={fullPage ? { ...S.sheet, maxWidth: 'none', padding: '0 clamp(0px, 2vw, 32px) 40px' } : S.sheet}>
+        <div style={fullPage ? { ...S.sheet, maxWidth: 'none', padding: '0 0 40px' } : S.sheet}>
           <div ref={topRef} style={S.bar}>
             {done ? null : <button type="button" onClick={back} style={{ background: 'transparent', border: '1.5px solid #fffaf0', color: '#fffaf0', borderRadius: 8, fontSize: 16, padding: '8px 14px', cursor: 'pointer' }}>← Back</button>}
             <div style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>Presale · Blocks A, B, C, D</div>
