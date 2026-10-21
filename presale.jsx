@@ -153,12 +153,30 @@
   }
 
   /* ---------- steps 1 and 2: the aerial site plan, with zoom ---------- */
+  // Slow, gentle scroll (about 1.4 s) inside the presale screen, so buyers can follow where the page goes.
+  function slowScroll(el, offset, ms) {
+    const box = el && el.closest('[role="dialog"]');
+    if (!box) { try { el && el.scrollIntoView(); } catch (e) {} return; }
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const from = box.scrollTop;
+    const to = Math.max(0, from + el.getBoundingClientRect().top - box.getBoundingClientRect().top - (offset || 0));
+    if (reduce || Math.abs(to - from) < 2) { box.scrollTop = to; return; }
+    const t0 = performance.now(), dur = ms || 1400;
+    const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+    const tick = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      box.scrollTop = from + (to - from) * ease(k);
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   function SitePlan({ block, setBlock, freeCounts, priceOf, descOf, onChooseType, phone, wrapStyle }) {
     // After a block is chosen, slide down to the plot types so the buyer sees the next step.
     const typesRef = React.useRef(null);
     React.useEffect(() => {
       if (!block || !typesRef.current) return;
-      const t = setTimeout(() => { try { typesRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }, 350);
+      const t = setTimeout(() => { try { slowScroll(typesRef.current, 80, 1400); } catch (e) {} }, 700);
       return () => clearTimeout(t);
     }, [block]);
     const isBlock = !!block;
@@ -450,7 +468,7 @@
     }, []);
 
     useEffect(() => { BLOCKS.forEach((b) => loadTaken(b)); }, [loadTaken]);
-    useEffect(() => { if (topRef.current) topRef.current.scrollIntoView(); }, [step, done]);
+    useEffect(() => { if (topRef.current) slowScroll(topRef.current, 0, 1200); }, [step, done]);
 
     // Plots the buyer already added count as taken, so the same plot cannot be picked twice.
     const taken = useMemo(() => {
