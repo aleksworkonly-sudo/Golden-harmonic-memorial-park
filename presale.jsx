@@ -154,6 +154,13 @@
 
   /* ---------- steps 1 and 2: the aerial site plan, with zoom ---------- */
   function SitePlan({ block, setBlock, freeCounts, priceOf, descOf, onChooseType, phone, wrapStyle }) {
+    // After a block is chosen, slide down to the plot types so the buyer sees the next step.
+    const typesRef = React.useRef(null);
+    React.useEffect(() => {
+      if (!block || !typesRef.current) return;
+      const t = setTimeout(() => { try { typesRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }, 350);
+      return () => clearTimeout(t);
+    }, [block]);
     const isBlock = !!block;
     let sc = 1, tx = 0, ty = 0;
     if (isBlock) {
@@ -202,7 +209,7 @@
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#9cc9ff' }}></span>Coming soon</div>
               </div>) : null}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
+            <div ref={typesRef} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8, scrollMarginTop: 80 }}>
               <h2 style={{ margin: 0, fontSize: 30, lineHeight: 1.2, fontWeight: 800, color: '#0f2a21' }}>{isBlock ? 'Block ' + block + ': choose your plot type' : 'Plot types in every block'}</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(250px, 100%), 1fr))', gap: 14, alignItems: 'stretch' }}>
                 {TYPE_IDS.map((id) => (
