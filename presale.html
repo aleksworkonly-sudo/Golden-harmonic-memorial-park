@@ -78,7 +78,7 @@
       try { window.close(); } catch (e) {}
       setTimeout(() => { window.location.href = '/'; }, 250);
     };
-    return <window.PresaleFlow tiers={tiers} startType={startType} onClose={goHome} />;
+    return <window.PresaleFlow fullPage tiers={tiers} startType={startType} onClose={goHome} />;
   }
   ReactDOM.createRoot(document.getElementById('root')).render(<PresalePage />);
 </script>

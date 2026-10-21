@@ -393,7 +393,7 @@
   }
 
   /* ---------- the flow ---------- */
-  function PresaleFlow({ tiers, startType, onClose }) {
+  function PresaleFlow({ tiers, startType, onClose, fullPage }) {
     const priceOf = (id) => {
       const t = (tiers || []).find((x) => x.id === id);
       return t && t.price > 0 ? Math.round(t.price) : TYPES[id].fallback;
@@ -661,7 +661,7 @@
     } else {
       const t = TYPES[typeId];
       body = (
-        <form onSubmit={submit} style={{ ...S.wrap, maxWidth: 980, margin: '0 auto' }}>
+        <form onSubmit={submit} style={{ ...S.wrap, maxWidth: fullPage ? 1240 : 980, margin: '0 auto' }}>
           <Steps step={3} />
           <h2 style={S.h2}>Your plot and your details</h2>
           <div style={{ ...S.card, marginBottom: 16, display: 'flex', gap: 14, alignItems: 'center' }}>
@@ -758,8 +758,8 @@
     }
 
     return (
-      <div style={S.overlay} role="dialog" aria-modal="true" aria-label="Presale plot reservation">
-        <div style={S.sheet}>
+      <div style={fullPage ? { ...S.overlay, background: 'var(--bg, #f6f1e8)' } : S.overlay} role="dialog" aria-modal="true" aria-label="Presale plot reservation">
+        <div style={fullPage ? { ...S.sheet, maxWidth: 'none', padding: '0 clamp(0px, 2vw, 32px) 40px' } : S.sheet}>
           <div ref={topRef} style={S.bar}>
             {done ? null : <button type="button" onClick={back} style={{ background: 'transparent', border: '1.5px solid #fffaf0', color: '#fffaf0', borderRadius: 8, fontSize: 16, padding: '8px 14px', cursor: 'pointer' }}>← Back</button>}
             <div style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>Presale · Blocks A, B, C, D</div>
