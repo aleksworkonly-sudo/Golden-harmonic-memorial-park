@@ -680,6 +680,9 @@
             <div style={{ ...S.note, marginTop: 16 }}>
               <b>What happens next:</b> our staff will call you to check your name and address. Your plot stays reserved while we do this. Your reservation is final once we receive your payment.
             </div>
+            <div style={{ ...S.note, marginTop: 12 }}>
+              <b>Track your payments anytime:</b> open <a href={'/my-payments?ref=' + encodeURIComponent(done.ref)} target="_blank" rel="noopener" style={{ color: '#2f5d4c', fontWeight: 700 }}>Check my payments</a> and type your reference number and mobile number. You can see how many months are left.
+            </div>
             <button type="button" style={{ ...S.big, marginTop: 18 }} onClick={closeAll}>Close</button>
           </div>
         </div>);
