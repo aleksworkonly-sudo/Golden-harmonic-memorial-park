@@ -3725,7 +3725,7 @@ function PresaleEod({ day, rows, actor, setToast }) {
   };
   const card = (title, ...kids) => plotEl("div", { style: { padding: 12, borderRadius: 8, background: '#f6f1e8', marginBottom: 12 } }, plotEl("b", null, title), ...kids);
   const line = (k, v, bold) => plotEl("div", { key: k, style: { display: 'flex', justifyContent: 'space-between', gap: 12, padding: '3px 0', fontWeight: bold ? 700 : 400 } }, plotEl("span", null, k), plotEl("span", null, v));
-  return plotEl("div", null, plotEl("div", { style: { fontWeight: 700, marginBottom: 8 } }, dayLabel), card('End-of-day report (filled in automatically from the payments recorded)', plotEl("div", { style: { marginTop: 6 } }, line('Total transactions', T.count), line('Total amount received', fmt2(T.received), true), line('Agent commission allocation total', fmt2(T.agent)), line('Broker fee and agent compensation allocation total (3%)', fmt2(T.broker)), line('Company deposit total', fmt2(T.company), true), line('Cash deposits made', fmt2(depCash)), line('Online transfers made', fmt2(depOnline)), line('Company share not yet deposited', fmt2(gap), true))), card('Deposit instruction', plotEl("div", { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10, marginTop: 8 } }, field('Transaction reference', inp('ref', { placeholder: `DEP-${day.replace(/-/g, '')}-${deposits.length + 1}` })), field('Amount to be deposited (₱)', inp('amount', { inputMode: 'decimal', placeholder: gap > 0 ? String(gap) : '' })), field('Payment type', sel('type', [['cash', 'Cash deposit'], ['online', 'Online transfer']])), field('Account allocation', sel('allocation', Object.entries(EOD_ACCOUNTS))), field('Responsible staff', inp('staff')), field('Bank name', inp('bank')), field('Account number', inp('account')), field('Deposit date', inp('depositDate', { type: 'date' })), field('Deposit time', inp('depositTime', { type: 'time' }))), plotEl("button", { className: "btn btn-primary btn-sm", style: { marginTop: 10 }, disabled: busy, onClick: saveDeposit }, "Save deposit instruction"), deposits.length > 0 && plotEl("table", { style: { marginTop: 10 } }, plotEl("thead", null, plotEl("tr", null, ['Reference', 'Type', 'Allocation', 'Bank / account', 'Date and time', 'Staff', 'Amount', ''].map(h => plotEl("th", { key: h }, h)))), plotEl("tbody", null, deposits.map(d => plotEl("tr", { key: d._id }, plotEl("td", null, d.ref), plotEl("td", null, d.type === 'cash' ? 'Cash' : 'Online'), plotEl("td", null, EOD_ACCOUNTS[d.allocation] || d.allocation), plotEl("td", null, d.bank, ' / ', d.account), plotEl("td", null, d.depositDate, ' ', d.depositTime), plotEl("td", null, d.staff), plotEl("td", { style: { textAlign: 'right' } }, fmt2(d.amount)), plotEl("td", null, plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => delDeposit(d) }, "Delete"))))))), card('Verification and approval', plotEl("div", { style: { marginTop: 8 } }, plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600 } }, 'Receipt verification status', plotEl("select", { value: verif, disabled: approved, onChange: e => setVerif(e.target.value), style: { display: 'block', padding: 8, marginTop: 3, fontWeight: 400 } }, Object.entries(VER).map(([v, l]) => plotEl("option", { key: v, value: v }, l)))), plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600, marginTop: 8 } }, 'Discrepancies (write "None" if all matches)', plotEl("textarea", { value: disc, disabled: approved, onChange: e => setDisc(e.target.value), rows: 3, style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 } })), approved ? plotEl("div", { style: { marginTop: 8 } }, plotEl("b", null, "✔ Approved by "), report.approvedBy, " · ", new Date(report.approvedAt).toLocaleString('en-PH')) : null, plotEl("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 } }, !approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: () => saveReport({}) }, "Save report"), !approved && plotEl("button", { className: "btn btn-primary btn-sm", disabled: busy, onClick: approve }, "Final approval"), approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: reopen }, "Re-open"), plotEl("button", { className: "btn btn-outline btn-sm", onClick: printEod }, "🖨 Print end-of-day report")))));
+  return plotEl("div", null, plotEl("div", { style: { fontWeight: 700, marginBottom: 8 } }, dayLabel), card('End-of-day report (filled in automatically from the payments recorded)', plotEl("div", { style: { marginTop: 6 } }, line('Total transactions', T.count), line('Total amount received', fmt2(T.received), true), line('Agent commission allocation total', fmt2(T.agent)), line('Broker fee and agent compensation allocation total (3%)', fmt2(T.broker)), line('Company deposit total', fmt2(T.company), true), line('Cash deposits made', fmt2(depCash)), line('Online transfers made', fmt2(depOnline)), line('Company share not yet deposited', fmt2(gap), true))), card('Deposit instruction', plotEl("div", { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10, marginTop: 8 } }, field('Transaction reference', inp('ref', { placeholder: `DEP-${day.replace(/-/g, '')}-${deposits.length + 1}` })), field('Amount to be deposited (₱)', inp('amount', { inputMode: 'decimal', placeholder: gap > 0 ? String(gap) : '' })), field('Payment type', sel('type', [['cash', 'Cash deposit'], ['online', 'Online transfer']])), field('Account allocation', sel('allocation', Object.entries(EOD_ACCOUNTS))), field('Responsible staff', inp('staff')), field('Bank name', inp('bank')), field('Account number', inp('account')), field('Deposit date', inp('depositDate', { type: 'date' })), field('Deposit time', inp('depositTime', { type: 'time' }))), plotEl("button", { className: "btn btn-primary btn-sm", style: { marginTop: 10 }, disabled: busy, onClick: saveDeposit }, "Save deposit instruction"), deposits.length > 0 && plotEl("table", { className: "gh-table gh-table-dense", style: { marginTop: 10 } }, plotEl("thead", null, plotEl("tr", null, ['Reference', 'Type', 'Allocation', 'Bank / account', 'Date and time', 'Staff', 'Amount', ''].map(h => plotEl("th", { key: h }, h)))), plotEl("tbody", null, deposits.map(d => plotEl("tr", { key: d._id }, plotEl("td", null, d.ref), plotEl("td", null, d.type === 'cash' ? 'Cash' : 'Online'), plotEl("td", null, EOD_ACCOUNTS[d.allocation] || d.allocation), plotEl("td", null, d.bank, ' / ', d.account), plotEl("td", null, d.depositDate, ' ', d.depositTime), plotEl("td", null, d.staff), plotEl("td", { style: { textAlign: 'right' } }, fmt2(d.amount)), plotEl("td", null, plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => delDeposit(d) }, "Delete"))))))), card('Verification and approval', plotEl("div", { style: { marginTop: 8 } }, plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600 } }, 'Receipt verification status', plotEl("select", { value: verif, disabled: approved, onChange: e => setVerif(e.target.value), style: { display: 'block', padding: 8, marginTop: 3, fontWeight: 400 } }, Object.entries(VER).map(([v, l]) => plotEl("option", { key: v, value: v }, l)))), plotEl("label", { style: { display: 'block', fontSize: 13, fontWeight: 600, marginTop: 8 } }, 'Discrepancies (write "None" if all matches)', plotEl("textarea", { value: disc, disabled: approved, onChange: e => setDisc(e.target.value), rows: 3, style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: 8, marginTop: 3, fontWeight: 400 } })), approved ? plotEl("div", { style: { marginTop: 8 } }, plotEl("b", null, "✔ Approved by "), report.approvedBy, " · ", new Date(report.approvedAt).toLocaleString('en-PH')) : null, plotEl("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 } }, !approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: () => saveReport({}) }, "Save report"), !approved && plotEl("button", { className: "btn btn-primary btn-sm", disabled: busy, onClick: approve }, "Final approval"), approved && plotEl("button", { className: "btn btn-outline btn-sm", disabled: busy, onClick: reopen }, "Re-open"), plotEl("button", { className: "btn btn-outline btn-sm", onClick: printEod }, "🖨 Print end-of-day report")))));
 }
 
 // Admin-only editor for the allocation rates (stored in presaleSettings/allocation).
@@ -4223,7 +4223,7 @@ function PresaleApplications({
           flexWrap: 'wrap',
           marginBottom: 12
         }
-      }, taxCard('Total tax collected (VAT)', taxCollected, `on ${fmt2(sum(payRows, 'amount'))} received`, '#fff3c9'), taxCard('Tax on all booked sales', taxBooked, `on ${fmt2(sum(saleRows, 'total'))} sold`, '#eef3fb'), taxCard('Tax still to come in', Math.max(0, taxBooked - taxCollected), 'booked sales not yet paid', '#f1f8ec')), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Month', false], ['Amount received', true], ['Sales without VAT', true], ['Tax (VAT)', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, taxRows.map(x => plotEl("tr", {
+      }, taxCard('Total tax collected (VAT)', taxCollected, `on ${fmt2(sum(payRows, 'amount'))} received`, '#fff3c9'), taxCard('Tax on all booked sales', taxBooked, `on ${fmt2(sum(saleRows, 'total'))} sold`, '#eef3fb'), taxCard('Tax still to come in', Math.max(0, taxBooked - taxCollected), 'booked sales not yet paid', '#f1f8ec')), plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, [['Month', false], ['Amount received', true], ['Sales without VAT', true], ['Tax (VAT)', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, taxRows.map(x => plotEl("tr", {
         key: x.month
       }, plotEl("td", null, presaleMonthLabel(x.month)), td(x.amount), td(x.net), td(x.vat, true))), plotEl("tr", {
         style: {
@@ -4329,13 +4329,13 @@ function PresaleApplications({
           gap: 10,
           flexWrap: 'wrap'
         }
-      }, dash('Pending release: agent commission', pendAgent, '#fde8e6', 'commission still to be released (all time)'), dash('Held: broker / agent compensation', heldBroker, '#fde8e6', 'set aside, waiting for management rules (all time)')), secTitle('By agent'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Agent', false], ['Transactions', true], ['Received', true], ['Commission', true], ['Compensation', true], ['Company', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, Object.values(grp).map(g => plotEl("tr", {
+      }, dash('Pending release: agent commission', pendAgent, '#fde8e6', 'commission still to be released (all time)'), dash('Held: broker / agent compensation', heldBroker, '#fde8e6', 'set aside, waiting for management rules (all time)')), secTitle('By agent'), plotEl("table", { className: "gh-table gh-table-dense" }, plotEl("thead", null, plotEl("tr", null, [['Agent', false], ['Transactions', true], ['Received', true], ['Commission', true], ['Compensation', true], ['Company', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, Object.values(grp).map(g => plotEl("tr", {
         key: g.name
       }, plotEl("td", null, g.name), plotEl("td", {
         style: R
-      }, g.n), td(g.amount), td(g.agent), td(g.broker), td(g.company))))), secTitle('Status by client'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Client', false], ['Plot / unit', false], ['Agent', false], ['Status', false], ['Paid', true], ['Balance', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, fApps.map(r => plotEl("tr", {
+      }, g.n), td(g.amount), td(g.agent), td(g.broker), td(g.company))))), secTitle('Status by client'), plotEl("table", { className: "gh-table gh-table-dense" }, plotEl("thead", null, plotEl("tr", null, [['Client', false], ['Plot / unit', false], ['Agent', false], ['Status', false], ['Paid', true], ['Balance', true]].map(([h, rr]) => th(h, rr)))), plotEl("tbody", null, fApps.map(r => plotEl("tr", {
         key: r._id || r.ref
-      }, plotEl("td", null, r.name), plotEl("td", null, presalePlots(r).map(p => p.plotCode).join(' ')), plotEl("td", null, r.agentName || '—'), plotEl("td", null, statusOf(r)), td(presaleLedger(r).paid), td(presaleLedger(r).balance))))), secTitle('Transaction log'), plotEl("table", null, plotEl("thead", null, plotEl("tr", null, allocCols.map(c => th(c[0], !!c[2])))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
+      }, plotEl("td", null, r.name), plotEl("td", null, presalePlots(r).map(p => p.plotCode).join(' ')), plotEl("td", null, r.agentName || '—'), plotEl("td", null, statusOf(r)), td(presaleLedger(r).paid), td(presaleLedger(r).balance))))), secTitle('Transaction log'), plotEl("table", { className: "gh-table gh-table-dense" }, plotEl("thead", null, plotEl("tr", null, allocCols.map(c => th(c[0], !!c[2])))), plotEl("tbody", null, allocRows.map((x, i) => plotEl("tr", {
         key: x.ref + i
       }, allocCols.map(c => c[2] ? td(x[c[1]], c[1] === 'amount') : plotEl("td", {
         key: c[1]
@@ -4348,7 +4348,7 @@ function PresaleApplications({
         colSpan: 8
       }, "Total · deposit to company bank account: ", fmt2(sum(allocRows, 'company'))), td(sum(allocRows, 'amount'), true), td(sum(allocRows, 'agent'), true), td(sum(allocRows, 'broker'), true), td(sum(allocRows, 'company'), true), plotEl("td", null, "")))));
     } else if (salesView === 'sales') {
-      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Plots', false], ['Plot price', true], ['Surcharge', true], ['Total (with VAT)', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, saleRows.map(x => plotEl("tr", {
+      tbl = plotEl("table", { className: "gh-table gh-table-dense" }, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Plots', false], ['Plot price', true], ['Surcharge', true], ['Total (with VAT)', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, saleRows.map(x => plotEl("tr", {
         key: x.ref
       }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.plots), td(x.base), td(x.surcharge), td(x.total, true), td(x.net), td(x.vat))), plotEl("tr", {
         style: {
@@ -4359,7 +4359,7 @@ function PresaleApplications({
         colSpan: 4
       }, "Total"), td(sum(saleRows, 'base'), true), td(sum(saleRows, 'surcharge'), true), td(sum(saleRows, 'total'), true), td(sum(saleRows, 'net'), true), td(sum(saleRows, 'vat'), true))));
     } else if (salesView === 'vat') {
-      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Receipt / reference', false], ['Amount received', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, payRows.map((x, i) => plotEl("tr", {
+      tbl = plotEl("table", { className: "gh-table gh-table-dense" }, plotEl("thead", null, plotEl("tr", null, [['Date', false], ['Ref', false], ['Buyer', false], ['Receipt / reference', false], ['Amount received', true], ['Sales without VAT', true], ['VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, payRows.map((x, i) => plotEl("tr", {
         key: x.ref + i
       }, plotEl("td", null, day(x.date)), plotEl("td", null, x.ref), plotEl("td", null, x.name), plotEl("td", null, x.receipt), td(x.amount, true), td(x.net), td(x.vat))), plotEl("tr", {
         style: {
@@ -4370,7 +4370,7 @@ function PresaleApplications({
         colSpan: 4
       }, "Total VAT collected"), td(sum(payRows, 'amount'), true), td(sum(payRows, 'net'), true), td(sum(payRows, 'vat'), true))));
     } else {
-      tbl = plotEl("table", null, plotEl("thead", null, plotEl("tr", null, [['', false], ['Plot price', true], ['Installment surcharge', true], ['Total (with VAT)', true], ['VAT', true], ['Sales without VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, out.map(o => plotEl("tr", {
+      tbl = plotEl("table", { className: "gh-table gh-table-dense" }, plotEl("thead", null, plotEl("tr", null, [['', false], ['Plot price', true], ['Installment surcharge', true], ['Total (with VAT)', true], ['VAT', true], ['Sales without VAT', true]].map(([h, r]) => th(h, r)))), plotEl("tbody", null, out.map(o => plotEl("tr", {
         key: o.label
       }, plotEl("td", null, o.label), td(o.base), td(o.surcharge), td(o.total, true), td(o.vat), td(o.net)))));
     }
@@ -4512,7 +4512,7 @@ function PresaleApplications({
     style: {
       padding: 24
     }
-  }, "No presale applications here yet.") : plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status'].map(h => plotEl("th", {
+  }, "No presale applications here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status'].map(h => plotEl("th", {
     key: h
   }, h)))), plotEl("tbody", null, shown.map(r => plotEl("tr", {
     key: r._id,
@@ -4578,6 +4578,7 @@ function PresaleApplications({
         }
       }, sel.plan === 'installment' && plotEl("div", null, "Plot price ", fmt2(sp.base), " + installment surcharge ", fmt2(sp.surcharge), " = ", fmt2(sp.total)), plotEl("div", null, "Sales ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross)));
     })(), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("table", {
+      className: "gh-table",
       style: {
         width: '100%',
         fontSize: 13,
@@ -5115,6 +5116,7 @@ function AgentsTab({
     disabled: busy,
     onClick: addAgent
   }, "Add agent"), agents.length > 0 && plotEl("table", {
+    className: "gh-table",
     style: {
       marginTop: 12
     }
@@ -5228,7 +5230,7 @@ function AgentsTab({
     style: {
       padding: 24
     }
-  }, "No commissions here yet.") : plotEl("table", null, plotEl("thead", null, plotEl("tr", null, ['Agent', 'Sale', 'Sale date', 'Commission', 'Due date', 'Status', ''].map(h => plotEl("th", {
+  }, "No commissions here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Agent', 'Sale', 'Sale date', 'Commission', 'Due date', 'Status', ''].map(h => plotEl("th", {
     key: h || 'x'
   }, h)))), plotEl("tbody", null, shown.map(c => plotEl("tr", {
     key: c._id
