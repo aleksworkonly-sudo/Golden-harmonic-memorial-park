@@ -74,6 +74,58 @@ function clean(v, max) {
   return String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 }
 
+// ---- Confirmation email (Brevo). Best effort: a mail problem must never lose a reservation. ----
+const METHOD_LABEL = { cash: 'Cash at our office', gcash: 'GCash', bank: 'Bank transfer', cheque: 'Cheque', paymongo: 'Online (GCash, Maya, card)' };
+const TYPE_LABEL = { regular: 'Regular', premium: 'Premium', 'corner-premium': 'Corner Premium' };
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const peso = (n) => '\u20B1' + Math.round(n || 0).toLocaleString('en-PH');
+
+async function sendConfirmationEmail({ ref, name, email, plots, plan, years, total, monthly, method, baseUrl }) {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey || !email) return;
+  const senderEmail = process.env.SENDER_EMAIL || 'noreply@goldenharmonic.com';
+  const senderName = process.env.SENDER_NAME || 'Golden Harmonic Memorial Park';
+  const trackUrl = `${baseUrl}/my-payments?ref=${encodeURIComponent(ref)}`;
+  const rows = plots.map((p) => `<li><b>${esc(p.plotCode)}</b> &middot; ${esc(TYPE_LABEL[p.typeId] || p.typeId)}</li>`).join('');
+  const planLine = plan === 'installment'
+    ? `${years} ${years === 1 ? 'year' : 'years'} &middot; ${peso(monthly)} a month &middot; total ${peso(total)}`
+    : `Spot cash &middot; ${peso(total)}`;
+  const html = `<!doctype html><html><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
+<div style="max-width:560px;margin:0 auto;padding:24px">
+<div style="background:#2f5d4c;color:#fffaf0;padding:18px 22px;border-radius:12px 12px 0 0;font-size:18px;font-weight:bold">Golden Harmonic Memorial Park</div>
+<div style="background:#fff;padding:24px 22px;border-radius:0 0 12px 12px;line-height:1.55;font-size:16px">
+<p style="margin-top:0">Hello ${esc(name)},</p>
+<p>Thank you. Your plot is reserved. Please keep your reference number:</p>
+<p style="font-size:28px;font-weight:bold;color:#2f5d4c;margin:6px 0">${esc(ref)}</p>
+<p style="margin-bottom:4px"><b>Your plot${plots.length > 1 ? 's' : ''}</b></p>
+<ul style="margin-top:0;padding-left:20px">${rows}</ul>
+<p><b>Plan:</b> ${planLine}<br><b>You will pay by:</b> ${esc(METHOD_LABEL[method] || method)}</p>
+<div style="background:#fff3c9;border:1px solid #d9a62e;border-radius:10px;padding:12px 14px;margin:16px 0">
+<b>What happens next:</b> our staff will call you to check your name and address. Your plot stays reserved while we do this. Your reservation is final once we receive your payment.
+</div>
+<p><a href="${esc(trackUrl)}" style="display:inline-block;background:#2f5d4c;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:bold">Check my payments</a></p>
+<p style="font-size:14px;color:#4a564f">You can open this link anytime to see how much you have paid, how many months are left and your next due date. You will need your reference number and the mobile number you used.</p>
+</div></div></body></html>`;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json', 'api-key': apiKey },
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email, name }],
+        subject: `Your plot reservation ${ref} — Golden Harmonic Memorial Park`,
+        htmlContent: html
+      }),
+      signal: ctl.signal
+    });
+    if (!r.ok) console.error('[presale] confirmation email failed', r.status, await r.text());
+  } catch (e) {
+    console.error('[presale] confirmation email error', e && e.message);
+  } finally { clearTimeout(timer); }
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -195,6 +247,13 @@ module.exports = async function handler(req, res) {
         createdAt: now
       });
       return { ref, plotCode: first.plotCode, typeId: first.typeId };
+    });
+
+    const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+    const proto = req.headers['x-forwarded-proto'] || 'https';
+    await sendConfirmationEmail({
+      ref: result.ref, name, email, plots, plan, years, total, monthly, method,
+      baseUrl: process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`
     });
 
     return res.status(200).json({ ok: true, ref: result.ref, plotCode: result.plotCode, typeId: result.typeId, plots: plots.map((x) => ({ plotCode: x.plotCode, typeId: x.typeId, price: x.price - discOf(x.typeId, plan === 'installment' ? 'installment' : 'cash') })), plan, years, method, total, monthly, spot });
