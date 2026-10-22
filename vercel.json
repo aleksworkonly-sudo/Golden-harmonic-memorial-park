@@ -13,6 +13,10 @@
     {
       "source": "/presale",
       "destination": "/presale.html"
+    },
+    {
+      "source": "/my-payments",
+      "destination": "/my-payments.html"
     }
   ]
 }
