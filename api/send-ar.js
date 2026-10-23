@@ -81,7 +81,10 @@ module.exports = async function handler(req, res) {
     const row = (k, v) => `<tr><td style="padding:8px 0;color:#4a564f;width:42%;border-top:1px solid #eee">${k}</td><td style="padding:8px 0;border-top:1px solid #eee"><b>${v}</b></td></tr>`;
     const html = `<!doctype html><html><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
 <div style="max-width:560px;margin:0 auto;padding:24px">
-<div style="background:#2f5d4c;color:#fffaf0;padding:18px 22px;border-radius:12px 12px 0 0"><div style="font-size:18px;font-weight:bold">Golden Harmonic Memorial Park</div><div style="font-size:13px;opacity:.9">Taytay, Palawan</div></div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#2f5d4c;border-radius:12px 12px 0 0"><tr>
+<td style="padding:14px 0 14px 22px;width:64px" valign="middle"><img src="${esc(baseUrl)}/logo-192.png" width="56" height="56" alt="Golden Harmonic Memorial Park" style="display:block;border-radius:50%;background:#fff"></td>
+<td style="padding:14px 22px 14px 14px;color:#fffaf0" valign="middle"><div style="font-size:18px;font-weight:bold">Golden Harmonic Memorial Park</div><div style="font-size:13px;opacity:.9">Taytay, Palawan</div></td>
+</tr></table>
 <div style="background:#fff;padding:24px 22px;border-radius:0 0 12px 12px;line-height:1.5;font-size:16px">
 <div style="font-size:22px;font-weight:bold;letter-spacing:.04em">ACKNOWLEDGEMENT RECEIPT</div>
 <div style="color:#4a564f;margin-bottom:12px">No. ${esc(arNo)}</div>

@@ -92,7 +92,10 @@ async function sendConfirmationEmail({ ref, name, email, plots, plan, years, tot
     : `Spot cash &middot; ${peso(total)}`;
   const html = `<!doctype html><html><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
 <div style="max-width:560px;margin:0 auto;padding:24px">
-<div style="background:#2f5d4c;color:#fffaf0;padding:18px 22px;border-radius:12px 12px 0 0;font-size:18px;font-weight:bold">Golden Harmonic Memorial Park</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#2f5d4c;border-radius:12px 12px 0 0"><tr>
+<td style="padding:14px 0 14px 22px;width:64px" valign="middle"><img src="${esc(baseUrl)}/logo-192.png" width="56" height="56" alt="Golden Harmonic Memorial Park" style="display:block;border-radius:50%;background:#fff"></td>
+<td style="padding:14px 22px 14px 14px;color:#fffaf0;font-size:18px;font-weight:bold" valign="middle">Golden Harmonic Memorial Park</td>
+</tr></table>
 <div style="background:#fff;padding:24px 22px;border-radius:0 0 12px 12px;line-height:1.55;font-size:16px">
 <p style="margin-top:0">Hello ${esc(name)},</p>
 <p>Thank you. Your plot is reserved. Please keep your reference number:</p>
