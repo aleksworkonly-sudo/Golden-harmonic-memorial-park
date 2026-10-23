@@ -3784,6 +3784,43 @@ function PresaleApplications({
       return true;
     }
   });
+  const [emailAR, setEmailAR] = useState(() => {
+    try {
+      return localStorage.getItem('ghEmailAR') !== '0';
+    } catch (e) {
+      return true;
+    }
+  });
+  const toggleEmailAR = on => {
+    setEmailAR(on);
+    try {
+      localStorage.setItem('ghEmailAR', on ? '1' : '0');
+    } catch (e) {}
+  };
+  // Emails the buyer an Acknowledgement Receipt for payment number `index` (the server checks that we are staff).
+  const sendAR = async (ref, index) => {
+    try {
+      const user = window.auth && window.auth.currentUser;
+      if (!user) throw new Error('Please log in again.');
+      const idToken = await user.getIdToken();
+      const r = await fetch('/api/send-ar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          idToken,
+          ref,
+          index
+        })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Could not send the email.');
+      setToast('Acknowledgement receipt emailed to ' + j.to);
+    } catch (err) {
+      setToast('Payment saved, but the email was not sent: ' + (err && err.message || 'error'));
+    }
+  };
   const toggleAutoSheet = on => {
     setAutoSheet(on);
     try {
@@ -3857,6 +3894,7 @@ function PresaleApplications({
     }
     setBusy(true);
     try {
+      const payIndex = (a.payments || []).length;
       const now = Date.now();
       const entry = {
         amount,
@@ -3895,9 +3933,15 @@ function PresaleApplications({
         amount,
         when: now,
         method: PRESALE_METHOD_LABEL[a.method] || a.method,
+        index: payIndex,
+        email: a.email || '',
+        total: a.totalPrice || 0,
+        paidSoFar: L.paid + amount,
+        balance: Math.max(0, (a.totalPrice || 0) - L.paid - amount),
         ...split
       });
       setToast('Payment recorded');
+      if (emailAR && a.email) sendAR(a.ref, payIndex);
       if (autoSheet) {
         // Opens the sheet for review, built from the sale as it is now, including the payment just recorded.
         setSheetData(presaleSheetData({
@@ -4774,7 +4818,19 @@ function PresaleApplications({
     type: "checkbox",
     checked: autoSheet,
     onChange: e => toggleAutoSheet(e.target.checked)
-  }), "Open the customer sheet for checking after each payment"), sheetData && plotEl(CustomerSheetEditor, {
+  }), "Open the customer sheet for checking after each payment"), plotEl("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 6,
+      fontSize: 12
+    }
+  }, plotEl("input", {
+    type: "checkbox",
+    checked: emailAR,
+    onChange: e => toggleEmailAR(e.target.checked)
+  }), "Email the buyer an acknowledgement receipt after each payment"), sheetData && plotEl(CustomerSheetEditor, {
     data: sheetData,
     onClose: () => setSheetData(null),
     onToast: setToast
@@ -4810,7 +4866,30 @@ function PresaleApplications({
       w.focus();
       w.print();
     }
-  }, "🖨 Print confirmation"))), plotEl("div", {
+  }, "🖨 Print internal copy (with allocation)"), plotEl("button", {
+    className: "btn btn-primary btn-sm",
+    style: {
+      marginTop: 8,
+      marginLeft: 6
+    },
+    onClick: () => {
+      const w = window.open('', '_blank');
+      if (!w) return;
+      const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const row = (k, v) => '<tr><td style="padding:6px 0;color:#555;width:45%;border-top:1px solid #ddd">' + k + '</td><td style="padding:6px 0;border-top:1px solid #ddd"><b>' + v + '</b></td></tr>';
+      w.document.write('<html><head><title>Acknowledgement Receipt</title><style>body{font-family:Arial,sans-serif;padding:28px;font-size:14px;line-height:1.6;max-width:640px;margin:0 auto}h2{margin:0}table{width:100%;border-collapse:collapse}.t{font-size:22px;font-weight:bold;letter-spacing:.05em;margin:14px 0 2px}.s{font-size:12px;color:#555}</style></head><body><h2>Golden Harmonic Memorial Park</h2><div class="s">Taytay, Palawan</div><div class="t">ACKNOWLEDGEMENT RECEIPT</div><div class="s">No. AR-' + e(lastPay.ref) + '-' + (lastPay.index + 1) + '</div><p>Received from <b>' + e(lastPay.name) + '</b> the amount below. Thank you.</p><table>' + row('Date and time', e(new Date(lastPay.when).toLocaleString('en-PH'))) + row('Amount received', e(fmt2(lastPay.amount))) + row('Paid by', e(lastPay.method)) + (lastPay.receipt ? row('Receipt / reference no.', e(lastPay.receipt)) : '') + row('Reservation no.', e(lastPay.ref)) + row('Plot / unit', e(lastPay.plots)) + row('Total contract price', e(fmt2(lastPay.total))) + row('Total paid so far', e(fmt2(lastPay.paidSoFar))) + row('Balance', e(fmt2(lastPay.balance))) + '</table><p class="s" style="margin-top:16px">This is an acknowledgement of payment received. It is not an official receipt. Our office will issue your official receipt.</p><br><br>Received by: ____________________ &nbsp;&nbsp; Signature over printed name</body></html>');
+      w.document.close();
+      w.focus();
+      w.print();
+    }
+  }, "🖨 Print acknowledgement receipt"), lastPay.email && plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    style: {
+      marginTop: 8,
+      marginLeft: 6
+    },
+    onClick: () => sendAR(lastPay.ref, lastPay.index)
+  }, "✉ Email to ", lastPay.email))), plotEl("div", {
     style: {
       display: 'flex',
       gap: 8,
