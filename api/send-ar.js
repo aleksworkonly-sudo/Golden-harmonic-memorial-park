@@ -72,19 +72,31 @@ module.exports = async function handler(req, res) {
       nextDue = d.getTime();
     }
     const arNo = `AR-${ref}-${index + 1}`;
-    const plots = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode, typeId: a.typeId }])
-      .map((x) => `${esc(x.plotCode)} (${esc(TYPE_LABEL[x.typeId] || x.typeId)})`).join(', ');
+    // What the buyer bought: "Regular Plot - Block A, plot A-0352 (₱22,000.00)"
+    const items = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode, typeId: a.typeId, blockId: a.blockId }])
+      .map((x) => `${esc(TYPE_LABEL[x.typeId] || x.typeId)} Plot &middot; Block ${esc(x.blockId || String(x.plotCode || '').split('-')[0])}, plot ${esc(x.plotCode)}`);
+    const firstType = ((Array.isArray(a.plots) && a.plots[0] && a.plots[0].typeId) || a.typeId || 'regular');
+    const photoType = TYPE_LABEL[firstType] ? firstType : 'regular'; // picture of the plot type they chose
+    const planText = a.plan === 'installment'
+      ? `Monthly installment, ${a.years} ${a.years === 1 ? 'year' : 'years'} (${peso(a.monthly)} a month)`
+      : 'Spot cash';
     const host = req.headers['x-forwarded-host'] || req.headers.host || '';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${host}`;
     const trackUrl = `${baseUrl}/my-payments?ref=${encodeURIComponent(ref)}`;
 
     const row = (k, v) => `<tr><td style="padding:8px 0;color:#4a564f;width:42%;border-top:1px solid #eee">${k}</td><td style="padding:8px 0;border-top:1px solid #eee"><b>${v}</b></td></tr>`;
-    const html = `<!doctype html><html><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
+    const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media (max-width:340px){.ar-photo{display:none!important}}</style></head><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
 <div style="max-width:560px;margin:0 auto;padding:24px">
-<div style="background:#2f5d4c;color:#fffaf0;padding:18px 22px;border-radius:12px 12px 0 0"><div style="font-size:18px;font-weight:bold">Golden Harmonic Memorial Park</div><div style="font-size:13px;opacity:.9">Taytay, Palawan</div></div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#2f5d4c;border-radius:12px 12px 0 0"><tr>
+<td style="padding:14px 0 14px 22px;width:64px" valign="middle"><img src="${esc(baseUrl)}/logo-192.png" width="56" height="56" alt="Golden Harmonic Memorial Park" style="display:block;border-radius:50%;background:#fff"></td>
+<td style="padding:14px 22px 14px 14px;color:#fffaf0" valign="middle"><div style="font-size:18px;font-weight:bold">Golden Harmonic Memorial Park</div><div style="font-size:13px;opacity:.9">Taytay, Palawan</div></td>
+</tr></table>
 <div style="background:#fff;padding:24px 22px;border-radius:0 0 12px 12px;line-height:1.5;font-size:16px">
-<div style="font-size:22px;font-weight:bold;letter-spacing:.04em">ACKNOWLEDGEMENT RECEIPT</div>
-<div style="color:#4a564f;margin-bottom:12px">No. ${esc(arNo)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px"><tr>
+<td valign="top"><div style="font-size:16px;font-weight:bold;letter-spacing:.02em;line-height:1.3">ACKNOWLEDGEMENT RECEIPT</div>
+<div style="color:#4a564f">No. ${esc(arNo)}</div></td>
+<td class="ar-photo" valign="top" align="right" width="96" style="width:96px;min-width:96px;padding-left:8px"><img src="${esc(baseUrl)}/receipt-plot-${esc(photoType)}.jpg" width="96" height="54" alt="${esc(TYPE_LABEL[photoType] || '')} plot" style="display:block;width:96px;height:54px;border-radius:8px;border:1px solid #e3dccb"></td>
+</tr></table>
 <p style="margin:0 0 8px">We acknowledge that we received the following payment from <b>${esc(a.name)}</b>. Thank you.</p>
 <table style="width:100%;border-collapse:collapse;font-size:15px">
 ${row('Date and time', esc(fmtDate(p.date)))}
@@ -92,7 +104,8 @@ ${row('Amount received', esc(peso(p.amount)))}
 ${row('Paid by', esc(METHOD_LABEL[p.method || a.method] || p.method || a.method || ''))}
 ${p.ref ? row('Receipt / reference no.', esc(p.ref)) : ''}
 ${row('Reservation no.', esc(ref))}
-${row('Plot(s)', plots)}
+${row(items.length > 1 ? 'Items purchased' : 'Item purchased', items.join('<br>'))}
+${row('Payment plan', esc(planText))}
 ${row('Total contract price', esc(peso(total)))}
 ${row('Total paid so far', esc(peso(paidSoFar)))}
 ${row('Balance', esc(peso(balance)))}
