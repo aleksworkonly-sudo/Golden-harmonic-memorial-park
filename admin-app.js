@@ -3512,6 +3512,11 @@ function PendingPayments({
 // ── Presale applications (Blocks A, B, C, D) ──────────────────────────────────
 // Buyers reserve through /api/presale, which writes presaleApplications/{ref}
 // and plots/{block}_{lot}. Staff verify by phone, then confirm payment here.
+const PRESALE_TYPE_NAME = {
+  regular: 'Regular',
+  premium: 'Premium',
+  'corner-premium': 'Corner Premium'
+};
 const PRESALE_METHOD_LABEL = {
   paymongo: 'PayMongo (Online)',
   cash: 'Cash',
@@ -3935,6 +3940,8 @@ function PresaleApplications({
         method: PRESALE_METHOD_LABEL[a.method] || a.method,
         index: payIndex,
         email: a.email || '',
+        items: presalePlots(a).map(p => (PRESALE_TYPE_NAME[p.typeId] || p.typeId) + ' Plot · Block ' + (p.blockId || String(p.plotCode || '').split('-')[0]) + ', plot ' + p.plotCode),
+        planText: a.plan === 'installment' ? 'Monthly installment, ' + a.years + (a.years === 1 ? ' year' : ' years') + ' (' + fmt(a.monthly) + ' a month)' : 'Spot cash',
         total: a.totalPrice || 0,
         paidSoFar: L.paid + amount,
         balance: Math.max(0, (a.totalPrice || 0) - L.paid - amount),
@@ -4877,7 +4884,7 @@ function PresaleApplications({
       if (!w) return;
       const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
       const row = (k, v) => '<tr><td style="padding:6px 0;color:#555;width:45%;border-top:1px solid #ddd">' + k + '</td><td style="padding:6px 0;border-top:1px solid #ddd"><b>' + v + '</b></td></tr>';
-      w.document.write('<html><head><title>Acknowledgement Receipt</title><style>body{font-family:Arial,sans-serif;padding:28px;font-size:14px;line-height:1.6;max-width:640px;margin:0 auto}h2{margin:0}table{width:100%;border-collapse:collapse}.t{font-size:22px;font-weight:bold;letter-spacing:.05em;margin:14px 0 2px}.s{font-size:12px;color:#555}</style></head><body><div style="display:flex;align-items:center;gap:14px"><img src="' + window.location.origin + '/logo-192.png" width="72" height="72" alt=""><div><h2>Golden Harmonic Memorial Park</h2><div class="s">Taytay, Palawan</div></div></div><div class="t">ACKNOWLEDGEMENT RECEIPT</div><div class="s">No. AR-' + e(lastPay.ref) + '-' + (lastPay.index + 1) + '</div><p>Received from <b>' + e(lastPay.name) + '</b> the amount below. Thank you.</p><table>' + row('Date and time', e(new Date(lastPay.when).toLocaleString('en-PH'))) + row('Amount received', e(fmt2(lastPay.amount))) + row('Paid by', e(lastPay.method)) + (lastPay.receipt ? row('Receipt / reference no.', e(lastPay.receipt)) : '') + row('Reservation no.', e(lastPay.ref)) + row('Plot / unit', e(lastPay.plots)) + row('Total contract price', e(fmt2(lastPay.total))) + row('Total paid so far', e(fmt2(lastPay.paidSoFar))) + row('Balance', e(fmt2(lastPay.balance))) + '</table><p class="s" style="margin-top:16px">This is an acknowledgement of payment received. It is not an official receipt. Our office will issue your official receipt.</p><br><br>Received by: ____________________ &nbsp;&nbsp; Signature over printed name</body></html>');
+      w.document.write('<html><head><title>Acknowledgement Receipt</title><style>body{font-family:Arial,sans-serif;padding:28px;font-size:14px;line-height:1.6;max-width:640px;margin:0 auto}h2{margin:0}table{width:100%;border-collapse:collapse}.t{font-size:22px;font-weight:bold;letter-spacing:.05em;margin:14px 0 2px}.s{font-size:12px;color:#555}</style></head><body><div style="display:flex;align-items:center;gap:14px"><img src="' + window.location.origin + '/logo-192.png" width="72" height="72" alt=""><div><h2>Golden Harmonic Memorial Park</h2><div class="s">Taytay, Palawan</div></div></div><div class="t">ACKNOWLEDGEMENT RECEIPT</div><div class="s">No. AR-' + e(lastPay.ref) + '-' + (lastPay.index + 1) + '</div><p>Received from <b>' + e(lastPay.name) + '</b> the amount below. Thank you.</p><table>' + row('Date and time', e(new Date(lastPay.when).toLocaleString('en-PH'))) + row('Amount received', e(fmt2(lastPay.amount))) + row('Paid by', e(lastPay.method)) + (lastPay.receipt ? row('Receipt / reference no.', e(lastPay.receipt)) : '') + row('Reservation no.', e(lastPay.ref)) + row(lastPay.items.length > 1 ? 'Items purchased' : 'Item purchased', lastPay.items.map(e).join('<br>')) + row('Payment plan', e(lastPay.planText)) + row('Total contract price', e(fmt2(lastPay.total))) + row('Total paid so far', e(fmt2(lastPay.paidSoFar))) + row('Balance', e(fmt2(lastPay.balance))) + '</table><p class="s" style="margin-top:16px">This is an acknowledgement of payment received. It is not an official receipt. Our office will issue your official receipt.</p><br><br>Received by: ____________________ &nbsp;&nbsp; Signature over printed name</body></html>');
       w.document.close();
       w.focus();
       w.print();

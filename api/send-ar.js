@@ -72,8 +72,12 @@ module.exports = async function handler(req, res) {
       nextDue = d.getTime();
     }
     const arNo = `AR-${ref}-${index + 1}`;
-    const plots = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode, typeId: a.typeId }])
-      .map((x) => `${esc(x.plotCode)} (${esc(TYPE_LABEL[x.typeId] || x.typeId)})`).join(', ');
+    // What the buyer bought: "Regular Plot - Block A, plot A-0352 (₱22,000.00)"
+    const items = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode, typeId: a.typeId, blockId: a.blockId }])
+      .map((x) => `${esc(TYPE_LABEL[x.typeId] || x.typeId)} Plot &middot; Block ${esc(x.blockId || String(x.plotCode || '').split('-')[0])}, plot ${esc(x.plotCode)}`);
+    const planText = a.plan === 'installment'
+      ? `Monthly installment, ${a.years} ${a.years === 1 ? 'year' : 'years'} (${peso(a.monthly)} a month)`
+      : 'Spot cash';
     const host = req.headers['x-forwarded-host'] || req.headers.host || '';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${host}`;
     const trackUrl = `${baseUrl}/my-payments?ref=${encodeURIComponent(ref)}`;
@@ -95,7 +99,8 @@ ${row('Amount received', esc(peso(p.amount)))}
 ${row('Paid by', esc(METHOD_LABEL[p.method || a.method] || p.method || a.method || ''))}
 ${p.ref ? row('Receipt / reference no.', esc(p.ref)) : ''}
 ${row('Reservation no.', esc(ref))}
-${row('Plot(s)', plots)}
+${row(items.length > 1 ? 'Items purchased' : 'Item purchased', items.join('<br>'))}
+${row('Payment plan', esc(planText))}
 ${row('Total contract price', esc(peso(total)))}
 ${row('Total paid so far', esc(peso(paidSoFar)))}
 ${row('Balance', esc(peso(balance)))}
