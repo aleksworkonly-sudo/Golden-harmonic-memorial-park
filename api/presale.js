@@ -88,7 +88,7 @@ async function sendConfirmationEmail({ ref, name, email, plots, plan, years, tot
   const trackUrl = `${baseUrl}/my-payments?ref=${encodeURIComponent(ref)}`;
   const rows = plots.map((p) => `<li><b>${esc(p.plotCode)}</b> &middot; ${esc(TYPE_LABEL[p.typeId] || p.typeId)}</li>`).join('');
   const planLine = plan === 'installment'
-    ? `${years} ${years === 1 ? 'year' : 'years'} &middot; ${peso(monthly)} a month &middot; total ${peso(total)}`
+    ? `${years} ${years === 1 ? 'year' : 'years'} &middot; ${peso(monthly)} a month &middot; total ${peso(total)} (includes 12% VAT)`
     : `Spot cash &middot; ${peso(total)}`;
   const html = `<!doctype html><html><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
 <div style="max-width:560px;margin:0 auto;padding:24px">
@@ -191,7 +191,10 @@ module.exports = async function handler(req, res) {
   }
   const spot = plots.reduce((n, x) => n + x.price - discOf(x.typeId, 'cash'), 0);                    // spot cash price
   const instBase = plots.reduce((n, x) => n + x.price - discOf(x.typeId, 'installment'), 0);        // base for monthly plans
-  const total = plan === 'installment' ? Math.round(instBase * (1 + SURCHARGE[years])) : spot;
+  // The 12% VAT is paid by the buyer: it is added on top of the price.
+  const VAT = 0.12;
+  const netTotal = plan === 'installment' ? Math.round(instBase * (1 + SURCHARGE[years])) : spot; // price without VAT
+  const total = Math.round(netTotal * (1 + VAT));                                                    // what the buyer pays
   const monthly = plan === 'installment' ? Math.round(total / (years * 12)) : 0;
 
   // Optional: the buyer may promise to pay MORE than the monthly, never less.
@@ -244,7 +247,7 @@ module.exports = async function handler(req, res) {
         blockId: first.blockId, lotNo: first.lotNo, plotCode: first.plotCode, typeId: first.typeId,
         plots, plotCount: plots.length,
         plan, years, method,
-        spotPrice: spot, listPrice: plots.reduce((n, x) => n + x.price, 0), totalPrice: total, monthly, customMonthly: intended,
+        spotPrice: spot, listPrice: plots.reduce((n, x) => n + x.price, 0), totalPrice: total, netPrice: netTotal, vatRate: VAT, monthly, customMonthly: intended,
         name, address, mobile, mobileKey, email,
         paymentReference: '', paymentConfirmedAt: null,
         createdAt: now
