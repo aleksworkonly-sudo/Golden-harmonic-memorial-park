@@ -3569,16 +3569,12 @@ const PRESALE_SURCHARGE = {
 function presaleSplit(a) {
   const total = a.totalPrice || 0;
   const rate = a.plan === 'installment' ? PRESALE_SURCHARGE[a.years] || 0 : 0;
-  // New reservations add the 12% VAT on top (vatRate saved on the reservation); older ones have none.
-  const vat = a.vatRate ? total - Math.round(total / (1 + a.vatRate)) : 0;
-  const net = total - vat;
-  const base = rate ? Math.round(net / (1 + rate)) : net;
+  const base = rate ? Math.round(total / (1 + rate)) : total;
   return {
     total,
     base,
-    vat,
-    surcharge: net - base,
-    ratio: total ? (net - base) / total : 0
+    surcharge: total - base,
+    ratio: total ? (total - base) / total : 0
   };
 }
 // SOP: allocation of each payment into Agent Commission / Broker & Agent Compensation / Company.
@@ -4457,7 +4453,7 @@ function PresaleApplications({
       style: {
         fontWeight: 700
       }
-    }, "Sales and VAT (", Math.round(PRESALE_VAT_RATE * 100), "% VAT, paid by the buyer on top of the price)"), plotEl("label", {
+    }, "Sales and VAT (", Math.round(PRESALE_VAT_RATE * 100), "% VAT, prices include VAT)"), plotEl("label", {
       style: {
         fontSize: 13
       }
@@ -4632,7 +4628,7 @@ function PresaleApplications({
           margin: '2px 0 6px',
           lineHeight: 1.5
         }
-      }, sel.plan === 'installment' && plotEl("div", null, "Plot price ", fmt2(sp.base), " + installment surcharge ", fmt2(sp.surcharge), sp.vat ? " + 12% VAT (paid by buyer) " + fmt2(sp.vat) : "", " = ", fmt2(sp.total)), sel.plan !== 'installment' && sp.vat > 0 && plotEl("div", null, "Plot price ", fmt2(sp.base), " + 12% VAT (paid by buyer) ", fmt2(sp.vat), " = ", fmt2(sp.total)), plotEl("div", null, "Sales ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross)));
+      }, sel.plan === 'installment' && plotEl("div", null, "Plot price ", fmt2(sp.base), " + installment surcharge ", fmt2(sp.surcharge), " = ", fmt2(sp.total)), plotEl("div", null, "Sales ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross)));
     })(), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("div", {
       style: { marginTop: 8, fontSize: 14 }
     }, L.list.map((x, i) => plotEl("div", {
