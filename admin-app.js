@@ -4565,7 +4565,7 @@ function PresaleApplications({
     style: {
       padding: 24
     }
-  }, "No presale applications here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status'].map(h => plotEl("th", {
+  }, "No presale applications here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status', ''].map(h => plotEl("th", {
     key: h
   }, h)))), plotEl("tbody", null, shown.map(r => plotEl("tr", {
     key: r._id,
@@ -4587,7 +4587,17 @@ function PresaleApplications({
       fontSize: 12,
       color: '#777'
     }
-  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r))))))), sel && plotEl("div", {
+  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r)), plotEl("td", {
+    style: { textAlign: 'right' }
+  }, plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    title: "Download the filled envelope sheet, ready to print",
+    onClick: async ev => {
+      ev.stopPropagation();
+      try { await downloadCustomerSheet(presaleSheetData(r)); setToast('The sheet is downloaded. Open it and print.'); }
+      catch (err) { setToast(err && err.message || 'Could not make the sheet'); }
+    }
+  }, "🖨 Print sheet"))))))), sel && plotEl("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && setOpen(null)
   }, plotEl("div", {
