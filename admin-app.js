@@ -4010,6 +4010,7 @@ function PresaleApplications({
     }
   };
   const cancelApp = async a => {
+    if (a.status === 'paid' && !window.confirm(`${a.ref} is already PAID. Cancelling will NOT refund the buyer; the money must be returned by the office. Continue?`)) return;
     if (!window.confirm(`Cancel ${a.ref} and free ${presalePlots(a).length > 1 ? 'all ' + presalePlots(a).length + ' plots' : 'plot ' + a.plotCode}? This cannot be undone.`)) return;
     setBusy(true);
     try {
@@ -4900,11 +4901,11 @@ function PresaleApplications({
       marginTop: 16,
       justifyContent: 'space-between'
     }
-  }, sel.status !== 'cancelled' && sel.status !== 'paid' ? plotEl("button", {
+  }, sel.status !== 'cancelled' && (sel.status !== 'paid' || canEditRules) ? plotEl("button", {
     className: "btn btn-outline btn-sm",
     disabled: busy,
     onClick: () => cancelApp(sel)
-  }, "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
+  }, sel.status === 'paid' ? "Cancel this paid reservation (admin only)" : "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
     className: "btn btn-outline btn-sm",
     onClick: () => setSheetData(presaleSheetData(sel))
   }, "📝 Customer sheet (edit, then Word)"), plotEl("button", {
