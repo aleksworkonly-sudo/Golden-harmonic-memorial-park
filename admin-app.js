@@ -4629,16 +4629,12 @@ function PresaleApplications({
           lineHeight: 1.5
         }
       }, sel.plan === 'installment' && plotEl("div", null, "Plot price ", fmt2(sp.base), " + installment surcharge ", fmt2(sp.surcharge), " = ", fmt2(sp.total)), plotEl("div", null, "Sales ", fmt2(v.net), " + VAT ", fmt2(v.vat), " = ", fmt2(v.gross)));
-    })(), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("table", {
-      className: "gh-table",
-      style: {
-        width: '100%',
-        fontSize: 13,
-        marginTop: 8
-      }
-    }, plotEl("tbody", null, L.list.map((x, i) => plotEl("tr", {
-      key: i
-    }, plotEl("td", null, fmtDate(x.date)), plotEl("td", null, fmt(x.amount)), plotEl("td", null, x.ref || ''), plotEl("td", null, x.by || ''))))));
+    })(), plotEl("div", null, "Paid ", fmt(L.paid), " of ", fmt(sel.totalPrice), " · balance ", plotEl("b", null, fmt(L.balance))), sel.plan === 'installment' && (L.full ? plotEl("div", null, "✔ Fully paid") : plotEl("div", null, "Months paid: ", plotEl("b", null, L.monthsPaid), " · Months left: ", plotEl("b", null, L.monthsLeft), L.nextDue ? ` · Next due ${fmtDate(L.nextDue.getTime())}` : '')), L.list.length > 0 && plotEl("div", {
+      style: { marginTop: 8, fontSize: 14 }
+    }, L.list.map((x, i) => plotEl("div", {
+      key: i,
+      style: { padding: '8px 0', borderTop: '1px solid rgba(0,0,0,.1)', overflowWrap: 'anywhere' }
+    }, plotEl("div", { style: { display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' } }, plotEl("b", null, fmt(x.amount)), plotEl("span", null, fmtDate(x.date))), plotEl("div", { style: { color: '#555', fontSize: 13 } }, x.ref ? 'Receipt/ref: ' + x.ref : '', x.by ? ' · recorded by ' + x.by : '')))));
   })(), sel.status !== 'cancelled' && plotEl("div", {
     style: {
       marginTop: 12,
