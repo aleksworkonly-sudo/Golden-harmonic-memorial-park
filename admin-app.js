@@ -3616,6 +3616,28 @@ function presaleMonthLabel(k) {
     year: 'numeric'
   });
 }
+// Prints one reservation (buyer, plots, plan, payments so far, balance) for the office files.
+function printReservation(r) {
+  const w = window.open('', '_blank');
+  if (!w) { alert('Please allow pop-ups to print.'); return; }
+  const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const L = presaleLedger(r);
+  const plots = presalePlots(r);
+  const row = (k, v) => '<tr><td style="padding:6px 0;color:#555;width:38%;border-top:1px solid #ddd;vertical-align:top">' + k + '</td><td style="padding:6px 0;border-top:1px solid #ddd"><b>' + v + '</b></td></tr>';
+  const pays = L.list.length ? '<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:left;color:#555"><th style="padding:4px 0">Date</th><th>Amount</th><th>Method</th><th>Receipt / ref</th><th>Received by</th></tr>' + L.list.map(x => '<tr><td style="padding:4px 0;border-top:1px solid #ddd">' + e(fmtDate(x.date)) + '</td><td style="border-top:1px solid #ddd">' + e(fmt2(x.amount)) + '</td><td style="border-top:1px solid #ddd">' + e(PRESALE_METHOD_LABEL[x.method] || x.method || '') + '</td><td style="border-top:1px solid #ddd">' + e(x.ref || '') + '</td><td style="border-top:1px solid #ddd">' + e(x.by || '') + '</td></tr>').join('') + '</table>' : '<div style="color:#777">No payment recorded yet.</div>';
+  w.document.write('<html><head><title>Reservation ' + e(r.ref) + '</title><style>body{font-family:Arial,sans-serif;padding:28px;font-size:14px;line-height:1.6;max-width:720px;margin:0 auto}h2{margin:0}table{width:100%;border-collapse:collapse}.t{font-size:20px;font-weight:bold;margin:14px 0 2px}.s{font-size:12px;color:#555}</style></head><body>'
+    + '<div style="display:flex;align-items:center;gap:14px"><img src="' + window.location.origin + '/logo-192.png" width="64" height="64" alt=""><div><h2>Golden Harmonic Memorial Park</h2><div class="s">Taytay, Palawan</div></div></div>'
+    + '<div class="t">PRESALE RESERVATION ' + e(r.ref) + '</div><div class="s">Status: ' + e(r.status) + ' &middot; Reserved ' + e(fmtDate(r.createdAt)) + ' &middot; Printed ' + e(new Date().toLocaleString('en-PH')) + '</div><br>'
+    + '<table>' + row('Buyer', e(r.name)) + row('Address', e(r.address)) + row('Mobile', e(r.mobile)) + (r.email ? row('Email', e(r.email)) : '')
+    + row(plots.length > 1 ? 'Plots' : 'Plot', plots.map(p => e(p.plotCode) + ' · ' + e(PRESALE_TYPE_LABEL[p.typeId] || p.typeId)).join('<br>'))
+    + row('Payment plan', e(presalePlanText(r))) + row('Pays by', e(PRESALE_METHOD_LABEL[r.method] || r.method))
+    + row('Total contract price', e(fmt2(r.totalPrice))) + row('Total paid so far', e(fmt2(L.paid))) + row('Balance', e(fmt2(L.balance)))
+    + (r.agentName ? row('Agent', e(r.agentName)) : '') + (r.brokerName ? row('Broker', e(r.brokerName)) : '') + '</table>'
+    + '<p style="margin:16px 0 4px"><b>Payments received</b></p>' + pays
+    + '<br><br><br>Prepared by: ____________________ &nbsp;&nbsp; Buyer signature: ____________________</body></html>');
+  w.document.close();
+  setTimeout(() => w.print(), 400);
+}
 function presaleLedger(a) {
   const total = a.totalPrice || 0;
   const monthly = a.plan === 'cash' ? total : a.monthly || 0;
@@ -4565,7 +4587,7 @@ function PresaleApplications({
     style: {
       padding: 24
     }
-  }, "No presale applications here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status'].map(h => plotEl("th", {
+  }, "No presale applications here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status', ''].map(h => plotEl("th", {
     key: h
   }, h)))), plotEl("tbody", null, shown.map(r => plotEl("tr", {
     key: r._id,
@@ -4587,7 +4609,13 @@ function PresaleApplications({
       fontSize: 12,
       color: '#777'
     }
-  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r))))))), sel && plotEl("div", {
+  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r)), plotEl("td", {
+    style: { textAlign: 'right' }
+  }, plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    title: "Print this reservation",
+    onClick: ev => { ev.stopPropagation(); printReservation(r); }
+  }, "🖨 Print"))))))), sel && plotEl("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && setOpen(null)
   }, plotEl("div", {
