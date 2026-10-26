@@ -86,11 +86,12 @@ async function sendConfirmationEmail({ ref, name, email, plots, plan, years, tot
   const senderEmail = process.env.SENDER_EMAIL || 'noreply@goldenharmonic.com';
   const senderName = process.env.SENDER_NAME || 'Golden Harmonic Memorial Park';
   const trackUrl = `${baseUrl}/my-payments?ref=${encodeURIComponent(ref)}`;
+  const photoType = plots[0] && ['regular', 'premium', 'corner-premium'].includes(plots[0].typeId) ? plots[0].typeId : 'regular'; // picture of the plot type they chose
   const rows = plots.map((p) => `<li><b>${esc(p.plotCode)}</b> &middot; ${esc(TYPE_LABEL[p.typeId] || p.typeId)}</li>`).join('');
   const planLine = plan === 'installment'
     ? `${years} ${years === 1 ? 'year' : 'years'} &middot; ${peso(monthly)} a month &middot; total ${peso(total)}`
     : `Spot cash &middot; ${peso(total)}`;
-  const html = `<!doctype html><html><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media (max-width:340px){.ar-photo{display:none!important}}</style></head><body style="margin:0;background:#f6f1e8;font-family:Arial,Helvetica,sans-serif;color:#1f2a26">
 <div style="max-width:560px;margin:0 auto;padding:24px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#2f5d4c;border-radius:12px 12px 0 0"><tr>
 <td style="padding:14px 0 14px 22px;width:64px" valign="middle"><img src="${esc(baseUrl)}/logo-192.png" width="56" height="56" alt="Golden Harmonic Memorial Park" style="display:block;border-radius:50%;background:#fff"></td>
@@ -98,8 +99,11 @@ async function sendConfirmationEmail({ ref, name, email, plots, plan, years, tot
 </tr></table>
 <div style="background:#fff;padding:24px 22px;border-radius:0 0 12px 12px;line-height:1.55;font-size:16px">
 <p style="margin-top:0">Hello ${esc(name)},</p>
-<p>Thank you. Your plot is reserved. Please keep your reference number:</p>
-<p style="font-size:28px;font-weight:bold;color:#2f5d4c;margin:6px 0">${esc(ref)}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="top"><p style="margin:0 0 4px">Thank you. Your plot is reserved. Please keep your reference number:</p>
+<p style="font-size:28px;font-weight:bold;color:#2f5d4c;margin:6px 0">${esc(ref)}</p></td>
+<td class="ar-photo" valign="top" align="right" width="120" style="width:120px;min-width:120px;padding-left:10px"><img src="${esc(baseUrl)}/receipt-plot-${esc(photoType)}.jpg" width="120" height="68" alt="${esc(TYPE_LABEL[photoType] || '')} plot" style="display:block;width:120px;height:68px;border-radius:8px;border:1px solid #e3dccb"></td>
+</tr></table>
 <p style="margin-bottom:4px"><b>Your plot${plots.length > 1 ? 's' : ''}</b></p>
 <ul style="margin-top:0;padding-left:20px">${rows}</ul>
 <p><b>Plan:</b> ${planLine}<br><b>You will pay by:</b> ${esc(METHOD_LABEL[method] || method)}</p>
