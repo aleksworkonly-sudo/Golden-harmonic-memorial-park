@@ -2509,12 +2509,16 @@ function CustomerSheetEditor({ data, onClose, onToast }) {
     agentCommission: data.agentCommission || '',
     brokerName: data.brokerName || ''
   }));
-  const [rows, setRows] = React.useState(() => [...(data.payments || [])].sort((x, y) => (toMs(x.date) || 0) - (toMs(y.date) || 0)).map(p => ({
-    date: ymd(p.date),
-    ref: p.ref || p.receipt || '',
-    amount: p.amount || '',
-    note: p.note || ''
-  })));
+  const [rows, setRows] = React.useState(() => {
+    const filled = [...(data.payments || [])].sort((x, y) => (toMs(x.date) || 0) - (toMs(y.date) || 0)).slice(0, 60).map(p => ({
+      date: ymd(p.date),
+      ref: p.ref || p.receipt || '',
+      amount: p.amount || '',
+      note: p.note || ''
+    }));
+    while (filled.length < 60) filled.push({ date: '', ref: '', amount: '', note: '' });
+    return filled;
+  });
   const [busy, setBusy] = React.useState(false);
   const set = k => e => setF(x => ({ ...x, [k]: e.target.value }));
   const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
@@ -2547,30 +2551,34 @@ function CustomerSheetEditor({ data, onClose, onToast }) {
       setBusy(false);
     }
   };
+  // The editor looks like the printed sheet: type straight into the boxes, then download.
+  const GREEN = '#a9d18e';
+  const cellIn = { width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', background: 'transparent', padding: '4px 6px', fontSize: 13, fontFamily: 'inherit', fontWeight: 600 };
+  const box = (items) => ce('table', { style: { borderCollapse: 'collapse', flex: '1 1 300px', minWidth: 280, background: '#fff' } },
+    ce('tbody', null, items.map(([label, k, type], n) => ce('tr', { key: n },
+      ce('td', { style: { background: GREEN, border: '1px solid #222', padding: '4px 8px', fontSize: 12, fontWeight: 700, width: '42%', whiteSpace: 'nowrap' } }, label),
+      ce('td', { style: { border: '1px solid #222', padding: 0 } }, k ? ce('input', { type: type || 'text', value: f[k], onChange: set(k), style: cellIn }) : null)))));
+  const ledger = (g) => ce('table', { key: g, style: { borderCollapse: 'collapse', flex: '1 1 330px', minWidth: 310, background: 'rgba(255,255,255,.9)', fontSize: 11 } },
+    ce('thead', null, ce('tr', null, ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS'].map(h => ce('th', { key: h, style: { background: '#c6e0b4', border: '1px solid #222', padding: '3px 4px', fontSize: 10 } }, h)))),
+    ce('tbody', null, rows.slice(g * 20, g * 20 + 20).map((r, n) => {
+      const i = g * 20 + n;
+      const c = (k, type, w) => ce('td', { style: { border: '1px solid #222', padding: 0, width: w } }, ce('input', { type: type || 'text', value: r[k], onChange: e => setRow(i, k, e.target.value), style: { ...cellIn, fontSize: 11, fontWeight: 400, padding: '2px 3px', color: k === 'date' && !r.date ? 'transparent' : 'inherit' } }));
+      return ce('tr', { key: i }, c('date', 'date', '26%'), c('ref', 'text', '24%'), c('amount', 'number', '22%'), c('note', 'text', '28%'));
+    })));
   return ce('div', { className: 'modal-bg', style: { zIndex: 200 } },
-    ce('div', { className: 'modal wide', style: { width: 820 } },
-      ce('h3', null, 'Customer monitoring sheet — check and edit, then download'),
+    ce('div', { className: 'modal wide', style: { width: 'min(1180px, 96vw)' } },
+      ce('h3', { style: { marginTop: 0 } }, 'Customer monitoring sheet'),
+      ce('div', { style: { fontSize: 13, color: '#555', marginBottom: 8 } }, 'Check the sheet below. Click any box to change it, then press Download.'),
       ce('div', { className: 'modal-scroll' },
-        ce('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 } },
-          field('NAME', 'fullName'), field('CONTACT NO.', 'phone'),
-          field('BLOCK', 'blockId'), field('LOT TYPE', 'typeName'),
-          field('LOT NO.', 'lotNo'), field('PHASE NO.', 'phaseNo'),
-          field('CONTRACT PRICE (₱)', 'contractPrice', 'number'), field('YEAR CONRACT', 'yearText'),
-          field('DATE', 'date', 'date'), field('AMOUNT (₱)', 'amount', 'number')),
-        ce('div', { style: { fontWeight: 700, fontSize: 13, margin: '16px 0 6px' } }, 'Payments (oldest first, up to 60)'),
-        ce('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 12 } },
-          ce('thead', null, ce('tr', null, ['DATE', 'RECEIPT NO.', 'AMOUNT (₱)', 'REMARKS (Cash, GCash, Bank transfer)', ''].map((h, i) => ce('th', { key: i, style: { textAlign: 'left', padding: '2px 4px' } }, h)))),
-          ce('tbody', null, rows.map((r, i) => ce('tr', { key: i },
-            ce('td', { style: { padding: 2 } }, ce('input', { type: 'date', value: r.date, onChange: e => setRow(i, 'date', e.target.value), style: inp })),
-            ce('td', { style: { padding: 2 } }, ce('input', { value: r.ref, onChange: e => setRow(i, 'ref', e.target.value), style: inp })),
-            ce('td', { style: { padding: 2 } }, ce('input', { type: 'number', value: r.amount, onChange: e => setRow(i, 'amount', e.target.value), style: inp })),
-            ce('td', { style: { padding: 2 } }, ce('input', { value: r.note, onChange: e => setRow(i, 'note', e.target.value), style: inp })),
-            ce('td', { style: { padding: 2 } }, ce('button', { type: 'button', className: 'btn btn-outline btn-sm', onClick: () => setRows(rs => rs.filter((_, j) => j !== i)) }, '✕')))))),
-        rows.length < 60 && ce('button', { type: 'button', className: 'btn btn-outline btn-sm', style: { marginTop: 6 }, onClick: () => setRows(rs => [...rs, { date: ymd(Date.now()), ref: '', amount: '', note: '' }]) }, '+ Add payment row'),
-        ce('div', { style: { fontWeight: 700, fontSize: 13, margin: '16px 0 6px' } }, 'Agent and broker'),
-        ce('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 } },
-          field('AGENT', 'agentName'), field('BROKER', 'brokerName'),
-          field('Commission date', 'commissionDate', 'date'), field('Commission (₱)', 'agentCommission', 'number')),
+        ce('div', { style: { background: '#fff', border: '1px solid #cfc8b6', borderRadius: 6, padding: 14, boxShadow: '0 1px 6px rgba(0,0,0,.08)' } },
+          ce('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10 } },
+            ce('img', { src: 'logo-192.png', width: 54, height: 54, alt: '' }),
+            ce('div', { style: { fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 20, letterSpacing: '.03em' } }, 'GOLDEN HARMONIC MEMORIAL PARK, INC.')),
+          ce('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-start', marginBottom: 14 } },
+            box([['NAME:', 'fullName'], ['BLOCK:', 'blockId'], ['LOT NO.:', 'lotNo'], ['CONTRACT PRICE:', 'contractPrice', 'number'], ['DATE:', 'date', 'date']]),
+            box([['CONTACT NO.:', 'phone'], ['LOT TYPE:', 'typeName'], ['PHASE NO.:', 'phaseNo'], ['YEAR CONRACT:', 'yearText'], ['AMOUNT:', 'amount', 'number']]),
+            box([['AGENT:', 'agentName'], ['Commission date:', 'commissionDate', 'date'], ['Commission (₱):', 'agentCommission', 'number'], ['BROKER:', 'brokerName']])),
+          ce('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 14 } }, [0, 1, 2].map(ledger))),
         ce('div', { style: { fontSize: 11, color: '#777', marginTop: 10 } }, 'Changes here only affect this sheet. They are not saved to the customer record.')),
       ce('div', { className: 'modal-actions' },
         ce('button', { type: 'button', className: 'btn btn-outline', onClick: onClose }, 'Cancel'),
@@ -4592,12 +4600,8 @@ function PresaleApplications({
     style: { textAlign: 'right' }
   }, plotEl("button", {
     className: "btn btn-outline btn-sm",
-    title: "Download the filled envelope sheet, ready to print",
-    onClick: async ev => {
-      ev.stopPropagation();
-      try { await downloadCustomerSheet(presaleSheetData(r)); setToast('The sheet is downloaded. Open it and print.'); }
-      catch (err) { setToast(err && err.message || 'Could not make the sheet'); }
-    }
+    title: "Open the envelope sheet: check, edit, then download",
+    onClick: ev => { ev.stopPropagation(); setSheetData(presaleSheetData(r)); }
   }, "🖨 Print sheet"))))))), sel && plotEl("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && setOpen(null)
