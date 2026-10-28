@@ -2453,12 +2453,13 @@ function CustomerDetailModal({
 function presaleSheetData(a) {
   const plots = presalePlots(a);
   const uniq = arr => [...new Set(arr.filter(v => v !== undefined && v !== null && v !== ''))];
-  const pays = (a.payments || []).map(p => ({
+  const pays = (a.payments || []).map((p, i) => ({
+    idx: i,
     date: p.date,
     ref: p.ref,
     amount: p.amount,
     method: p.method || a.method,
-    note: PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || ''
+    note: p.remarks || PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || ''
   }));
   const first = [...pays].sort((x, y) => Number(x.date) - Number(y.date))[0];
   return {
@@ -2475,12 +2476,15 @@ function presaleSheetData(a) {
     agentName: a.agentName || '',
     agentCommission: a.agentId ? presaleCommission(a) : a.agentCommission || 0,
     brokerName: a.brokerName || '',
-    phaseNo: a.phaseNo || ''
+    phaseNo: a.phaseNo || '',
+    _app: a
   };
 }
 // Edit screen: staff can correct anything on the sheet before the Word file is made.
-function CustomerSheetEditor({ data, onClose, onToast }) {
+function CustomerSheetEditor({ data, onClose, onToast, canSave, actor }) {
   const ce = React.createElement;
+  const app = canSave && data._app && data._app._id ? data._app : null; // admins can save the changes back to the reservation
+  const locked = app ? ['blockId', 'lotNo', 'typeName', 'contractPrice', 'yearText', 'date', 'amount'].concat(app.agentId ? ['agentName', 'agentCommission', 'commissionDate'] : []) : [];
   const toMs = v => v && v.toDate ? v.toDate().getTime() : typeof v === 'number' ? v : (typeof v === 'string' && /^\d+$/.test(v)) ? Number(v) : v ? new Date(v).getTime() : null;
   const ymd = v => {
     const ms = toMs(v);
@@ -2514,9 +2518,11 @@ function CustomerSheetEditor({ data, onClose, onToast }) {
       date: ymd(p.date),
       ref: p.ref || p.receipt || '',
       amount: p.amount || '',
-      note: p.note || ''
+      note: p.note || '',
+      origNote: p.note || '',
+      orig: p.idx == null ? null : p.idx
     }));
-    while (filled.length < 60) filled.push({ date: '', ref: '', amount: '', note: '' });
+    while (filled.length < 60) filled.push({ date: '', ref: '', amount: '', note: '', origNote: '', orig: null });
     return filled;
   });
   const [busy, setBusy] = React.useState(false);
@@ -2551,13 +2557,68 @@ function CustomerSheetEditor({ data, onClose, onToast }) {
       setBusy(false);
     }
   };
+  // Admin only: write the edited sheet back to the reservation record.
+  const save = async () => {
+    if (!app) return;
+    const name = f.fullName.trim();
+    if (!name) { onToast && onToast('The buyer name cannot be empty.'); return; }
+    const digits = String(f.phone || '').replace(/\D/g, '');
+    if (digits.length < 10) { onToast && onToast('Please check the contact number.'); return; }
+    const used = rows.filter(r => r.date || r.ref || num(r.amount) || r.note);
+    if (used.some(r => !num(r.amount))) { onToast && onToast('Every payment row needs an amount.'); return; }
+    const origPays = app.payments || [];
+    if (!used.length && origPays.length && !window.confirm('This removes ALL recorded payments of ' + app.ref + '. Continue?')) return;
+    if (!window.confirm('Save these changes to ' + app.ref + '? This changes the buyer\'s record, the balance and the reports.')) return;
+    setBusy(true);
+    try {
+      const newPays = used.map(r => {
+        const o = r.orig != null ? origPays[r.orig] : null;
+        if (o) {
+          const entry = { ...o, amount: num(r.amount), date: (r.date === ymd(o.date) ? o.date : fromYmd(r.date) || o.date), ref: r.ref };
+          if (r.note !== r.origNote) entry.remarks = r.note;
+          if (num(r.amount) !== o.amount) delete entry.alloc; // the split is worked out again from the new amount
+          return entry;
+        }
+        return { amount: num(r.amount), date: fromYmd(r.date) || Date.now(), ref: r.ref, method: app.method, remarks: r.note, by: actor || 'admin' };
+      });
+      const now = Date.now();
+      const patch = {
+        name,
+        mobile: f.phone.trim(),
+        mobileKey: digits.slice(-10),
+        phaseNo: f.phaseNo.trim(),
+        brokerName: f.brokerName.trim(),
+        payments: newPays,
+        editedAt: now,
+        editedBy: actor || 'admin',
+        editHistory: firebase.firestore.FieldValue.arrayUnion({ at: now, by: actor || 'admin', before: JSON.stringify({ name: app.name, mobile: app.mobile, phaseNo: app.phaseNo || '', brokerName: app.brokerName || '', payments: origPays }).slice(0, 9000) })
+      };
+      if (!app.agentId) {
+        patch.agentName = f.agentName.trim();
+        patch.agentCommission = num(f.agentCommission);
+        patch.agentCommissionDate = fromYmd(f.commissionDate) || null;
+      }
+      if (newPays.length && (app.status === 'new' || app.status === 'verified')) {
+        patch.status = 'paid';
+        patch.paymentConfirmedAt = app.paymentConfirmedAt || now;
+        patch.confirmedBy = actor || 'admin';
+      }
+      await window.db.collection('presaleApplications').doc(app._id).update(patch);
+      onToast && onToast('Saved to ' + app.ref);
+      onClose();
+    } catch (e) {
+      onToast && onToast(e && e.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  };
   // The editor looks like the printed sheet: type straight into the boxes, then download.
   const GREEN = '#a9d18e';
   const cellIn = { width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', background: 'transparent', padding: '4px 6px', fontSize: 13, fontFamily: 'inherit', fontWeight: 600 };
   const box = (items) => ce('table', { style: { borderCollapse: 'collapse', flex: '1 1 300px', minWidth: 280, background: '#fff' } },
     ce('tbody', null, items.map(([label, k, type], n) => ce('tr', { key: n },
       ce('td', { style: { background: GREEN, border: '1px solid #222', padding: '4px 8px', fontSize: 12, fontWeight: 700, width: '42%', whiteSpace: 'nowrap' } }, label),
-      ce('td', { style: { border: '1px solid #222', padding: 0 } }, k ? ce('input', { type: type || 'text', value: f[k], onChange: set(k), style: cellIn }) : null)))));
+      ce('td', { style: { border: '1px solid #222', padding: 0, background: locked.includes(k) ? '#eee' : 'transparent' } }, k ? ce('input', { type: type || 'text', value: f[k], onChange: set(k), readOnly: locked.includes(k), title: locked.includes(k) ? 'Locked: this comes from the reservation' : undefined, style: { ...cellIn, color: locked.includes(k) ? '#555' : 'inherit' } }) : null)))));
   const ledger = (g) => ce('table', { key: g, style: { borderCollapse: 'collapse', flex: '1 1 330px', minWidth: 310, background: 'rgba(255,255,255,.9)', fontSize: 11 } },
     ce('thead', null, ce('tr', null, ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS'].map(h => ce('th', { key: h, style: { background: '#c6e0b4', border: '1px solid #222', padding: '3px 4px', fontSize: 10 } }, h)))),
     ce('tbody', null, rows.slice(g * 20, g * 20 + 20).map((r, n) => {
@@ -2568,7 +2629,7 @@ function CustomerSheetEditor({ data, onClose, onToast }) {
   return ce('div', { className: 'modal-bg', style: { zIndex: 200 } },
     ce('div', { className: 'modal wide', style: { width: 'min(1180px, 96vw)' } },
       ce('h3', { style: { marginTop: 0 } }, 'Customer monitoring sheet'),
-      ce('div', { style: { fontSize: 13, color: '#555', marginBottom: 8 } }, 'Check the sheet below. Click any box to change it, then press Download.'),
+      ce('div', { style: { fontSize: 13, color: '#555', marginBottom: 8 } }, app ? 'Admin: click any white box to change it. "Save to record" keeps the changes in the system. "Download" only makes the Word file. Grey boxes are locked (they come from the reservation).' : 'Check the sheet below. Click any box to change it, then press Download.'),
       ce('div', { className: 'modal-scroll' },
         ce('div', { style: { background: '#fff', border: '1px solid #cfc8b6', borderRadius: 6, padding: 14, boxShadow: '0 1px 6px rgba(0,0,0,.08)' } },
           ce('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10 } },
@@ -2579,10 +2640,11 @@ function CustomerSheetEditor({ data, onClose, onToast }) {
             box([['CONTACT NO.:', 'phone'], ['LOT TYPE:', 'typeName'], ['PHASE NO.:', 'phaseNo'], ['YEAR CONRACT:', 'yearText'], ['AMOUNT:', 'amount', 'number']]),
             box([['AGENT:', 'agentName'], ['Commission date:', 'commissionDate', 'date'], ['Commission (₱):', 'agentCommission', 'number'], ['BROKER:', 'brokerName']])),
           ce('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 14 } }, [0, 1, 2].map(ledger))),
-        ce('div', { style: { fontSize: 11, color: '#777', marginTop: 10 } }, 'Changes here only affect this sheet. They are not saved to the customer record.')),
+        ce('div', { style: { fontSize: 11, color: '#777', marginTop: 10 } }, app ? 'To change the plot, price or years, cancel this reservation and reserve again. Agent and commission are changed in the reservation window.' : 'Changes here only affect this sheet. They are not saved to the customer record.')),
       ce('div', { className: 'modal-actions' },
         ce('button', { type: 'button', className: 'btn btn-outline', onClick: onClose }, 'Cancel'),
-        ce('button', { type: 'button', className: 'btn btn-primary', disabled: busy, onClick: make }, busy ? 'Making…' : '⬇ Download Word sheet'))));
+        ce('button', { type: 'button', className: app ? 'btn btn-outline' : 'btn btn-primary', disabled: busy, onClick: make }, busy ? 'Working…' : '⬇ Download Word sheet'),
+        app && ce('button', { type: 'button', className: 'btn btn-primary', disabled: busy, onClick: save }, '💾 Save to record'))));
 }
 // "📝 Sheet" button for the Customers list: finds the customer's sale (by mobile number), then opens the edit screen.
 function CustomerSheetButton({ customer, plot, label, onToast }) {
@@ -4605,7 +4667,9 @@ function PresaleApplications({
   }, "🖨 Print sheet"))))))), !sel && sheetData && plotEl(CustomerSheetEditor, {
     data: sheetData,
     onClose: () => setSheetData(null),
-    onToast: setToast
+    onToast: setToast,
+    canSave: !!canEditRules,
+    actor
   }), sel && plotEl("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && setOpen(null)
@@ -4857,7 +4921,9 @@ function PresaleApplications({
   }), "Email the buyer an acknowledgement receipt after each payment"), sheetData && plotEl(CustomerSheetEditor, {
     data: sheetData,
     onClose: () => setSheetData(null),
-    onToast: setToast
+    onToast: setToast,
+    canSave: !!canEditRules,
+    actor
   }), lastPay && lastPay.ref === sel.ref && plotEl("div", {
     style: {
       marginTop: 12,
