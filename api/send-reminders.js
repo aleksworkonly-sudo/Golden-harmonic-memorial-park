@@ -31,6 +31,7 @@ if (!admin.apps.length) {
   });
 }
 const db = admin.firestore();
+const { runPresaleReminders } = require('./_presale-reminders');
 
 const REMINDER_DAYS_BEFORE = 3; // email sent this many days before the due date
 const FOLLOWUP_DAYS_AFTER = 3;  // email sent this many days after, if still unpaid
@@ -182,6 +183,13 @@ module.exports = async (req, res) => {
     } catch (err) {
       results.errors.push({ customer: doc.id, error: err.message });
     }
+  }
+
+  // Presale installment buyers: reminder 3 days and 1 day before each due date.
+  try {
+    results.presale = await runPresaleReminders({ admin, db });
+  } catch (err) {
+    results.presale = { error: err.message };
   }
 
   return res.status(200).json(results);
