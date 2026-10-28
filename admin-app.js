@@ -2619,7 +2619,8 @@ async function downloadCustomerSheet(d) {
   const kids = (el, name) => Array.from(el.childNodes).filter(n => n.localName === name);
   const textOf = el => Array.from(el.getElementsByTagNameNS(W, 't')).map(t => t.textContent).join('');
   const tables = Array.from(doc.getElementsByTagNameNS(W, 'tbl'));
-  const findTable = label => tables.find(t => textOf(t).includes(label));
+  // innermost table that holds the label (the top boxes sit inside a layout table)
+  const findTable = label => tables.find(t => textOf(t).includes(label) && !Array.from(t.getElementsByTagNameNS(W, 'tbl')).some(n => textOf(n).includes(label)));
   const rowsOf = t => kids(t, 'tr');
   const cellsOf = r => kids(r, 'tc');
   const setCell = (tc, text) => {
