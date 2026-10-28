@@ -4602,7 +4602,11 @@ function PresaleApplications({
     className: "btn btn-outline btn-sm",
     title: "Open the envelope sheet: check, edit, then download",
     onClick: ev => { ev.stopPropagation(); setSheetData(presaleSheetData(r)); }
-  }, "🖨 Print sheet"))))))), sel && plotEl("div", {
+  }, "🖨 Print sheet"))))))), !sel && sheetData && plotEl(CustomerSheetEditor, {
+    data: sheetData,
+    onClose: () => setSheetData(null),
+    onToast: setToast
+  }), sel && plotEl("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && setOpen(null)
   }, plotEl("div", {
