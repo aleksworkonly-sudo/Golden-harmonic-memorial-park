@@ -10,6 +10,7 @@
 // Required env var: FIREBASE_SERVICE_ACCOUNT_B64 (same as /api/presale)
 
 const admin = require('firebase-admin');
+const { makeCore } = require('./_cash-core');
 
 function getDb() {
   if (!admin.apps.length) {
@@ -63,6 +64,7 @@ module.exports = async function handler(req, res) {
     const a = snap.data();
     if (a.status === 'cancelled') return res.status(200).json({ ok: true, cancelled: true, ref });
     const L = ledger(a);
+    const receipts = (await makeCore({ db: getDb() }).receiptsForTarget('presale', ref)).map((r) => ({ receiptNo: r.receiptNo, purpose: r.purpose, amount: r.amount, approvedAt: r.approvedAt, token: r.verifyToken }));
     const plots = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode, typeId: a.typeId }])
       .map((p) => ({ plotCode: p.plotCode, typeId: p.typeId }));
     return res.status(200).json({
@@ -82,7 +84,8 @@ module.exports = async function handler(req, res) {
       monthsTotal: L.months,
       nextDue: L.nextDue,
       full: L.full,
-      payments: L.list.map((x) => ({ date: x.date || null, amount: Number(x.amount) || 0, ref: x.ref || '' }))
+      receipts,
+      payments: L.list.map((x) => ({ date: x.date || null, amount: Number(x.amount) || 0, ref: x.ref || '', reversal: !!x.reversalOf }))
     });
   } catch (err) {
     console.error('[presale-track] failed', err);

@@ -2567,6 +2567,9 @@ function CustomerSheetEditor({ data, onClose, onToast, canSave, actor }) {
     const used = rows.filter(r => r.date || r.ref || num(r.amount) || r.note);
     if (used.some(r => !num(r.amount))) { onToast && onToast('Every payment row needs an amount.'); return; }
     const origPays = app.payments || [];
+    // Payments that came from an approved cash receipt are locked: corrections go through "Void" on the Cash Receipts tab.
+    const lockedBroken = origPays.findIndex((o, i) => o.cashReceipt && !used.some(r => r.orig === i && num(r.amount) === o.amount && String(r.ref || '') === String(o.ref || '')));
+    if (lockedBroken >= 0) { onToast && onToast('Payment ' + origPays[lockedBroken].cashReceipt + ' came from a cash receipt and cannot be changed or removed here. Use Void in the Cash Receipts tab.'); return; }
     if (!used.length && origPays.length && !window.confirm('This removes ALL recorded payments of ' + app.ref + '. Continue?')) return;
     if (!window.confirm('Save these changes to ' + app.ref + '? This changes the buyer\'s record, the balance and the reports.')) return;
     setBusy(true);
@@ -5443,6 +5446,11 @@ const TABS = [{
   ico: '⏳',
   badge: 4
 }, {
+  id: 'cashier',
+  label: 'Cash Receipts',
+  ico: '🧾',
+  badge: 2
+}, {
   id: 'presale',
   label: 'Presale',
   ico: '📋',
@@ -5626,7 +5634,7 @@ function Dashboard({
     className: "content"
   }, /*#__PURE__*/React.createElement("div", {
     className: "stats-row"
-  }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash' && t.id !== 'security').map(t => /*#__PURE__*/React.createElement("div", {
+  }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash' && t.id !== 'security' && t.id !== 'cashier').map(t => /*#__PURE__*/React.createElement("div", {
     key: t.id,
     className: "stat-card",
     style: {
@@ -5651,6 +5659,9 @@ function Dashboard({
     currentUser: user
   }), tab === 'pending' && /*#__PURE__*/React.createElement(PendingPayments, {
     currentUser: user
+  }), tab === 'cashier' && window.CashReceipts && /*#__PURE__*/React.createElement(window.CashReceipts, {
+    currentUser: user,
+    isAdmin: isAdminOrHigher
   }), tab === 'presale' && /*#__PURE__*/React.createElement(PresaleApplications, {
     currentUser: user,
     canEditRules: isAdminOrHigher

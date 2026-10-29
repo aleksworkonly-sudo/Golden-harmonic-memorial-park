@@ -115,7 +115,10 @@
             ? <p style={{ margin: 0 }}>No payment recorded yet. Once you pay, our staff will record it and it will appear here.</p>
             : <table>
                 <thead><tr><th>Date</th><th>Receipt</th><th className="r">Amount</th></tr></thead>
-                <tbody>{d.payments.map((p, i) => <tr key={i}><td>{dateOf(p.date)}</td><td>{p.ref || '—'}</td><td className="r"><b>{peso(p.amount)}</b></td></tr>)}</tbody>
+                <tbody>{d.payments.map((p, i) => {
+                  const rc = (d.receipts || []).find((x) => x.receiptNo === p.ref);
+                  return <tr key={i}><td>{dateOf(p.date)}</td><td>{rc ? <a href={'/receipt?no=' + encodeURIComponent(rc.receiptNo) + '&t=' + rc.token} target="_blank" rel="noopener noreferrer">{p.ref} · View receipt</a> : (p.ref || '—')}{p.reversal ? ' (reversal)' : ''}</td><td className="r"><b>{p.amount < 0 ? '−' + peso(-p.amount) : peso(p.amount)}</b></td></tr>;
+                })}</tbody>
               </table>}
           <div className="hint">This list is updated by our staff after they receive your payment, so a payment you made today may show tomorrow.</div>
         </div>
