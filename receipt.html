@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>Verify receipt — Golden Harmonic Memorial Park</title>
+<link rel="icon" type="image/png" href="/favicon-32.png" />
+<meta name="theme-color" content="#2f5d4c" />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f6f1e8; --ink:#1f2a26; --ink-2:#4a564f; --line:#d9cfbb; --accent:#2f5d4c; --card:#fbf7ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--ink); font-size: 18px; line-height: 1.5; }
+  .bar { background: var(--accent); color: #fffaf0; padding: 14px 20px; font-weight: 700; }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 24px 20px 60px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  h1 { font-family: 'Newsreader', Georgia, serif; font-size: 26px; margin: 0 0 6px; }
+  .status { display: inline-block; padding: 6px 16px; border-radius: 999px; font-weight: 700; margin: 6px 0 14px; }
+  .ok { background: #e3f3e6; color: #1e6b32; } .no { background: #fde8e6; color: #7a2418; } .wait { background: #fff3e0; color: #a85a00; }
+  dl { margin: 0; } dt { font-size: 13px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; margin-top: 12px; } dd { margin: 2px 0 0; font-weight: 600; }
+  .amt { font-size: 30px; font-weight: 700; }
+  .fine { color: var(--ink-2); font-size: 14px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="bar">Golden Harmonic Memorial Park</div>
+<div class="wrap"><div class="card" id="box">Checking receipt…</div></div>
+<script>
+(function () {
+  var box = document.getElementById('box');
+  var q = new URLSearchParams(location.search);
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function bad(m) { box.innerHTML = '<h1>Receipt not found</h1><p>' + m + '</p><p class="fine">If you think this is a mistake, please call our office.</p>'; }
+  var no = q.get('no'), t = q.get('t');
+  if (!no || !t) return bad('This link is incomplete. Please scan the QR code on your receipt again.');
+  fetch('/api/receipt-verify?no=' + encodeURIComponent(no) + '&t=' + encodeURIComponent(t))
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (x) {
+      if (!x.ok || !x.j.receipt) return bad('We could not match this receipt. Please scan the QR code on your receipt again.');
+      var r = x.j.receipt;
+      var st = r.state === 'verified' ? ['ok', '✓ Paid / Verified'] : r.state === 'voided' ? ['no', '✕ Voided'] : ['wait', 'Pending verification'];
+      box.innerHTML = '<h1>Receipt ' + esc(r.receiptNo) + '</h1><span class="status ' + st[0] + '">' + st[1] + '</span>' +
+        '<dl><dt>Amount</dt><dd class="amt">₱' + Number(r.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 }) + '</dd>' +
+        '<dt>Payment for</dt><dd>' + esc(r.purpose) + '</dd><dt>Method</dt><dd>' + esc(r.method) + '</dd>' +
+        '<dt>Date &amp; time</dt><dd>' + esc(r.date) + '</dd><dt>Paid by</dt><dd>' + esc(r.clientMasked) + '</dd></dl>' +
+        '<p class="fine">To protect our clients’ privacy, only the details above are shown here.</p>';
+    })
+    .catch(function () { bad('Something went wrong. Please check your internet and try again.'); });
+})();
+</script>
+</body>
+</html>

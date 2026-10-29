@@ -289,12 +289,53 @@ select.status-sel:focus{border-color:var(--green)}
 @media (max-width:420px){
   .stats-row{grid-template-columns:1fr}
 }
+
+/* ── Cash receipts ── */
+.cr-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)}
+.cr-search{margin-left:auto;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;min-width:180px}
+.cr-hint{font-size:12px;color:var(--ink-3)}
+.cr-err{background:#fdecea;color:#a93226;border-radius:8px;padding:9px 12px;font-size:13px;margin:8px 0}
+.cr-results{display:grid;gap:6px;max-height:260px;overflow-y:auto}
+.cr-res{display:grid;grid-template-columns:1.4fr 1.4fr 1fr auto;gap:10px;align-items:center;text-align:left;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);font-size:13px;cursor:pointer}
+.cr-res:hover:not(:disabled){border-color:var(--green);background:#f0f7f4}.cr-res:disabled{opacity:.5;cursor:not-allowed}
+.cr-res em{font-style:normal;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase}
+.cr-sel{display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;align-items:center;background:#f0f7f4;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.cr-form{display:grid;grid-template-columns:1fr 1.2fr 1.4fr;gap:12px}
+.cr-modal{width:980px;max-width:100%}
+.cr-mh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}.cr-mh .badge{margin-left:8px}
+.cr-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:10px}
+.cr-box{border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px}
+.cr-photo{display:block;max-width:100%;max-height:260px;margin:8px 0;border-radius:6px;border:1px solid var(--border)}
+.cr-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.cr-off{opacity:.45;pointer-events:none}
+.cr-steps{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.cr-step{font-size:12px;padding:3px 9px;border-radius:20px;background:#f1f3f2;color:var(--ink-3)}.cr-step.ok{background:#e8f5e9;color:#2e7d32}.cr-step.bad{background:#fdecea;color:#a93226}
+.cr-ck{display:block;margin:8px 0;font-size:13px}
+.cr-audit{margin:6px 0 0 16px;font-size:12px;color:var(--ink-2)}
+.cr-sheet{position:relative;background:#fff;color:#111;border:1px solid #cfd6d2;border-radius:6px;padding:22px;max-width:420px;margin:0 auto;font-size:13px}
+.cr-head{display:flex;gap:10px;align-items:center;border-bottom:2px solid #2f5d4c;padding-bottom:10px}
+.cr-logo{height:44px}.cr-co{font-weight:700;font-size:16px;color:#2f5d4c}.cr-sub{font-size:11px;color:#555}
+.cr-title{text-align:center;font-weight:700;letter-spacing:.08em;margin:12px 0 2px}
+.cr-no{text-align:center;font-size:20px;font-weight:700;letter-spacing:.05em;margin-bottom:10px}
+.cr-tbl{width:100%;border-collapse:collapse}.cr-tbl td{padding:5px 0;vertical-align:top;border-bottom:1px dotted #bbb}
+.cr-k{color:#555;width:36%}.cr-v{font-weight:600}
+.cr-amount{display:flex;justify-content:space-between;align-items:center;margin:12px 0;padding:10px 12px;border:2px solid #2f5d4c;border-radius:6px}.cr-amount strong{font-size:22px}
+.cr-foot{display:flex;gap:12px;align-items:center;font-size:11px;color:#555}.cr-qr{text-align:center;font-size:10px}.cr-qr svg{width:96px;height:96px;display:block;margin:0 auto 2px}
+.cr-reprint{position:absolute;top:88px;right:16px;border:3px solid #b00;color:#b00;font-weight:800;letter-spacing:.15em;padding:2px 10px;transform:rotate(8deg);font-size:15px}
+.cr-print-root{display:none}
+@media (max-width:760px){.cr-cols,.cr-form{grid-template-columns:1fr}.cr-res{grid-template-columns:1fr 1fr}.cr-search{margin-left:0;width:100%}}
+@media print{
+  .cr-print-root{display:block !important;position:absolute;top:0;left:0;width:100%;background:#fff}
+  .cr-print-root, .cr-print-root *{visibility:visible !important}
+  .cr-print-root .cr-sheet{border:none;max-width:none;padding:12mm}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="cash-receipts.js"></script>
 <script src="admin-app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {

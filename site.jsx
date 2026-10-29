@@ -2275,6 +2275,22 @@ function PortalDashboard({ customer, onLogout }) {
   const pendingRows = (customer.paymentSubmissions || []).map(p => ({ ...p, _kind: 'submission' }));
   const history = [...confirmedRows, ...pendingRows].sort((a, b) => (a.date < b.date ? 1 : -1));
 
+  // Verified cash receipts issued by our cashier (read through the server; the client never touches that data directly)
+  const [receipts, setReceipts] = useState(null);
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const u = window.auth && window.auth.currentUser;
+        if (!u) return;
+        const r = await fetch('/api/my-receipts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: await u.getIdToken() }) });
+        const j = await r.json().catch(() => ({}));
+        if (live) setReceipts(r.ok ? j.receipts || [] : []);
+      } catch (e) { if (live) setReceipts([]); }
+    })();
+    return () => { live = false; };
+  }, [customer._id, (customer.payments || []).length]);
+
   // Payment method tab: 'online' (PayMongo) | 'manual' (Reference)
   const [payTab, setPayTab] = useState('online');
 
@@ -2606,7 +2622,7 @@ function PortalDashboard({ customer, onLogout }) {
                 <tr key={i}>
                   <td>{p.date}</td>
                   <td>{p.method || 'GCash'}</td>
-                  <td>{p.referenceNumber || p.ref || '—'}</td>
+                  <td>{p.referenceNumber || p.ref || p.receiptNo || '—'}</td>
                   <td>{fmt(p.amount)}</td>
                   <td>
                     {p._kind === 'confirmed' || p.status === 'confirmed'
@@ -2621,6 +2637,29 @@ function PortalDashboard({ customer, onLogout }) {
           </table>
         )}
       </div>
+
+      {receipts && receipts.length > 0 && (
+        <div className="gh-portal-section">
+          <h4>Official cash receipts</h4>
+          <table className="gh-portal-table">
+            <thead><tr><th>Receipt</th><th>Date</th><th>For</th><th>Amount</th><th></th></tr></thead>
+            <tbody>
+              {receipts.map(r => (
+                <tr key={r.receiptNo}>
+                  <td>{r.receiptNo}</td>
+                  <td>{r.approvedAtText}</td>
+                  <td>{r.purpose}</td>
+                  <td>{fmt(r.amount)}</td>
+                  <td>
+                    <span className="gh-pill confirmed">Paid / Verified</span>{' '}
+                    <a href={`/receipt?no=${encodeURIComponent(r.receiptNo)}&t=${r.verifyToken}`} target="_blank" rel="noopener noreferrer">View receipt</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
