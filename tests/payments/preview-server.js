@@ -5,11 +5,13 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { legacySummary } = require('../../lib/payments/read-model');
+const { fixture } = require('./submission-fixture');
 const ROOT = path.resolve(__dirname, '../..');
-const files = new Map(['/my-payments.html','/payment-view.js','/payment-view.css','/payment-link.html','/payment-link.js','/favicon-32.png'].map((name) => [name,path.join(ROOT,name)]));
+const files = new Map(['/my-payments.html','/payment-view.js','/payment-submit.js','/payment-demo-qr.png','/payment-view.css','/payment-link.html','/payment-link.js','/favicon-32.png'].map((name) => [name,path.join(ROOT,name)]));
 
 function createPreviewServer() {
-  const state = { enabled:true, exchanges:0, requests:0, failNext:false };
+  const state = { enabled:true, submissionsEnabled:true, exchanges:0, requests:0, failNext:false, loseNextSubmission:false, accessLost:false };
+  const submissions = fixture();
   const account = { firstName:'Maria',lastName:'Santos',name:'Maria Santos',plan:{ tierName:'Regular plot · A-0001',totalPrice:27500,monthlyAmount:1875 },
     totalPrice:27500,monthly:1875,years:1,plots:[{plotCode:'A-0001'}],status:'new',
     firstPaymentDeadlineDate:'2027-02-10',nextInstallmentDueDate:'2027-01-15',
@@ -17,6 +19,25 @@ function createPreviewServer() {
   const server = http.createServer(async (req,res) => {
     const url = new URL(req.url,'http://localhost');
     res.setHeader('Cache-Control','no-store');
+    if(url.pathname === '/api/payment-submission') {
+      res.setHeader('Content-Type','application/json');
+      if(req.method === 'GET') return res.end(JSON.stringify({enabled:state.submissionsEnabled}));
+      if(state.accessLost) {res.writeHead(401);return res.end(JSON.stringify({code:'SESSION_REQUIRED',error:'Access expired.'}));}
+      let raw=''; for await(const chunk of req) {raw+=chunk;if(raw.length>740000){res.writeHead(413);return res.end('{}');}}
+      try {
+        const body=JSON.parse(raw || '{}');
+        const identity=body.mode === 'account' ? {...submissions.account,customerId:body.customerId} : submissions.guest;
+        let result;
+        if(body.action==='context') result=await submissions.core.context(identity);
+        if(body.action==='list') result=await submissions.core.list(identity,body.cursor);
+        if(body.action==='proof') result=await submissions.core.proof(identity,body.paymentId,body.revisionId);
+        if(body.action==='submit') {
+          result=await submissions.core.submit(identity,body.command);
+          if(state.loseNextSubmission) {state.loseNextSubmission=false;res.writeHead(503);return res.end(JSON.stringify({error:'Preview lost the response. Retry these same details.'}));}
+        }
+        return res.end(JSON.stringify(result));
+      } catch(error) {res.writeHead(error.status || 503);return res.end(JSON.stringify({error:error.message,code:error.code}));}
+    }
     if (url.pathname === '/api/payment-access') {
       res.setHeader('Content-Type','application/json');
       if(req.method === 'GET') return res.end(JSON.stringify({enabled:state.enabled}));
@@ -43,13 +64,13 @@ function createPreviewServer() {
     if(name === '/my-payments.html') {
       content=content.toString().replace(/  <script[^\n]*(?:firebasejs|firebase-config)[^\n]*\n/g,'')
         .replace('<script src="/payment-view.js"','<script src="/__preview/auth.js" defer></script><script src="/payment-view.js"')
-        .replace('<body>','<body><p class="pv-notice" style="margin:0">Local preview · sample data only · no real email or payments</p>');
+        .replace('<body>','<body><p class="pv-notice" style="margin:0">Local preview · sample data only · use fake login details · no real email or payments</p>');
     }
     const ext=path.extname(name);
     res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'})[ext]);
     res.end(content);
   });
-  return { server,state };
+  return { server,state,submissions };
 }
 
 if(require.main === module) createPreviewServer().server.listen(4173,'127.0.0.1',() => console.log('Sample-only preview: http://127.0.0.1:4173/my-payments'));

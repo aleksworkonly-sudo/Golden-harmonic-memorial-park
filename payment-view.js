@@ -27,7 +27,7 @@
       hint && h('small', { id:`${id}-hint` }, hint));
   }
 
-  function Summary({ data, busy, refresh, loadMore, close, chooseAccount }) {
+  function Summary({ data, mode, busy, refresh, loadMore, close, chooseAccount, onAccessLost }) {
     return h(React.Fragment, null,
       h('div', { className:'pv-actions' }, h('button', { className:'pv-secondary', onClick:close }, 'Close payment history'),
         chooseAccount && h('button', { className:'pv-secondary', onClick:chooseAccount, disabled:busy }, 'Choose another account'),
@@ -45,7 +45,8 @@
         h('p', { className:'pv-muted' }, 'Dates below come from your existing record. If a date is not available, the office will confirm it.'),
         h('dl', { className:'pv-dates' }, h('div', null, h('dt', null, data.planLabel === 'Spot cash' ? 'Spot-cash balance deadline' : 'Deposit deadline'), h('dd', null, date(data.deadlineDate))),
           h('div', null, h('dt', null, 'Next installment due'), h('dd', null, data.planLabel === 'Spot cash' ? 'Not applicable' : date(data.nextDueDate))))),
-      data.pendingCount > 0 && h('p', { className:'pv-notice' }, `${data.pendingCount} payment submission${data.pendingCount === 1 ? '' : 's'} awaiting review. Pending amounts do not reduce your balance.`),
+      data.pendingCount > 0 && h('p', { className:'pv-notice' }, `${data.pendingCount} earlier payment submission${data.pendingCount === 1 ? '' : 's'} awaiting review. New online proofs are listed separately below. Pending amounts do not reduce your balance.`),
+      window.PaymentSubmission && h(window.PaymentSubmission, { key:`${mode}:${data.id}`, mode, customerId:data.id, plots:data.plots, onAccessLost }),
       h('section', { className:'pv-card' }, h('h2', null, 'Recorded payment history'),
         !data.entries.length ? h('p', { className:'pv-muted' }, 'No itemized payments are recorded yet. Contact the office if you have already paid.') :
           h('div', { className:'pv-table-wrap', role:'region', 'aria-label':'Payment history table', tabIndex:0 },
@@ -145,7 +146,8 @@
       enabled === null ? h('p', { role:'status' }, 'Checking secure access…') : enabled === false
         ? h('section', { className:'pv-card' }, h('h2', null, 'Please contact the office'), h('p', null, 'Secure online payment history is not available yet. Our office can help you check your records.'),
           h('button', { className:'pv-secondary', onClick:() => location.reload() }, 'Check again'))
-        : data ? h(Summary, { data, busy, refresh:() => load(data.id), loadMore:() => load(data.id,true), close,
+        : data ? h(Summary, { data, mode, busy, refresh:() => load(data.id), loadMore:() => load(data.id,true), close,
+          onAccessLost:() => { clear(); setMessage('Your access has expired or changed. Verify your access again to continue.'); },
           chooseAccount: mode === 'account' && accounts?.length > 1 ? () => { generation.current++; setData(null); setError(''); setBusy(false); } : null })
         : accounts ? h('section', { className:'pv-card' }, h('h2', null, 'Choose your account'),
           accounts.length ? accounts.map((account) => h('button', { key:account.id, className:'pv-secondary pv-account', disabled:busy, onClick:() => load(account.id) }, account.label, h('span', null, 'View history →')))

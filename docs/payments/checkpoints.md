@@ -6,14 +6,14 @@ The user selected Option A and authorized application implementation on October 
 
 Starting checkout: `presale-system` at `b5dd24ef1c309a1c3101126ac2b77e706ca91149`. The only starting modification was the previously reviewed `payment-feature-blueprint.md`; preserve that work. No branch switch or merge from `origin/main` is part of this checkpoint. The newer cash module is a candidate for CP5, after its documented defects are addressed.
 
-The requested payment QR will be a random decorative **demo image**, clearly marked “Demo QR — not for payment,” created with the customer payment screen in CP3. It will not contain a receiving account or imply it can accept money. A receipt-verification QR is a different feature; its public-access policy remains open.
+The requested payment QR is a random decorative **demo image**, created with the customer payment screen in CP3 and clearly marked “Demo QR — not for payment.” It contains no configured receiving account and cannot accept money. A receipt-verification QR is a different feature; its public-access policy remains open.
 
 | Checkpoint | Scope | State |
 |---|---|---|
 | CP0 | Capture baseline, dependencies, scope, open policy and acceptance criteria | Complete |
 | CP1 | Internal shared payment foundation and isolated tests | Complete; checkpoint `4102bc3` |
 | CP2 | Account/guest access and read-only payment screens | Implemented and tested locally; activation remains disabled pending the gates below |
-| CP3 | Manual GCash/bank submission, private proofs and demo QR | Not started |
+| CP3 | Manual GCash/bank submission, private proofs and demo QR | Implemented and tested locally; disabled pending activation gates |
 | CP4 | Admin review/corrections and end-to-end manual posting | Not started |
 | CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Not started |
 | CP6 | Secure PayMongo integration and shared reconciliation | Not started |
@@ -133,6 +133,21 @@ Open `http://127.0.0.1:4173/my-payments` for access screens, or `/my-payments?mo
 
 The CP2 commit is identified by subject **`Payment CP2: add secure access and read-only payment views`**. Find it with `git log -1 --format='%h %s' --grep='Payment CP2:'`.
 
-**Next checkpoint: CP3 only**, after review. Add manual GCash/bank instructions, the clearly labeled random demo QR image, private validated proof submission/revisions and pending status; do not enable credit before CP4. Resolve private evidence storage before implementing uploads. The installment/penalty policy decisions remain open. No deployment or migration is authorized by saving this checkpoint.
+**Handoff at CP2:** CP3 was next and was resumed by the user on October 31; its result follows below. The installment/penalty policy decisions remain open. No deployment or migration is authorized by saving a checkpoint.
 
 Skills applied: Firebase authentication and its delegated rules review; UI/UX `accessible authentication` search (password-manager/paste support, labels and feedback); responsive design (content-driven grids, 44px+ controls and mobile layout). Reference checks: [OWASP link-token guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html), [Brevo transactional email](https://developers.brevo.com/reference/send-transac-email), [Vercel requester headers](https://vercel.com/docs/headers/request-headers).
+
+## CP3 — manual proof submissions (October 31, 2026)
+
+Starting commit `ddb7a78`, clean working tree. The user authorized CP3 and selected **capped private Firestore image documents**. Implemented source and sample-only preview; activation remains off.
+
+- Added GCash/bank receiving instructions, manual claimed fields, compressed image preview/zoom, confirmation, saved/pending acknowledgement, list pagination, private proof retrieval and immutable corrections/earlier proof viewing for account and reservation access.
+- Added the generated decorative `payment-demo-qr.png`, clearly labeled “DEMO / NOT FOR PAYMENT.” It is not a payment destination.
+- Added a separately gated submission API with current transactional owner/session checks, server-owned quote/recipient snapshots, idempotent submission, concurrency-safe proof/case/day limits, immutable reference observations, audit and notification events. No financial posting or email dispatch.
+- Added pinned Sharp decoding/format/dimension/size checks and metadata stripping. Proof data is separate from list documents; storage is charged for every retained revision. No persistent staging upload is needed because validation precedes one atomic save.
+- New schemaVersion 3 cases are deliberately incompatible with the isolated CP1 posting primitive. CP4 must implement approval/reconciliation and canonical linkage; no money/deadline/schedule changes occurred here.
+- **62 tests passed**, including CP1/CP2 regressions. Local Edge checks passed account/guest proof flows, invalid image errors, review/mismatch, lost-response retry, correction/old evidence, expired access clearing and 320/390/768 px layouts. Screenshots, JavaScript syntax and whitespace were checked. Actual Firebase emulator/rules/indexes, staging/native Linux deployment and real receipt readability remain release gates.
+
+Read [CP3 implementation, schemas, limits and activation requirements](submission-checkpoint.md) before resuming. New environment flag: `PAYMENT_SUBMISSIONS_ENABLED`, disabled by default and dependent on the full CP2 configuration. No environment credentials, production data or deployment was touched. Receiving-account/offer/budget provisioning remains a separately authorized task; previews must never be imported into production.
+
+Checkpoint subject: **`Payment CP3: add private manual proof submissions and demo QR`**; find with `git log -1 --format='%h %s' --grep='Payment CP3:'`. **Next checkpoint: CP4 only**, after review. Keep admin-only manual recording/approval and all confirmed business rules; do not infer Q01/Q02 or enable live collection by changing a flag.

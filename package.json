@@ -6,7 +6,8 @@
     "preview:payments": "node tests/payments/preview-server.js"
   },
   "dependencies": {
+    "firebase-admin": "^12.0.0",
     "serve": "^14.2.4",
-    "firebase-admin": "^12.0.0"
+    "sharp": "0.35.5"
   }
 }

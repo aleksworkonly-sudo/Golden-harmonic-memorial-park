@@ -2,15 +2,15 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.3 · **Updated:** 2026-10-31 · Asia/Manila
+**Version:** 2.4 · **Updated:** 2026-10-31 · Asia/Manila
 
-**Status:** Design specification with CP0–CP2 implementation checkpoints. Business decisions marked OPEN are release gates, not approved defaults. The internal foundation and gated read-only access/screens are implemented; the full payment feature is not live.
+**Status:** Design specification with CP0–CP3 implementation checkpoints. Business decisions marked OPEN are release gates, not approved defaults. The foundation, gated access/screens and pending manual evidence submissions are implemented; the full payment feature is not live.
 
 **Current authorization:** The user selected Option A and explicitly authorized step-by-step application implementation on October 30. This supersedes the earlier blueprint-only edit boundary. Complete a tested checkpoint, save it and pause for review before the next feature. No production deployment, live payment or database migration is authorized by this checkpoint.
 
-**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md). CP0 captures the baseline; CP1 adds internal server libraries; CP2 adds secure account/guest access and read-only screens with activation disabled by default. CP3–CP9 remain pending. The existing financial posting routes do not yet use the new foundation. CP2 retires the reference/mobile tracker endpoint and requires deployment/rules/contact-version review before activation. The requested QR image is a clearly labeled demo placeholder planned for CP3, not a real payment destination.
+**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md). CP0 captures the baseline; CP1 adds internal server libraries; CP2 adds secure account/guest access; CP3 adds pending manual submissions, private Firestore proofs, immutable revisions and the decorative demo QR. Activation remains disabled. CP4–CP9 remain pending. Existing financial posting routes do not yet use the new foundation. CP2 retires the reference/mobile tracker endpoint. Rules, contact versions, approved receiving/quote configuration, storage budget, staging and CP4 review/posting are activation gates. The demo QR is not a real payment destination.
 
-> This v2.3 specification retains the original design and baseline comparison, and records the authorized CP1 foundation and CP2 access work. Confirmed user decisions take precedence over source-code behavior and prior proposals. OBSERVED means found in repository source; PROPOSED means a future engineering requirement; OPEN means unresolved and must not be silently implemented. Unless identified as confirmed, observed, or implemented in the checkpoint record, the requirements below describe proposed future implementation.
+> This v2.4 specification retains the original design and baseline comparison, and records the authorized CP1–CP3 work. Confirmed user decisions take precedence over source-code behavior and prior proposals. OBSERVED means found in repository source; PROPOSED means a future engineering requirement; OPEN means unresolved and must not be silently implemented. Unless identified as confirmed, observed, or implemented in the checkpoint record, the requirements below describe proposed future implementation.
 
 ## 1. Confirmed business decisions
 
@@ -33,6 +33,7 @@ The user confirmed the following during this review:
 | Cash receipt workflow (confirmed October 30) | Keep all four steps: **record pending cash payment → print receipt → upload photo of printed receipt → approve**. Admin-only recording/approval remains confirmed |
 | Post-deposit monthly amounts | **Explicitly deferred to business/accountant:** divide the remaining balance over the selected term, or retain the original monthly amount and shorten payoff |
 | 2% late-penalty formula | **Explicitly deferred to business/accountant:** calculation details remain undecided |
+| CP3 proof storage (confirmed October 31) | Capped private Firestore image documents for now; activation remains off. Technical caps and retention/operational gates are documented in the CP3 checkpoint. |
 
 Wording must distinguish “no percentage down payment” from the retained **credited reservation deposit**. Do not advertise that there is no initial payment, charge the deposit on top of the contract total, or count its credit twice.
 
@@ -454,7 +455,7 @@ Server validates encoded size, dimensions, file content and linkage to the autho
 
 A staged upload is not a submitted payment. On confirm, link the immutable validated object/revision to the payment; clean abandoned staging objects after an approved interval. Exact hashes can flag identical bytes for admin review; resized/edited screenshots may evade matching, so hashes cannot prove authenticity or uniqueness of the bank transfer.
 
-Storage provider, hard stored-size limit, proof retention and archival are OPEN. On Spark, separate bounded Firestore documents are a capacity-limited option, not a recommendation for unlimited screenshots. Private object storage requires an approved provider/budget. Define deletion for proofs separately from preserved financial/audit records and prevent retention cleanup from removing evidence under active review.
+**CP3 implementation decision:** the user selected capped private Firestore image documents. The checkpoint enforces a 300 KiB normalized JPEG cap, 420 KiB conservative document charge, and at most 64 MiB dedicated aggregate proof budget, with per-case/day/revision limits. These are technical defaults requiring operational review before activation, not a guarantee of project-wide free quota. Validation precedes the atomic evidence save, so there is no persistent staging object. Proof retention/archive/deletion duration remains OPEN. Define deletion separately from preserved financial/audit records and prevent cleanup from removing evidence under active review. See [CP3 limits and gates](docs/payments/submission-checkpoint.md).
 
 ### 14.2 OCR behavior
 
@@ -645,7 +646,7 @@ The confirmed choices in Section 1 are settled. The following remain open; propo
 | Q08 | Does the deposit trigger first-payment agent/broker allocation on both manual and gateway receipts? How do reversals/refunds affect paid commissions? | Business/accountant; preserve historical snapshots until approved |
 | Q09 | Continue new cheque acceptance? What clearance/returned-cheque handling? | Business; historical cheque records remain supported |
 | Q10 | Buyer convenience fee by channel, provider settlement reconciliation, official receipt/invoice process and VAT applicability? | Business/accountant; current flat fee/tax code is observed, not confirmation |
-| Q11 | Strict Spark requirement, private proof provider and hard size cap, retention/archive policy, backup/restore service and hosting budget? | Business/operations; platform requirements in Section 6 constrain options |
+| Q11 | CP3 provider selected: capped private Firestore documents. Confirm operational caps, strict Spark requirement, retention/archive policy, backup/restore service and hosting budget before activation. | Business/operations; CP3 technical limits and Section 6 constrain options |
 | Q12 | Apply new terms only to new contracts or explicitly amend existing unpaid reservations? Active reservation/plot limits and eligible non-presale products? | Business; proposed safe migration preserves existing agreements |
 | Q13 | Co-owners/beneficiaries, cross-contract money transfer and at-need exceptions in initial scope? | Business; require explicit ownership/allocation policy before adding |
 | Q14 | Keep a limited bearer-link/QR receipt verification page? Which public fields, lifetime/revocation and legacy-link behavior are acceptable? | Management/privacy; four-step cash workflow is confirmed, but public financial disclosure is not; full history/photos require authorized access regardless |
@@ -661,4 +662,4 @@ Before implementation, obtain the deployed Firestore rules/index inventory, appr
 - Proposed implementation, known source findings and unresolved business decisions are explicitly distinguished.
 - Requirement comparison and supplementary cash-module findings are recorded in Sections 3.1–3.2; A01–A39 are future acceptance cases, not executed tests. This review validates documentation consistency, not production readiness.
 - The initial review changed **only `payment-feature-blueprint.md`**. The user subsequently authorized Option A implementation; the CP0/CP1 source changes and validation are recorded in `docs/payments/checkpoints.md`.
-- Current handoff: CP2 has 43 passing isolated tests and local browser validation; review its gated access/screens, then continue with CP3 when requested. Applicable policy, deployed-rule, contact-version, integration and migration gates still apply; no deployment or migration has been authorized. Consult the checkpoint record for the current implementation rather than treating the earlier baseline tables as current code inventory.
+- Current handoff: CP3 has 62 passing tests and local browser validation, including private proof submission/corrections and the demo QR. Review this checkpoint, then continue with CP4 admin review and manual posting when requested. Applicable policy, deployed-rule, contact-version, quote/recipient provisioning, storage, integration and migration gates still apply; no deployment or migration has been authorized. Consult the checkpoint record for current implementation rather than treating earlier baseline tables as current code inventory.

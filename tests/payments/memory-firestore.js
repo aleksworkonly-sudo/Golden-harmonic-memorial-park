@@ -59,7 +59,8 @@ class MemoryFirestore {
             return 0;
           };
           let rows = [...this.records].filter(([path, data]) =>
-            path.startsWith(`${reference.collection}/`) && (!filter || data[filter[0]] === filter[1]));
+            path.startsWith(`${reference.collection}/`) && path.split('/').length === reference.collection.split('/').length + 1 &&
+            (!filter || data[filter[0]] === filter[1]));
           rows.sort((a, b) => compare(a[1], b[1]));
           if (cursor) {
             const anchor = Object.fromEntries(order.map(([field], index) => [field, cursor[index]]));
