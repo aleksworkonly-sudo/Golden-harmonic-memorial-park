@@ -2403,6 +2403,7 @@ function PortalDashboard({ customer, onLogout }) {
 
       {/* Payment Options Header / Tabs */}
       <div className="gh-portal-section">
+        <a href="/my-payments?mode=account" className="gh-portal-link-btn">Open secure payment history for your accounts</a>
         <h4>Make a payment</h4>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button

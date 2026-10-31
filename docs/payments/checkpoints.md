@@ -11,8 +11,8 @@ The requested payment QR will be a random decorative **demo image**, clearly mar
 | Checkpoint | Scope | State |
 |---|---|---|
 | CP0 | Capture baseline, dependencies, scope, open policy and acceptance criteria | Complete |
-| CP1 | Internal shared payment foundation and isolated tests | Complete within the bounded scope below; ready for review |
-| CP2 | Account/guest access and read-only payment screens | Not started |
+| CP1 | Internal shared payment foundation and isolated tests | Complete; checkpoint `4102bc3` |
+| CP2 | Account/guest access and read-only payment screens | Implemented and tested locally; activation remains disabled pending the gates below |
 | CP3 | Manual GCash/bank submission, private proofs and demo QR | Not started |
 | CP4 | Admin review/corrections and end-to-end manual posting | Not started |
 | CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Not started |
@@ -42,7 +42,7 @@ Added `lib/payments/` as internal server libraries outside Vercel's `api/` route
 | `firebase.js` | Lazy Firebase initialization before Auth/Firestore access, including cold starts |
 | `service.js` | Atomic manual receipt primitive, request/economic deduplication, safe paginated history |
 
-**No HTTP endpoint imports this library yet. No live database was contacted or changed.** No new UI, guest session, payment submission, image, rules deployment, index deployment, email dispatcher, gateway action, or migration is included.
+**At the CP1 checkpoint, no HTTP endpoint imported this library. No live database was contacted or changed.** CP1 included no new UI, guest session, payment submission, image, rules deployment, index deployment, email dispatcher, gateway action, or migration. CP2 now imports shared initialization/authentication into a separately gated read-only access route; the CP1 posting service is still not exposed.
 
 The posting primitive intentionally handles only a **server-prepared, exact-amount GCash/bank balance credit on an active approved test contract**, where that credit leaves a remaining balance. It is not the complete CP4 approval flow. It rejects cash, gateway payments, deposits, final settlement, excess money, amount mismatch, unapproved policies, cancelled/unfunded contracts, stale versions and unvalidated/mislinked proofs. Later workflows must account for actual money received even when posting needs reconciliation; a rejected posting call does not mean funds never arrived.
 
@@ -86,6 +86,53 @@ The transaction double models read-version conflicts and staged atomic commits. 
 
 The CP0/CP1 checkpoint commit is identified by subject **`Payment CP1: add isolated posting foundation and checkpoint`**. Find it with `git log -1 --format='%h %s' --grep='Payment CP1:'`. The commit is a source checkpoint, not a deployment.
 
-Next review: inspect the modules and run the test command. After review, resume **CP2 only**: secure account/reservation access and read-only payment views. Read this file and the current blueprint first; verify the current branch/status; preserve unrelated work; do not merge the cash branch automatically. The demo payment QR belongs to CP3. Revert/disable new integrations rather than deleting accepted financial history if later checkpoints need rollback.
+The user resumed CP2 on October 31. Its completed work and next handoff are recorded below. Read this file and the current blueprint before resuming; verify the current branch/status; preserve unrelated work; do not merge the cash branch automatically. Revert/disable new integrations rather than deleting accepted financial history if later checkpoints need rollback.
 
 Reference checks used for this foundation: [Firebase revoked-token verification](https://firebase.google.com/docs/auth/admin/manage-sessions), [Firestore transactions and retries](https://firebase.google.com/docs/firestore/manage-data/transactions), and [Node test runner](https://nodejs.org/api/test.html). The local `.agents/skills/firebase-auth-basics/SKILL.md` guided authorization. UI/UX and responsive skills apply when screens start at CP2; CP1 makes no visual accessibility claim.
+
+## CP2 — secure access and read-only screens (October 31, 2026)
+
+Starting commit: `4102bc3`; working tree was clean. The user requested the next checkpoint with `.agents` skills. No deployment, production data read/write, real email, or real payment was performed.
+
+### Implemented
+
+- `my-payments.html`, `payment-view.js`, `payment-view.css`: reservation email request, account login, explicit selection of multiple linked accounts, private recorded-payment history, pagination, pending-submission counts, errors/retry, logout and idle view clearing. Existing park colors, responsive cards, labels, keyboard focus and announced feedback are retained. The existing portal links to this view.
+- `payment-link.html` / `payment-link.js`: a separate page with only local resources, no third-party SDK/analytics/font requests. It takes a fragment token into memory, immediately removes it from the address bar, and exchanges it only after a button click. A GET/email scanner visit never consumes the token. Uncertain exchange responses require a fresh link rather than minting another session.
+- `lib/payments/access.js`: 256-bit random single-use links (15 minutes), hashed token/session records, atomic exchange with current contact/version checks, reservation-scoped sessions (30-minute idle, eight-hour absolute), revocation/logout, and transactional throttles. Only the stored matching email receives a link; responses do not confirm whether the reservation exists. No automatic account association by email/mobile.
+- `lib/payments/access-http.js`, `api/payment-access.js`: disabled-by-default adapter, configured HTTPS origin, same-origin JSON POST checks, 4 KB input cap, field allowlists, revocation-aware Firebase bearer tokens, `__Host-` Secure/HttpOnly/SameSite=Strict session cookie, no-store responses and safe errors. Logout remains available even if traffic limits are saturated. This route changes only access tokens/sessions/limits, never money.
+- `lib/payments/read-model.js`: read-only compatibility projection over existing `customers` and `presaleApplications`. Actual array entries are displayed with centavos and reversals. A missing gateway deposit or legacy paid-without-rows record requires office review; it is not fabricated as credit. No next due date is guessed from the first due date or paid/monthly arithmetic. Cursor version checks prevent mixing changed histories.
+- `api/presale-track.js`: returns 410 and directs users to email verification. Reference/mobile alone no longer exposes private history. **This retirement is unconditional in source; deploying CP2 before its enabling prerequisites would make the old lookup unavailable while the new screen shows an office-contact message.** Release these changes together after review.
+- `vercel.json`: no-store/referrer headers and a restrictive CSP for the exchange page. Existing crons/rewrites stay intact.
+- `docs/payments/access-rules-review.md`: non-deployable rules review fragment and required tests, informed by the skill-directed rules-author review. No root rules/config file was invented or deployed.
+
+### Activation requirements — not completed by local tests
+
+1. Review/test the actual composed rules as described in `access-rules-review.md`. No browser, including an admin browser, may read/write access secrets, sessions or throttle state. Existing customer linkage, contact and role authorities must be protected too.
+2. Provision a positive trusted `accessVersion` on eligible reservations through an authorized migration/office process. Every contact update must atomically increment it; this includes fixing legacy direct writers. Records without a positive version do not receive access links. Current fingerprint checks alone cannot detect contact changes away and back. No versions were provisioned by this checkpoint.
+3. Run actual Firebase Auth/Firestore emulator and staging integration tests; review public request limits, provider delivery and cookie/HTTPS behavior. No Java/emulator runtime was available in the inspected environment, so the tests below use a transaction double and a mocked browser preview.
+4. Configure `PAYMENT_ACCESS_ORIGIN` as the exact HTTPS origin with no trailing slash, `PAYMENT_ACCESS_RATE_SECRET` as a separately generated secret of at least 32 characters, and existing `BREVO_API_KEY` / `SENDER_EMAIL`. Only then deliberately set `PAYMENT_ACCESS_ENABLED=true`. No environment files or credentials were read/changed. Host headers never define email-link destinations.
+5. Review retention and monitored cleanup for expired `reservationAccess`, revoked/expired `reservationSessions` and inactive `paymentAccessLimits`. CP2 does not provision TTL billing or a cleanup cron. Throttle keys are HMACs, not stored IP addresses. Defaults per 15-minute window: three link requests per reservation, ten per requester, 300 total link requests; 30 exchanges per requester; 120 general requests per requester and 2,000 overall. These are conservative technical defaults to tune before activation. Vercel requester identity uses its platform `x-vercel-forwarded-for`; other adapters use the socket or a conservative shared bucket.
+
+Access emails use a fixed text template through Brevo outside transactions, with a timeout and delivery-state recording. This is not the financial CP8 outbox dispatcher. Failed/uncertain delivery is not retried automatically; a buyer can request a fresh link subject to limits. One-second minimum response padding reduces obvious differences but does not promise constant-time network behavior. Configure provider/logging to avoid capturing bodies/cookies; the token fragment keeps the secret out of ordinary page URL logs.
+
+CP2 does not yet read CP1 canonical bookings into a migrated public view; legacy records remain the data source. A version-aware reader cutover remains required before future canonical posting goes live. Existing PayMongo/direct payment writers and their previously documented risks remain unchanged; no new posting route is enabled.
+
+### Validation and preview
+
+- `npm.cmd run test:payments`: **43 passed, 0 failed**, including CP1 regressions. New tests cover generic responses, stored recipients, no raw persisted secrets, request limits, expiry, concurrent exchanges, replay, contact/version races, logout/renewal, UID ownership, multiple accounts, read-model reconciliation, cursor isolation, origin/body/cookie controls, disabled configuration and retired lookup access.
+- Optional `tests/payments/browser-smoke.cjs` ran with the existing bundled Playwright and headless Edge. It passed request confirmation/retry and focused errors, account selection/switching, history/pagination/logout, explicit token exchange, invalid links, disabled state, and no whole-page horizontal overflow at 320/390/768 px. No browser console exceptions occurred. Desktop/mobile screenshots were inspected. These tests use synthetic local data, not Firebase or actual email; no full screen-reader, real-device or production security certification is claimed.
+- JavaScript syntax checks and `git diff --check` passed. No dependency install/upgrade was needed.
+
+For a sample-only visual review:
+
+```powershell
+npm.cmd run preview:payments
+```
+
+Open `http://127.0.0.1:4173/my-payments` for access screens, or `/my-payments?mode=reservation` for sample history. Use fake login details only. The loopback server serves an allowlisted set of UI assets, mocks access/Firebase identity, and never loads `.env`, queries production, sends mail or posts payments. React assets load from their pinned public CDN. Stop the local server with Ctrl+C.
+
+The CP2 commit is identified by subject **`Payment CP2: add secure access and read-only payment views`**. Find it with `git log -1 --format='%h %s' --grep='Payment CP2:'`.
+
+**Next checkpoint: CP3 only**, after review. Add manual GCash/bank instructions, the clearly labeled random demo QR image, private validated proof submission/revisions and pending status; do not enable credit before CP4. Resolve private evidence storage before implementing uploads. The installment/penalty policy decisions remain open. No deployment or migration is authorized by saving this checkpoint.
+
+Skills applied: Firebase authentication and its delegated rules review; UI/UX `accessible authentication` search (password-manager/paste support, labels and feedback); responsive design (content-driven grids, 44px+ controls and mobile layout). Reference checks: [OWASP link-token guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html), [Brevo transactional email](https://developers.brevo.com/reference/send-transac-email), [Vercel requester headers](https://vercel.com/docs/headers/request-headers).

@@ -1,169 +1,25 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>My payments — Golden Harmonic Memorial Park</title>
-<meta name="description" content="Check how much you have paid, how many months are left, and your next due date." />
-<link rel="icon" type="image/png" href="/favicon-32.png" />
-<meta name="theme-color" content="#2f5d4c" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script>window.React || document.write('<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js"><\/script>');</script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script>window.ReactDOM || document.write('<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js"><\/script>');</script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-<script>window.Babel || document.write('<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.0/babel.min.js"><\/script>');</script>
-
-<!-- Firebase (Firestore + Auth) -->
-
-<style>
-  :root { --bg:#f6f1e8; --ink:#1f2a26; --ink-2:#4a564f; --line:#d9cfbb; --accent:#2f5d4c; --gold:#b08544; --card:#fbf7ee; }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--ink); font-size: 18px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-  h1, h2 { font-family: 'Newsreader', Georgia, serif; font-weight: 600; margin: 0; }
-  .bar { background: var(--accent); color: #fffaf0; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
-  .bar a { color: #fffaf0; text-decoration: none; border: 1.5px solid rgba(255,255,255,.7); border-radius: 8px; padding: 6px 12px; font-size: 15px; }
-  .bar b { font-size: 17px; }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-  label { display: block; font-weight: 700; margin: 14px 0 6px; font-size: 18px; }
-  input { width: 100%; font-size: 22px; padding: 14px; border-radius: 10px; border: 2px solid #c9bd9f; background: #fff; font-family: inherit; }
-  input:focus { outline: none; border-color: var(--accent); }
-  .btn { width: 100%; min-height: 60px; margin-top: 18px; font-size: 21px; font-weight: 800; border: 0; border-radius: 12px; background: var(--accent); color: #fff; cursor: pointer; }
-  .btn:disabled { opacity: .6; cursor: default; }
-  .err { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: #fde8e6; color: #7a2418; font-weight: 600; font-size: 17px; }
-  .hint { color: var(--ink-2); font-size: 16px; margin-top: 6px; }
-  .track { height: 28px; background: #e6dfcf; border-radius: 999px; overflow: hidden; }
-  .fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .8s ease; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 16px; }
-  .stat { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
-  .stat .k { font-size: 14px; color: var(--ink-2); }
-  .stat .v { font-size: 26px; font-weight: 800; }
-  table { width: 100%; border-collapse: collapse; font-size: 17px; }
-  th { text-align: left; font-size: 13px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; padding: 8px 6px; }
-  td { padding: 10px 6px; border-top: 1px solid #e3dccb; }
-  td.r, th.r { text-align: right; }
-  .pill { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; }
-  .link { background: none; border: 0; color: var(--accent); text-decoration: underline; font-size: 17px; cursor: pointer; padding: 0; margin-top: 8px; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <title>My payments — Golden Harmonic Memorial Park</title>
+  <link rel="icon" href="/favicon-32.png">
+  <link rel="stylesheet" href="/payment-view.css">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" defer></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js" defer></script>
+  <script src="/firebase-config.js" defer></script>
+  <script src="/payment-view.js" defer></script>
 </head>
 <body>
-<div id="root"></div>
-<noscript><p style="padding:24px;font-size:18px">Please turn on JavaScript, or call our office and we will tell you your balance.</p></noscript>
-
-<script type="text/babel">
-  const { useState } = React;
-  const peso = (n) => '₱' + Math.round(n || 0).toLocaleString('en-PH');
-  const dateOf = (ms) => (ms ? new Date(ms).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—');
-  const TYPE = { regular: 'Regular', premium: 'Premium', 'corner-premium': 'Corner Premium' };
-
-  function Bar() {
-    return (
-      <div className="bar">
-        <a href="/">← Home</a>
-        <b>My payments</b>
-      </div>
-    );
-  }
-
-  function Tracker({ d, onBack }) {
-    if (d.cancelled) {
-      return (
-        <div className="card">
-          <h2>Reservation {d.ref}</h2>
-          <p>This reservation was cancelled. Please call our office if you have a question.</p>
-          <button className="link" onClick={onBack}>← Check another reservation</button>
-        </div>);
-    }
-    const installment = d.plan === 'installment';
-    const pct = d.total > 0 ? Math.min(100, Math.round((d.paid / d.total) * 100)) : 0;
-    const confirmed = d.status === 'verified' || d.status === 'paid' || d.paid > 0;
-    return (
-      <div>
-        <div className="card">
-          <div style={{ fontSize: 15, color: 'var(--ink-2)' }}>Reservation {d.ref}</div>
-          <h1 style={{ fontSize: 32, margin: '2px 0 4px' }}>Hello, {d.name || 'buyer'}</h1>
-          <div>{d.plots.map((p) => p.plotCode + ' · ' + (TYPE[p.typeId] || '')).join('   ')}</div>
-          <div style={{ marginTop: 4, color: 'var(--ink-2)' }}>{installment ? d.years + ' years · ' + peso(d.monthly) + ' a month' : 'Spot cash'} · Total {peso(d.total)}</div>
-          {d.full
-            ? <div className="pill" style={{ background: '#dcefe3', color: '#1f4a39', marginTop: 10 }}>✔ Fully paid. Thank you!</div>
-            : !confirmed
-              ? <div className="pill" style={{ background: '#fff3c9', color: '#6b4a00', marginTop: 10 }}>Waiting for your first payment</div>
-              : null}
-        </div>
-
-        <div className="card">
-          <h2 style={{ fontSize: 24, marginBottom: 12 }}>Your progress</h2>
-          <div className="track" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><div className="fill" style={{ width: Math.max(pct, 2) + '%' }}></div></div>
-          <div style={{ marginTop: 8, fontSize: 20 }}><b>{peso(d.paid)}</b> paid of {peso(d.total)} ({pct}%)</div>
-          <div className="stats">
-            <div className="stat"><div className="k">Balance</div><div className="v">{peso(d.balance)}</div></div>
-            {installment ? <div className="stat"><div className="k">Months paid</div><div className="v">{d.monthsPaid} <span style={{ fontSize: 16, fontWeight: 500 }}>of {d.monthsTotal}</span></div></div> : null}
-            {installment ? <div className="stat"><div className="k">Months left</div><div className="v">{d.monthsLeft}</div></div> : null}
-            {installment && !d.full ? <div className="stat"><div className="k">Next payment due</div><div className="v" style={{ fontSize: 20 }}>{d.nextDue ? dateOf(d.nextDue) : 'After your first payment'}</div></div> : null}
-          </div>
-        </div>
-
-        <div className="card">
-          <h2 style={{ fontSize: 24, marginBottom: 8 }}>Payments we received</h2>
-          {d.payments.length === 0
-            ? <p style={{ margin: 0 }}>No payment recorded yet. Once you pay, our staff will record it and it will appear here.</p>
-            : <table>
-                <thead><tr><th>Date</th><th>Receipt</th><th className="r">Amount</th></tr></thead>
-                <tbody>{d.payments.map((p, i) => <tr key={i}><td>{dateOf(p.date)}</td><td>{p.ref || '—'}</td><td className="r"><b>{peso(p.amount)}</b></td></tr>)}</tbody>
-              </table>}
-          <div className="hint">This list is updated by our staff after they receive your payment, so a payment you made today may show tomorrow.</div>
-        </div>
-        <button className="link" onClick={onBack}>← Check another reservation</button>
-      </div>);
-  }
-
-  function App() {
-    const q = new URLSearchParams(window.location.search);
-    const [ref, setRef] = useState((q.get('ref') || '').toUpperCase());
-    const [mobile, setMobile] = useState('');
-    const [busy, setBusy] = useState(false);
-    const [err, setErr] = useState('');
-    const [data, setData] = useState(null);
-
-    const submit = async (e) => {
-      e.preventDefault();
-      setErr(''); setBusy(true);
-      try {
-        const r = await fetch('/api/presale-track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref, mobile }) });
-        const j = await r.json().catch(() => ({}));
-        if (r.ok && j.ok) setData(j);
-        else if (r.status === 404) setErr('We could not find that reservation. Please check the reference number (for example PS-0004) and the mobile number you used when you reserved.');
-        else setErr('Something went wrong. Please try again, or call our office.');
-      } catch (ex) { setErr('No internet connection. Please try again.'); }
-      setBusy(false);
-    };
-
-    return (
-      <div>
-        <Bar />
-        <div className="wrap">
-          {data ? <Tracker d={data} onBack={() => { setData(null); setMobile(''); }} /> : (
-            <form className="card" onSubmit={submit}>
-              <h1 style={{ fontSize: 34 }}>Check my payments</h1>
-              <p style={{ margin: '6px 0 0', color: 'var(--ink-2)' }}>See how much you have paid, how many months are left, and your next due date. No password needed.</p>
-              <label htmlFor="ref">Reference number</label>
-              <input id="ref" value={ref} onChange={(e) => setRef(e.target.value.toUpperCase())} placeholder="PS-0004" autoComplete="off" autoCapitalize="characters" required />
-              <div className="hint">You received it when you reserved your plot. It starts with PS-.</div>
-              <label htmlFor="mobile">Mobile number you used</label>
-              <input id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="0917 123 4567" inputMode="tel" autoComplete="tel" required />
-              {err ? <div className="err" role="alert">{err}</div> : null}
-              <button className="btn" type="submit" disabled={busy}>{busy ? 'Checking…' : 'Show my payments'}</button>
-            </form>)}
-        </div>
-      </div>);
-  }
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-</script>
+  <a href="#payment-main" class="pv-skip">Skip to payment history</a>
+  <header class="pv-header"><a href="/">Golden Harmonic <span>Memorial Park</span></a><a href="/" class="pv-home">Back to home</a></header>
+  <div id="payment-root"><main class="pv-wrap"><p>Loading secure payment access…</p><p>If this does not finish, reload the page or contact the office.</p></main></div>
+  <noscript><p class="pv-wrap">Enable JavaScript to view your payments, or contact the office for help.</p></noscript>
 </body>
 </html>

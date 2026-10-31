@@ -2,15 +2,15 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.2 · **Updated:** 2026-10-30 · Asia/Manila
+**Version:** 2.3 · **Updated:** 2026-10-31 · Asia/Manila
 
-**Status:** Design specification with CP0/CP1 implementation checkpoint. Business decisions marked OPEN are release gates, not approved defaults. Only an isolated internal payment foundation is implemented; the full feature is not live.
+**Status:** Design specification with CP0–CP2 implementation checkpoints. Business decisions marked OPEN are release gates, not approved defaults. The internal foundation and gated read-only access/screens are implemented; the full payment feature is not live.
 
 **Current authorization:** The user selected Option A and explicitly authorized step-by-step application implementation on October 30. This supersedes the earlier blueprint-only edit boundary. Complete a tested checkpoint, save it and pause for review before the next feature. No production deployment, live payment or database migration is authorized by this checkpoint.
 
-**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md). CP0 captures the baseline; CP1 adds internal server libraries and isolated tests. CP2–CP9 remain pending. The current application routes still have the observed limitations below; they do not yet use the new foundation. The requested QR image is a clearly labeled demo placeholder planned for CP3, not a real payment destination.
+**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md). CP0 captures the baseline; CP1 adds internal server libraries; CP2 adds secure account/guest access and read-only screens with activation disabled by default. CP3–CP9 remain pending. The existing financial posting routes do not yet use the new foundation. CP2 retires the reference/mobile tracker endpoint and requires deployment/rules/contact-version review before activation. The requested QR image is a clearly labeled demo placeholder planned for CP3, not a real payment destination.
 
-> This v2.2 specification retains the v2.0 design, v2.1 checkout comparison and confirmed four-step cash workflow, and records the authorized CP1 foundation. Confirmed user decisions take precedence over source-code behavior and prior proposals. OBSERVED means found in repository source; PROPOSED means a future engineering requirement; OPEN means unresolved and must not be silently implemented. Unless identified as confirmed, observed, or implemented in the checkpoint record, the requirements below describe proposed future implementation.
+> This v2.3 specification retains the original design and baseline comparison, and records the authorized CP1 foundation and CP2 access work. Confirmed user decisions take precedence over source-code behavior and prior proposals. OBSERVED means found in repository source; PROPOSED means a future engineering requirement; OPEN means unresolved and must not be silently implemented. Unless identified as confirmed, observed, or implemented in the checkpoint record, the requirements below describe proposed future implementation.
 
 ## 1. Confirmed business decisions
 
@@ -661,4 +661,4 @@ Before implementation, obtain the deployed Firestore rules/index inventory, appr
 - Proposed implementation, known source findings and unresolved business decisions are explicitly distinguished.
 - Requirement comparison and supplementary cash-module findings are recorded in Sections 3.1–3.2; A01–A39 are future acceptance cases, not executed tests. This review validates documentation consistency, not production readiness.
 - The initial review changed **only `payment-feature-blueprint.md`**. The user subsequently authorized Option A implementation; the CP0/CP1 source changes and validation are recorded in `docs/payments/checkpoints.md`.
-- Current handoff: review the isolated CP1 foundation, then continue with CP2 when requested. Applicable policy, access-control, integration and migration release gates still apply; no deployment or migration has been authorized.
+- Current handoff: CP2 has 43 passing isolated tests and local browser validation; review its gated access/screens, then continue with CP3 when requested. Applicable policy, deployed-rule, contact-version, integration and migration gates still apply; no deployment or migration has been authorized. Consult the checkpoint record for the current implementation rather than treating the earlier baseline tables as current code inventory.
