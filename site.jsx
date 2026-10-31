@@ -631,10 +631,7 @@ function App() {
             <Hero onOpenPortal={() => setPortalOpen(true)} />
           <Tiers tiers={tiers} />
           <Mausoleum />
-          <Gallery />
           <PaymentPlans tiers={tiers} />
-          <PrePostNeed />
-          <About />
           <Brochure tiers={tiers} />
         </main>
         <Footer />
@@ -1018,7 +1015,7 @@ function Hero({ onOpenPortal }) {
           <span className="eyebrow mono">9°29′N 118°30′E · Palawan, Philippines</span>
           <h1>A sanctuary of peace,<br />heritage, and <em>remembrance</em>.</h1>
           <p className="lede">
-            Your legacy, our sacred care. Twenty-five hectares of garden, riverside groves, and family estates cut into Palawan's own limestone coastline — designed for its families to remember well, for generations.
+            Your legacy, our sacred care. Garden lots, family estates and mausoleum plots in Taytay, Palawan — chosen with your family, with our staff beside you at every step.
           </p>
 
           <div className="cta-row" style={{ marginBottom: 14 }}>
@@ -1052,10 +1049,6 @@ function Hero({ onOpenPortal }) {
               <div className="label">Total hectares</div>
               <div className="value">4.9 ha</div>
             </div>
-            <div>
-              <div className="label">Plots under perpetual care</div>
-              <div className="value">14,978</div>
-            </div>
           </div>
         </div>
         <div className="fade-up in">
@@ -1064,27 +1057,6 @@ function Hero({ onOpenPortal }) {
         </div>
       </div>
     </section>);
-
-}
-
-/* ---------- Trust strip ---------- */
-function Trust() {
-  const items = [
-  { big: 'DHSUD', lbl: 'Licensed & permit-cleared' },
-  { big: '100%', lbl: 'Perpetual care fund' },
-  { big: '8–12%', lbl: 'Annual lot appreciation' }];
-
-  return (
-    <div className="trust">
-      <div className="wrap row">
-        {items.map((i, idx) =>
-        <div className="item fade-up in" key={i.lbl} style={{ '--stagger': idx }}>
-            <div className="big"><CountUp text={i.big} /></div>
-            <div className="lbl">{i.lbl}</div>
-          </div>
-        )}
-      </div>
-    </div>);
 
 }
 
@@ -1589,13 +1561,12 @@ function PaymentPlans({ tiers }) {
         </div>
 
         <div className="fade-up" style={{ maxWidth: 640 }}>
-          <h3 className="display" style={{ fontSize: 24, marginBottom: 12 }}>What "pre-need" really saves you.</h3>
+          <h3 className="display" style={{ fontSize: 24, marginBottom: 12 }}>Plan ahead, one step at a time.</h3>
           <p style={{ color: 'var(--ink-2)', marginBottom: 18 }}>
-            The average burial lot in Palawan has appreciated 8–12% per year for the past decade. Lock the price now, and your family pays nothing later.
+            Choosing a plot ahead of time lets your family decide calmly and spread the cost over a payment plan.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <a href="#brochure" className="btn btn-primary">Get a custom quote</a>
-            <a href="tel:+639171234567" className="btn btn-ghost">Talk to a counselor</a>
           </div>
           <p className="small" style={{ marginTop: 18 }}>
             No down payment on any plan; a 2% monthly penalty applies to late payments.
@@ -1673,118 +1644,8 @@ function Mausoleum() {
 
 }
 
-/* ---------- Investment ---------- */
-function Investment() {
-  return (
-    <section className="block invest" id="invest">
-      <div className="wrap">
-        <div className="section-head fade-up">
-          <div>
-            <span className="eyebrow">Investment angle</span>
-            <h2 style={{ marginTop: 18 }}>The only real estate that almost always goes up.</h2>
-          </div>
-          <div className="side">
-            Memorial park lots in the Philippines have outpaced inflation every year since 2012. Many of our investor-clients buy 3–5 lots at a time for resale or family transfer.
-          </div>
-        </div>
-        <div className="invest-grid">
-          <div className="chart-card fade-up">
-            <h4>Garden Lawn Lot · Price history</h4>
-            <div className="chart-meta">Garden Lawn section · 2014 → 2026 · per lot, PHP</div>
-            <AppreciationChart />
-            <div className="invest-stats">
-              <div className="invest-stat">
-                <div className="num">+158%</div>
-                <div className="lbl">Total appreciation, 2014–2026</div>
-              </div>
-              <div className="invest-stat">
-                <div className="num">10.4%</div>
-                <div className="lbl">Compounded annual growth</div>
-              </div>
-            </div>
-          </div>
-          <div className="fade-up">
-            <h3 className="display" style={{ fontSize: 32, color: '#f6f1e8', marginBottom: 18, lineHeight: 1.15 }}>
-              Three reasons resellers buy here.
-            </h3>
-            <ol style={{ padding: 0, listStyle: 'none', margin: 0 }}>
-              {[
-              ['Land scarcity.', 'Palawan zoning makes new memorial parks effectively impossible. Supply is fixed; demand grows with population.'],
-              ['Transferable title.', 'Every lot comes with a Contract to Sell that can be assigned to any third party for a flat ₱2,500 admin fee.'],
-              ['Resale assistance.', 'Our office connects sellers with at-need families directly — most lots resell in under 45 days.']].
-              map(([head, body], i) =>
-              <li key={i} style={{ display: 'flex', gap: 18, padding: '18px 0', borderBottom: '1px solid rgba(255,255,255,.1)' }}>
-                  <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: 'var(--gold)', color: '#1f1607', flexShrink: 0,
-                  display: 'grid', placeItems: 'center',
-                  fontFamily: 'Newsreader, serif', fontSize: 18
-                }}>{i + 1}</div>
-                  <div>
-                    <strong style={{ fontFamily: 'Newsreader, serif', fontSize: 20, color: '#f6f1e8', display: 'block', marginBottom: 4 }}>{head}</strong>
-                    <span style={{ color: '#b6ad97', fontSize: 14 }}>{body}</span>
-                  </div>
-                </li>
-              )}
-            </ol>
-            <a href="#brochure" className="btn btn-gold" style={{ marginTop: 28 }}>Get the investor pack</a>
-          </div>
-        </div>
-      </div>
-    </section>);
-
-}
-
-function AppreciationChart() {
-  // 2014–2026 garden lot price (PHP, thousands)
-  const data = [33, 36, 40, 45, 51, 57, 62, 66, 70, 74, 78, 82, 85];
-  const years = ['’14', '’15', '’16', '’17', '’18', '’19', '’20', '’21', '’22', '’23', '’24', '’25', '’26'];
-  const W = 460,H = 220,pad = { l: 36, r: 12, t: 10, b: 26 };
-  const max = Math.max(...data) * 1.1;
-  const xs = data.map((_, i) => pad.l + i / (data.length - 1) * (W - pad.l - pad.r));
-  const ys = data.map((v) => H - pad.b - v / max * (H - pad.t - pad.b));
-  const path = xs.map((x, i) => `${i === 0 ? 'M' : 'L'} ${x} ${ys[i]}`).join(' ');
-  const area = `${path} L ${xs[xs.length - 1]} ${H - pad.b} L ${xs[0]} ${H - pad.b} Z`;
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-      {/* gridlines */}
-      {[0, 0.25, 0.5, 0.75, 1].map((p, i) =>
-      <line key={i}
-      x1={pad.l} x2={W - pad.r}
-      y1={pad.t + p * (H - pad.t - pad.b)} y2={pad.t + p * (H - pad.t - pad.b)}
-      stroke="rgba(255,255,255,.08)" strokeWidth="1" />
-      )}
-      {/* y labels */}
-      {[max, max * 0.75, max * 0.5, max * 0.25, 0].map((v, i) =>
-      <text key={i}
-      x={pad.l - 8} y={pad.t + i / 4 * (H - pad.t - pad.b) + 4}
-      textAnchor="end" fill="#8c8473" fontSize="9" fontFamily="JetBrains Mono, monospace">
-          {Math.round(v)}k
-        </text>
-      )}
-      {/* area */}
-      <defs>
-        <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#b08544" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#b08544" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill="url(#g1)" />
-      <path d={path} stroke="#b08544" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {/* points */}
-      {xs.map((x, i) =>
-      <circle key={i} cx={x} cy={ys[i]} r="2.5" fill="#b08544" />
-      )}
-      {/* x labels */}
-      {years.map((y, i) => i % 2 === 0 &&
-      <text key={i} x={xs[i]} y={H - 8} textAnchor="middle" fill="#8c8473" fontSize="9" fontFamily="JetBrains Mono, monospace">{y}</text>
-      )}
-    </svg>);
-
-}
-
 /* ---------- Pre-need vs At-need ---------- */
+/* NOT SHOWN: this section holds stand-in artwork or claims nobody has proven. Rewrite it with real facts and photos before adding <PrePostNeed /> back to the page. */
 function PrePostNeed() {
   return (
     <section className="block">
@@ -1836,6 +1697,7 @@ function PrePostNeed() {
 }
 
 /* ---------- Gallery ---------- */
+/* NOT SHOWN: this section holds stand-in artwork or claims nobody has proven. Rewrite it with real facts and photos before adding <Gallery /> back to the page. */
 function Gallery() {
   const tiles = [
   'main entrance arch — golden hour, 16:10',
@@ -1877,6 +1739,7 @@ function Gallery() {
 }
 
 /* ---------- About ---------- */
+/* NOT SHOWN: this section holds stand-in artwork or claims nobody has proven. Rewrite it with real facts and photos before adding <About /> back to the page. */
 function About() {
   return (
     <section className="block" id="about">
@@ -1904,49 +1767,6 @@ function About() {
               )}
             </div>
           </div>
-        </div>
-      </div>
-    </section>);
-
-}
-
-/* ---------- FAQ ---------- */
-function FAQ() {
-  const qs = [
-  ['Can I transfer my lot to someone else?', 'Yes. Every plot is sold via a Contract to Sell that is freely transferable. We charge a flat ₱2,500 administrative fee to process the transfer.'],
-  ['What does "perpetual care" actually mean?', 'A portion of every lot sale is deposited into an independently-audited trust fund. The fund earns interest in perpetuity and pays for landscaping, security, drainage, and structural maintenance — forever, regardless of ownership changes.'],
-  ['What if I move to another province?', 'Your contract is location-independent. You can transfer your reservation to another family member, sell it through our office, or have the lot redeemed for a credit toward funeral services at any partner provider.'],
-  ['Is there a refund if I change my mind?', 'Yes. Full refund within 30 days of reservation, less a 5% processing fee. After 30 days, paid principal can be converted to credit, applied to another lot, or sold via our resale program.'],
-  ['Do you accept all religions?', 'Yes. We have dedicated sections for Catholic, Christian, Muslim, and Chinese-Filipino burial customs, plus a non-denominational area. Our chapel can be used for any rite.'],
-  ['Can I see the park before buying?', 'Of course — and we encourage it. We offer free site visits 7 days a week, with pickup included within Palawan.'],
-  ['How does the investment / resale program work?', 'Our resale office matches sellers with at-need families. There is no upfront cost — we collect a 6% commission only when the lot resells. Most lots clear in under 45 days.'],
-  ['Is a down payment required?', 'No. None of our payment plans require a down payment — start with spot cash, or any of the 1, 2, 3, or 5-year installment terms.'],
-  ['What happens if I miss a payment?', 'A 2% monthly penalty applies to late payments on installment plans. Contact us as early as possible if you expect to be late — we can usually work out a short extension.'],
-  ['Can I pay off my plan early?', 'Yes — early payment discounts may be available. Ask your counselor for current terms when you\'re ready to settle the balance.'],
-  ['Do I have to buy a mausoleum construction package?', 'No. Mausoleum plots are sold as land only unless you choose one of our all-inclusive construction packages. You\'re free to bring your own architect or contractor, or work with ours.']];
-
-  return (
-    <section className="block" id="faq">
-      <div className="wrap">
-        <div className="section-head fade-up">
-          <div>
-            <span className="eyebrow">Common questions</span>
-            <h2 style={{ marginTop: 18 }}>Everything families ask before reserving.</h2>
-          </div>
-          <div className="side">
-            Don't see your question? Call us at <a href="tel:+639171234567" style={{ color: 'var(--accent)', fontWeight: 600 }}>+63 917 123 4567</a> or request the full price list — it includes a 20-page Q&A booklet.
-          </div>
-        </div>
-        <div className="faq-grid fade-up">
-          {qs.map(([q, a], i) =>
-          <details className="faq-item" key={i}>
-              <summary>
-                <span>{q}</span>
-                <span className="toggle">+</span>
-              </summary>
-              <div className="answer">{a}</div>
-            </details>
-          )}
         </div>
       </div>
     </section>);
@@ -2023,7 +1843,7 @@ function Brochure({ tiers = [] }) {
       setSent(true);
     } catch (err) {
       console.error('[GH] Save error:', err);
-      setError('Could not send your request. Please call us at +63 917 123 4567.');
+      setError('Could not send your request. Please try again in a few minutes, or contact our office.');
     } finally {
       setSaving(false);
     }
@@ -2034,15 +1854,13 @@ function Brochure({ tiers = [] }) {
       <div className="wrap brochure-grid">
         <div className="fade-up">
           <span className="eyebrow">Get the full price list</span>
-          <h2 style={{ marginTop: 18 }}>The complete 24-page brochure — yours in under a minute.</h2>
+          <h2 style={{ marginTop: 18 }}>Ask for the full price list.</h2>
           <p className="lede">
-            Send us your details and we'll email the full price list with every section, every plan, and current promos. No salesperson will call unless you ask.
+            Send us your details and our staff will send you the price list. No salesperson will call unless you ask.
           </p>
           <div className="perks">
             <div><span className="ico">1</span><span><strong>Full price tables</strong> for every garden section.</span></div>
             <div><span className="ico">2</span><span><strong>All payment plan options</strong> with sample computations.</span></div>
-            <div><span className="ico">3</span><span><strong>20-page Q&A booklet</strong> covering transfers, refunds, and resale.</span></div>
-            <div><span className="ico">4</span><span><strong>Free 7-day reservation hold</strong> on any plot you choose.</span></div>
           </div>
         </div>
         <form className="form-card fade-up" onSubmit={submit}>
@@ -2143,7 +1961,6 @@ function Brochure({ tiers = [] }) {
                   <select value={form.interest} onChange={set('interest')}>
                     <option>Pre-need (planning ahead)</option>
                     <option>At-need (immediate)</option>
-                    <option>Investment / resale</option>
                     <option>Just exploring</option>
                   </select>
                 </div>
@@ -2916,7 +2733,7 @@ function CartDrawer({ open, onClose }) {
       setStep('sent');
     } catch (err) {
       console.error('[GH] Order save error:', err);
-      setError('Could not submit your order. Please call us at +63 917 123 4567.');
+      setError('Could not submit your order. Please try again in a few minutes, or contact our office.');
     } finally {
       setSaving(false);
     }
@@ -3147,7 +2964,7 @@ function Footer() {
               </div>
             </div>
             <p style={{ fontSize: 14, color: '#b6ad97', maxWidth: 320 }}>
-              A memorial park in Palawan — caring for families for generations.
+              A memorial park in Taytay, Palawan.
             </p>
           </div>
           <div>
@@ -3156,29 +2973,24 @@ function Footer() {
               <li><a href="#tiers">Garden Lawn Lots</a></li>
               <li><a href="#tiers">Family Estates</a></li>
               <li><a href="#tiers">Mausoleum Suites</a></li>
-              <li><a href="#tiers">Columbarium Niches</a></li>
             </ul>
           </div>
           <div>
             <h4>Services</h4>
             <ul>
               <li><a href="#plans">Payment Plans</a></li>
-              <li><a href="#">Funeral services</a></li>
-              <li><a href="#">Venue rental</a></li>
             </ul>
           </div>
           <div>
             <h4>Visit</h4>
             <ul>
               <li><a href="#brochure">Palawan · 4.9 ha</a></li>
-              <li><a href="tel:+639171234567">+63 917 123 4567</a></li>
-              <li><a href="mailto:hello@goldenharmonic.ph">hello@goldenharmonic.ph</a></li>
             </ul>
           </div>
         </div>
         <div className="legal">
-          <div>© 2026 Golden Harmonic Memorial Park, Inc. · DHSUD LTS-2018-0421 · SEC CS201801234</div>
-          <div><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · Perpetual Care Trust Report</div>
+          <div>© 2026 Golden Harmonic Memorial Park</div>
+          <div><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></div>
         </div>
       </div>
     </footer>);
