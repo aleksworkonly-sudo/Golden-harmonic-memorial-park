@@ -1,0 +1,16 @@
+.pc-lookup { display:grid; gap:1rem; align-items:end; }
+.pc-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); padding:0; gap:.5rem; list-style:none; }
+.pc-steps li { padding:.7rem; background:var(--pv-bg,#f6f7f2); border:1px solid #d9e0d5; border-radius:.4rem; overflow-wrap:anywhere; }
+.pc-print { display:none; }
+@media(min-width:48rem) { .pc-lookup { grid-template-columns:1fr 2fr auto; } }
+@media print {
+  @page { size:A4; margin:18mm; }
+  body { background:white !important; color:#111 !important; font:12pt/1.5 Georgia,serif; }
+  body > :not(#cash-root), .cash-screen { display:none !important; }
+  #cash-root, .pc-print { display:block !important; }
+  .pc-print { overflow-wrap:anywhere; }
+  .pc-print h1 { font-size:20pt; } .pc-print h2 { font-size:16pt; }
+  .pc-print-status { border:2px solid #111; padding:8pt; font-weight:bold; }
+  .pc-print dl > div { display:grid; grid-template-columns:40% 60%; border-bottom:1px solid #bbb; padding:5pt 0; break-inside:avoid; }
+  .pc-print dt { font-weight:bold; } .pc-print dd { margin:0; }
+}

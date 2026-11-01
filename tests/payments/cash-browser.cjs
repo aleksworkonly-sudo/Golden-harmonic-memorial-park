@@ -1,0 +1,51 @@
+'use strict';
+const assert=require('node:assert/strict'),path=require('node:path'),os=require('node:os');
+const {chromium}=require(process.env.PAYMENT_PLAYWRIGHT_MODULE || 'playwright');
+const {createPreviewServer}=require('./preview-server');
+(async()=>{
+  const {server,state,submissions}=createPreviewServer({cashMode:true});
+  await new Promise((resolve)=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;let browser;
+  try {
+    browser=await chromium.launch({channel:'msedge',headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});
+    const errors=[];page.on('pageerror',(e)=>errors.push(e.message));
+    await page.addInitScript(()=>{window.print=()=>{window.printCalls=(window.printCalls || 0)+1;};});
+    await page.goto(base+'/payment-cash.html');
+    await page.getByLabel('Admin email').fill('staff@example.test');await page.getByLabel('Password',{exact:true}).fill('fake');
+    await page.getByRole('button',{name:'Sign in for cash'}).click();await page.getByRole('alert').filter({hasText:'Only an admin'}).waitFor();
+    await page.getByLabel('Admin email').fill('admin@example.test');await page.getByLabel('Password',{exact:true}).fill('fake');
+    await page.getByRole('button',{name:'Sign in for cash'}).click();
+    await page.getByLabel('Exact account / reservation ID').fill('c1');await page.getByRole('button',{name:'Load cash options'}).click();
+    await page.getByLabel('Cash received (₱)',{exact:true}).fill('26000');await page.getByLabel('Actual received date/time').fill('2026-10-30T12:00');
+    await page.getByLabel('Collector name').fill('Sample admin');await page.getByLabel('Unique office intake reference').fill('BROWSER-CASH-001');
+    await page.getByLabel('I confirm this cash').check();await page.getByRole('button',{name:'Review cash record'}).click();
+    state.loseNextCash=true;await page.getByRole('button',{name:'Confirm step'}).click();await page.getByRole('button',{name:'Retry same step'}).waitFor();
+    assert.equal(submissions.db.count('payments'),1);assert.equal(submissions.db.count('receipts'),0);
+    await page.getByRole('button',{name:'Retry same step'}).click();await page.getByRole('button',{name:'Print receipt',exact:true}).waitFor();
+    const saved=(await submissions.cash.queue('admin')).cases[0];
+    await page.getByRole('button',{name:'Print receipt',exact:true}).click();await page.getByRole('button',{name:'Confirm step'}).click();
+    await page.waitForFunction(()=>window.printCalls===1);assert.equal(submissions.db.count('receipts'),0);
+    const printPath=path.join(os.tmpdir(),'gh-payment-cp5-print.png');await page.emulateMedia({media:'print'});
+    await page.screenshot({path:printPath,fullPage:true});assert.equal(await page.locator('.cash-screen').isVisible(),false);
+    await page.locator('#cash-print').getByText('PROVISIONAL',{exact:false}).waitFor();await page.emulateMedia({media:'screen'});
+    const file={name:'printed-receipt.png',mimeType:'image/png',buffer:Buffer.from((await submissions.command()).image,'base64')};
+    await page.getByLabel('Printed receipt photo',{exact:true}).setInputFiles(file);
+    await page.getByRole('button',{name:'Review photo upload'}).click();await page.getByRole('button',{name:'Confirm step'}).click();
+    await page.getByRole('button',{name:'Open saved photo'}).click();await page.getByRole('img',{name:'Saved cash photo r1',exact:true}).waitFor();
+    await page.getByLabel('c1_plot1 — remaining').fill('10000');await page.getByLabel('c1_plot2 — remaining').fill('15000');
+    await page.getByLabel('Approval reason').fill('Reviewed printed receipt and cash intake.');await page.getByLabel('I reviewed the latest photo').check();
+    await page.getByRole('button',{name:'Review cash approval'}).click();await page.getByText('Principal credit ₱25,000.00 · unapplied credit ₱1,000.00').waitFor();
+    const desktop=path.join(os.tmpdir(),'gh-payment-cp5-desktop.png');await page.screenshot({path:desktop,fullPage:true});
+    for(const width of [320,390,768]){await page.setViewportSize({width,height:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`overflow ${width}`);}
+    await page.setViewportSize({width:390,height:844});const mobile=path.join(os.tmpdir(),'gh-payment-cp5-mobile.png');await page.screenshot({path:mobile,fullPage:true});
+    state.loseNextCash=true;await page.getByRole('button',{name:'Confirm step'}).click();await page.getByRole('button',{name:'Retry same step'}).waitFor();
+    assert.equal(submissions.db.count('receipts'),1);await page.getByRole('button',{name:'Retry same step'}).click();
+    await page.getByRole('status').filter({hasText:'Approved'}).waitFor();assert.equal(submissions.db.count('receipts'),1);
+    assert.equal(submissions.db.read(`paymentReconciliations/${saved.paymentId}`).state,'resolved');
+    await page.getByRole('button',{name:'Sign out',exact:true}).click();assert.equal(await page.locator('#cash-print').innerText(),'Use Print receipt to load an authorized receipt copy.');
+    await page.goto(base+'/my-payments?mode=account');await page.getByLabel('Account email').fill('buyer@example.test');await page.getByLabel('Password',{exact:true}).fill('fake');
+    await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByRole('button',{name:/Regular plot/}).click();
+    await page.getByText('Unapplied credit: ₱1,000.00.',{exact:false}).waitFor();await page.getByText(/Acknowledgement CASH-/).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Correct submission'}).count(),0);assert.deepEqual(errors,[]);
+    console.log(JSON.stringify({passed:true,checks:'staff denied; record/approval retry; pending print; photo; same-admin approval; customer parity; responsive widths',desktop,mobile,printPath},null,2));
+  }finally{if(browser)await browser.close();await new Promise((resolve)=>server.close(resolve));}
+})().catch((e)=>{console.error(e);process.exitCode=1;});

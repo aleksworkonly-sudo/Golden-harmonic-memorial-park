@@ -7,13 +7,14 @@ const path = require('node:path');
 const { legacySummary } = require('../../lib/payments/read-model');
 const { fixture } = require('./submission-fixture');
 const { reviewFixture } = require('./review-fixture');
+const { cashFixture } = require('./cash-fixture');
 const { createAccessService } = require('../../lib/payments/access');
 const ROOT = path.resolve(__dirname, '../..');
-const files = new Map(['/my-payments.html','/payment-view.js','/payment-submit.js','/payment-demo-qr.png','/payment-view.css','/payment-link.html','/payment-link.js','/favicon-32.png','/payment-review.html','/payment-review.js','/payment-review.css'].map((name) => [name,path.join(ROOT,name)]));
+const files = new Map(['/my-payments.html','/payment-view.js','/payment-submit.js','/payment-demo-qr.png','/payment-view.css','/payment-link.html','/payment-link.js','/favicon-32.png','/payment-review.html','/payment-review.js','/payment-review.css','/payment-cash.html','/payment-cash.js','/payment-cash.css'].map((name) => [name,path.join(ROOT,name)]));
 
-function createPreviewServer({reviewMode=false}={}) {
-  const state = { enabled:true, submissionsEnabled:true, reviewEnabled:true, exchanges:0, requests:0, failNext:false, loseNextSubmission:false, accessLost:false, loseNextDecision:false };
-  const submissions = reviewMode ? reviewFixture() : fixture();
+function createPreviewServer({reviewMode=false,cashMode=false}={}) {
+  const state = { enabled:true, submissionsEnabled:true, reviewEnabled:true, exchanges:0, requests:0, failNext:false, loseNextSubmission:false, accessLost:false, loseNextDecision:false, loseNextCash:false };
+  const submissions = cashMode ? cashFixture() : reviewMode ? reviewFixture() : fixture();
   const reviewReady=reviewMode ? (async()=>{
     await submissions.submit();
     await submissions.core.submit(submissions.guest,await submissions.command({requestId:'guest-preview-001'}));
@@ -26,6 +27,25 @@ function createPreviewServer({reviewMode=false}={}) {
   const server = http.createServer(async (req,res) => {
     const url = new URL(req.url,'http://localhost');
     res.setHeader('Cache-Control','no-store');
+    if(url.pathname === '/api/payment-cash') {
+      res.setHeader('Content-Type','application/json');
+      if(req.method==='GET')return res.end(JSON.stringify({enabled:cashMode}));
+      let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>737280){res.writeHead(413);return res.end('{}');}}
+      try {
+        if(!cashMode)throw Error('Use --cash preview mode.');
+        const body=JSON.parse(raw || '{}'),token=String(req.headers.authorization || '').replace(/^Bearer /,'');let result;
+        const core=submissions.cash;
+        if(body.action==='context')result=await core.context(token,body.sourceKind,body.sourceId);
+        if(body.action==='queue')result=await core.queue(token,body.filters,body.cursor);
+        if(body.action==='detail')result=await core.detail(token,body.paymentId);
+        if(body.action==='proof')result=await core.proof(token,body.paymentId,body.revisionId);
+        if(['record','print','photo','approve'].includes(body.action)) {
+          result=await core.mutate(token,body.action,body.command);
+          if(state.loseNextCash){state.loseNextCash=false;res.writeHead(503);return res.end(JSON.stringify({error:'Preview lost the response. Retry this exact step.'}));}
+        }
+        return res.end(JSON.stringify(result));
+      }catch(error){res.writeHead(error.status || 503);return res.end(JSON.stringify({error:error.message,code:error.code}));}
+    }
     if(url.pathname === '/api/payment-review') {
       res.setHeader('Content-Type','application/json');await reviewReady;
       if(req.method==='GET')return res.end(JSON.stringify({enabled:reviewMode && state.reviewEnabled}));
@@ -74,8 +94,8 @@ function createPreviewServer({reviewMode=false}={}) {
       if(body.action === 'guest_summary') result={summary:legacySummary('presale','PS-0001',{...account,plan:'installment'},body.cursor)};
       if(body.action === 'account_list') result={accounts:[{id:'c1',label:'Regular plot · A-0001'},{id:'c2',label:'Premium plot · B-0002'}]};
       if(body.action === 'account_summary') result={summary:legacySummary('customer',body.customerId,account,body.cursor)};
-      if(reviewMode && body.action==='account_summary')result={summary:await access.accountSummary({idToken:'buyer',customerId:body.customerId,cursor:body.cursor})};
-      if(reviewMode && body.action==='guest_summary')result={summary:await access.guestSummary({secret:submissions.guest.secret,cursor:body.cursor})};
+      if((reviewMode || cashMode) && body.action==='account_summary')result={summary:await access.accountSummary({idToken:'buyer',customerId:body.customerId,cursor:body.cursor})};
+      if((reviewMode || cashMode) && body.action==='guest_summary')result={summary:await access.guestSummary({secret:submissions.guest.secret,cursor:body.cursor})};
       return res.end(JSON.stringify(result));
     }
     if(url.pathname === '/__preview/auth.js') {
@@ -87,10 +107,11 @@ function createPreviewServer({reviewMode=false}={}) {
     const name=url.pathname === '/my-payments' || url.pathname === '/' ? '/my-payments.html' : url.pathname;
     if(!files.has(name)) {res.writeHead(404);return res.end('Not found');}
     let content=await fs.readFile(files.get(name));
-    if(name === '/my-payments.html' || name === '/payment-review.html') {
+    if(name === '/my-payments.html' || name === '/payment-review.html' || name === '/payment-cash.html') {
       content=content.toString().replace(/  <script[^\n]*(?:firebasejs|firebase-config)[^\n]*\n/g,'')
         .replace('<script src="/payment-view.js"','<script src="/__preview/auth.js" defer></script><script src="/payment-view.js"')
         .replace('<script src="/payment-review.js"','<script src="/__preview/auth.js" defer></script><script src="/payment-review.js"')
+        .replace('<script src="/payment-cash.js"','<script src="/__preview/auth.js" defer></script><script src="/payment-cash.js"')
         .replace('<body>','<body><p class="pv-notice" style="margin:0">Local preview · sample data only · use fake login details · no real email or payments</p>');
     }
     const ext=path.extname(name);
@@ -100,5 +121,5 @@ function createPreviewServer({reviewMode=false}={}) {
   return { server,state,submissions };
 }
 
-if(require.main === module) createPreviewServer({reviewMode:process.argv.includes('--review')}).server.listen(4173,'127.0.0.1',() => console.log('Sample-only preview: http://127.0.0.1:4173/my-payments or /payment-review.html (with --review)'));
+if(require.main === module) createPreviewServer({reviewMode:process.argv.includes('--review'),cashMode:process.argv.includes('--cash')}).server.listen(4173,'127.0.0.1',() => console.log('Sample-only preview: http://127.0.0.1:4173/my-payments or /payment-review.html (with --review), /payment-cash.html (with --cash)'));
 module.exports={createPreviewServer};

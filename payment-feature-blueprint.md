@@ -2,15 +2,15 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.5 · **Updated:** 2026-11-01 · Asia/Manila
+**Version:** 2.6 · **Updated:** 2026-11-01 · Asia/Manila
 
-**Status:** Design specification with CP0–CP4 implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, access, evidence submissions and gated admin/canonical principal posting are implemented locally; the full payment feature is not live.
+**Status:** Design specification with CP0–CP5 implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, secure access, evidence submissions, admin principal posting and four-step cash workflow are implemented locally; the full payment feature is not live.
 
 **Current authorization:** The user selected Option A and explicitly authorized step-by-step application implementation on October 30. This supersedes the earlier blueprint-only edit boundary. Complete a tested checkpoint, save it and pause for review before the next feature. No production deployment, live payment or database migration is authorized by this checkpoint.
 
-**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md) and the [backup guide](docs/payments/checkpoint-backup-guide.md). CP0–CP3 establish the foundation, access and evidence; CP4 adds admin review, reconciliation, explicit principal allocations and canonical history. Activation remains disabled; CP5–CP9 are pending. Legacy financial writers/readers have not been cut over. Actual rules, contact versions, approved receiving/quote configuration, storage, canonical migration, writer cutover and staging remain activation gates. The demo QR is not a payment destination.
+**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md) and the [backup guide](docs/payments/checkpoint-backup-guide.md). CP0–CP3 establish the foundation, access and evidence; CP4 adds admin review, reconciliation, explicit principal allocations and canonical history. CP5 adds cash recording, provisional print, private printed-photo revisions and shared canonical approval. Activation remains disabled; CP6–CP9 are pending. Legacy financial writers/readers have not been cut over. Actual rules, contact versions, approved receiving/quote configuration, storage, canonical migration, writer cutover and staging remain activation gates. The demo QR is not a payment destination.
 
-> This v2.5 specification retains the original baseline comparison and records authorized CP1–CP4 work. Confirmed decisions take precedence over legacy behavior and proposals. OBSERVED denotes repository findings, PROPOSED denotes future engineering requirements, and OPEN denotes unresolved policy. Consult checkpoint records for the current implementation rather than reading baseline tables as live inventories.
+> This v2.6 specification retains the original baseline comparison and records authorized CP1–CP5 work. Confirmed decisions take precedence over legacy behavior and proposals. OBSERVED denotes repository findings, PROPOSED denotes future engineering requirements, and OPEN denotes unresolved policy. Consult checkpoint records for the current implementation rather than reading baseline tables as live inventories.
 
 ## 1. Confirmed business decisions
 
@@ -34,6 +34,7 @@ The user confirmed the following during this review:
 | Post-deposit monthly amounts | **Explicitly deferred to business/accountant:** divide the remaining balance over the selected term, or retain the original monthly amount and shorten payoff |
 | 2% late-penalty formula | **Explicitly deferred to business/accountant:** calculation details remain undecided |
 | CP3 proof storage (confirmed October 31) | Capped private Firestore image documents for now; activation remains off. Technical caps and retention/operational gates are documented in the CP3 checkpoint. |
+| CP5 approval separation (confirmed November 1) | The same admin may record and approve cash; every operation still requires current admin authority. |
 | CP4 verified amount | Credit the verified actual amount to outstanding principal; retain excess as unapplied credit. Per-item allocations are explicit; no penalty/fee/refund/schedule policy is inferred. |
 
 Wording must distinguish “no percentage down payment” from the retained **credited reservation deposit**. Do not advertise that there is no initial payment, charge the deposit on top of the contract total, or count its credit twice.
@@ -275,7 +276,7 @@ Token durations are proposed technical defaults, not previously confirmed busine
 | Change price/recipient account, extend/release, void/refund | No | No | Explicit capability and audit; detailed limits OPEN |
 | Change roles | No | No | Separately restricted role-management authority |
 
-Use existing `users/{uid}.role`. Proposed mapping of “admin authority” includes `admin` and `superadmin`; no new cashier role is presumed. Optional second approval and read-only staff scope remain operational decisions. The automated PayMongo processor posts only authenticated provider events for valid intents; it does not grant manual verification to staff.
+Use existing `users/{uid}.role`. Proposed mapping of “admin authority” includes `admin` and `superadmin`; no new cashier role is presumed. The same admin may record and approve cash (confirmed CP5). Optional thresholds for other workflows and read-only staff scope remain operational decisions. The automated PayMongo processor posts only authenticated provider events for valid intents; it does not grant manual verification to staff.
 
 ## 9. End-to-end payment requirements
 
@@ -299,11 +300,11 @@ Actions: verify, reject with reason, request resubmission with note, or retain i
 
 ### 9.3 Cash and existing cheques
 
-Buyer cash selection issues an idempotent payment code and instructions, status `awaiting_cash`. This is distinct from an admin recording cash received at the office. A customer statement that cash was paid is not verification.
+PROPOSED, deferred to CP7 reservation lifecycle: buyer cash selection issues an idempotent payment code and instructions, status `awaiting_cash`. This is distinct from an admin recording cash received at the office. A customer statement that cash was paid is not verification.
 
 **Confirmed October 30: retain all four office steps.** Only admins may record and approve; the newer branch's staff access is not approved by this decision.
 
-1. **Record:** admin selects the authorized contract/purpose and records actual amount, evidenced received date, collector and any office document reference. Allocate a stable receipt identity and save `pending_verification`; do not yet credit the account. For actual cash held pending approval, retain a visible cash-on-hand reconciliation record rather than losing the fact that funds were received.
+1. **Record:** admin selects the authorized contract/purpose and records actual amount, evidenced received date, collector and office intake reference. CP5 requires that reference within a stable issuing register/series for duplicate protection; it is separate from official tax numbering. Allocate a stable receipt identity and save `pending_verification`; do not yet credit the account. For actual cash held pending approval, retain a visible cash-on-hand reconciliation record rather than losing the fact that funds were received.
 2. **Print:** prepare a visibly pending receipt using that identity. Record the print attempt/reprint and actor; opening or cancelling the browser dialog is not proof of physical printing. Retries/reprints reuse the number and never post money.
 3. **Photograph:** upload a legible photo of the printed copy, privately validate it and retain an immutable revision. Replacement before approval preserves the previous revision. Bind the approved evidence revision to the receipt; a customer's transfer screenshot does not substitute for this printed-cash-receipt evidence.
 4. **Approve:** admin confirms actual receipt and matching account/details. Server requires the print record and validated photo, then atomically posts the money, receipt state, allocation, audit and notification/outbox through the shared posting service. Repeated approval returns the existing receipt. Due-date calculations use the evidenced received date, not a later approval date.
@@ -663,4 +664,4 @@ Before implementation, obtain the deployed Firestore rules/index inventory, appr
 - Proposed implementation, known source findings and unresolved business decisions are explicitly distinguished.
 - Requirement comparison and supplementary cash-module findings are recorded in Sections 3.1–3.2; A01–A39 are future acceptance cases, not executed tests. This review validates documentation consistency, not production readiness.
 - The initial review changed **only `payment-feature-blueprint.md`**. The user subsequently authorized Option A implementation; the CP0/CP1 source changes and validation are recorded in `docs/payments/checkpoints.md`.
-- Current handoff: CP4 has 84 passing tests and both local browser suites, including admin decisions, actual/excess principal posting, reconciliation and canonical customer history. Review this checkpoint, then continue with CP5 cash when requested. Policy, deployed-rule, contact-version, provisioning, storage, legacy-writer/read-model cutover, integration and migration gates remain. No deployment or migration is authorized. The backup guide distinguishes completed source checkpoints from unimplemented work and production gates.
+- Current handoff: CP5 has 102 passing tests and all three local browser suites, adding same-admin cash recording, provisional print attempts, private immutable receipt photos and canonical approval with held-cash reconciliation. See [CP5 contract](docs/payments/cash-checkpoint.md). Review this checkpoint, then continue with CP6 PayMongo/reconciliation when requested. Policy, deployed-rule, contact-version, provisioning, storage, legacy-writer/read-model cutover, integration and migration gates remain. No deployment or migration is authorized. The backup guide distinguishes completed source checkpoints from unimplemented work and production gates.

@@ -17,7 +17,7 @@ The requested payment QR is a random decorative **demo image**, created with the
 | CP2 | Account/guest access and read-only payment screens | Implemented and tested locally; activation remains disabled pending the gates below |
 | CP3 | Manual GCash/bank submission, private proofs and demo QR | Implemented and tested locally; disabled pending activation gates |
 | CP4 | Admin review/corrections and end-to-end manual posting | Implemented and tested locally; disabled pending canonical cutover and activation gates |
-| CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Not started |
+| CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Implemented and tested locally; disabled pending activation/cutover gates |
 | CP6 | Secure PayMongo integration and shared reconciliation | Not started |
 | CP7 | Deposit, reservation deadlines, schedules and review lifecycle | Not started |
 | CP8 | Notifications/reminders, reports/sheets/commissions, OCR and UI polish | Not started |
@@ -168,3 +168,17 @@ Starting commit `26f8b3d`. The user authorized CP4 and confirmed crediting the v
 Read [CP4 implementation, canonical schema and activation limits](review-checkpoint.md). New flag: `PAYMENT_REVIEW_ENABLED`, off by default and dependent on CP2 configuration. No deployment, live payment, email, production data/configuration or environment-file change occurred. Schedules, deposit lifecycle, refunds, penalties and automatic plot release remain outside CP4.
 
 Checkpoint subject: **`Payment CP4: add admin review and canonical manual posting`**. Resolve with `git log -1 --format='%h %s' --grep='Payment CP4:'`. **Next checkpoint: CP5 only**, after review.
+
+## CP5 — admin cash workflow (November 1, 2026)
+
+Starting commit `f6230ff`, clean working tree. The user requested the next checkpoint and confirmed **the same admin may record and approve cash**. Applied Firebase authentication (with delegated rules/invariant review), UI/UX progress/form guidance and responsive design.
+
+- Added separately gated cash API and admin screen: record confirmed cash → print provisional receipt → retain private immutable printed-photo revisions → approve with explicit principal allocations/unapplied excess.
+- Cash recording atomically reserves one receipt/economic identity and retains confirmed funds in reconciliation. No credit until approval. Duplicate register/reference, stale versions, missing/mislinked print/photo, changed roles/ownership/configuration and invalid allocations fail closed.
+- Extracted CP4 canonical posting checks/writes into shared `posting.js`; cash and online approvals use the same ledger/projections. Recorded amount/time and printed snapshot agree; all receipt/evidence identities are checked. Same-admin approval is allowed.
+- Added customer/guest cash status/photo display without customer edit authority, resumable bounded admin queue, print-specific layout and lost-response recovery. New receipts use internal `CASH-` identities; existing `CR-` migration/public verification/official tax numbering remain separate.
+- **102 unit/HTTP tests passed**; CP5, CP4 and CP2/CP3 browser suites passed. Inspected desktop, 390px phone and print screenshots. Real Firebase SDK/rules/indexes, physical printing/receipt legibility, migration and production gates remain unverified.
+
+Read [CP5 implementation and limits](cash-checkpoint.md). `PAYMENT_CASH_ENABLED` remains disabled by default. No production data/configuration, environment credentials, deployment, live cash, email or remote push was accessed or changed. The receipt itself has no public QR; the existing demo payment QR remains unchanged.
+
+Checkpoint subject: **`Payment CP5: add admin cash record print photo approval`**. Resolve using `git log -1 --format='%h %s' --grep='Payment CP5:'`. Updated the [backup guide](checkpoint-backup-guide.md); no actual backup archive was created. **Next: CP6 only**, when requested. Cash intention codes are deferred to the reservation lifecycle, and void/refund/unassigned-cash exceptions remain later operational work.

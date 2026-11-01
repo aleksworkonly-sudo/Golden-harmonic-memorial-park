@@ -1,4 +1,4 @@
-# CP2–CP4 access controls — review artifact, not deployment rules
+# CP2–CP5 access controls — review artifact, not deployment rules
 
 ## CP4 canonical money and review additions
 
@@ -46,3 +46,13 @@ This includes all revisions and authenticated admin browsers. Existing broad gra
 Before activation, exempt `paymentProofs.base64` from indexing and merge the collection-scope `payments` composite index (`submissionScope ASC`, `submittedAt DESC`, `paymentId DESC`) into the actual project inventory. Future OCR payloads need their own exemption. Raw proof documents are never queried for a list view.
 
 Extend emulator negatives to anonymous, owner, other owner, guest, staff and admin get/list/create/update/delete on every private collection, including nested revisions and a deliberately broad overlapping allow. Add transactional budget/race, missing-budget, replay, quote/contact/ownership changes, closed source, correction-versus-verification and proof-read revocation scenarios. Local unit tests are not a substitute for this deployed-rule/integration work. See [CP3 contract and activation gates](submission-checkpoint.md).
+
+## CP5 cash additions — not deployable rules
+
+Keep `cashPrintEvents/**` server-only for reads and writes, including against admin browsers. Existing recursive payment/proof/reconciliation/economic/operation/audit/outbox boundaries cover schema-5 cash, nested photo revisions and immutable snapshots. Protect `paymentSubmissionScopes.cash` and stable register identities in `paymentReceivingAccounts`, plus canonical source/role/plot authorities. An overlapping allow still defeats a collection-specific denial.
+
+Cash queue indexes: `payments`, collection scope, `schemaVersion ASC` plus each supported combination of `status ASC` and `sourceId ASC`, followed by `submittedAt ASC`, `paymentId ASC`. No full-collection newest-500 shortcut. Photo revisions are read from one payment's subcollection, ordered by `createdAt`; private image payloads are fetched by ID. Review index exemptions for base64, cashSnapshot, unqueried print metadata and internal reasons. Merge against actual indexes rather than deploying a replacement inventory.
+
+Cash shares the existing proof budget; account for all retained transfer/cash revisions in provisioning and recovery. Test actual rules against anonymous/owner/other-owner/guest/staff/admin direct access, role revocation during replay, print/photo/snapshot identity mismatches, concurrent recording/approval/photo replacement, register/reference collision across bookings, exhausted storage retaining cash, and exactly-once held-to-posted reconciliation. Local tests include these domain cases but do not certify the deployed rules or SDK. No production rules/indexes were accessed or deployed.
+
+See [CP5 contract and operational gates](cash-checkpoint.md). The skill-directed reviewer identified snapshot-versus-posting and cross-record receipt identity checks; both were added with negative tests. `legacyWritesBlocked` remains an assertion; legacy writer retirement and migration still gate release.
