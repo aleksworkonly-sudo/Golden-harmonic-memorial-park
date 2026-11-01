@@ -18,7 +18,7 @@ The requested payment QR is a random decorative **demo image**, created with the
 | CP3 | Manual GCash/bank submission, private proofs and demo QR | Implemented and tested locally; disabled pending activation gates |
 | CP4 | Admin review/corrections and end-to-end manual posting | Implemented and tested locally; disabled pending canonical cutover and activation gates |
 | CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Implemented and tested locally; disabled pending activation/cutover gates |
-| CP6 | Secure PayMongo integration and shared reconciliation | Not started |
+| CP6 | Secure PayMongo integration and shared reconciliation | Implemented and tested locally; activation disabled |
 | CP7 | Deposit, reservation deadlines, schedules and review lifecycle | Not started |
 | CP8 | Notifications/reminders, reports/sheets/commissions, OCR and UI polish | Not started |
 | CP9 | Migration, recovery and release validation | Not started |
@@ -182,3 +182,18 @@ Starting commit `f6230ff`, clean working tree. The user requested the next check
 Read [CP5 implementation and limits](cash-checkpoint.md). `PAYMENT_CASH_ENABLED` remains disabled by default. No production data/configuration, environment credentials, deployment, live cash, email or remote push was accessed or changed. The receipt itself has no public QR; the existing demo payment QR remains unchanged.
 
 Checkpoint subject: **`Payment CP5: add admin cash record print photo approval`**. Resolve using `git log -1 --format='%h %s' --grep='Payment CP5:'`. Updated the [backup guide](checkpoint-backup-guide.md); no actual backup archive was created. **Next: CP6 only**, when requested. Cash intention codes are deferred to the reservation lifecycle, and void/refund/unassigned-cash exceptions remain later operational work.
+
+## CP6 — PayMongo and reconciliation (November 1, 2026)
+
+Starting commit `fb8d38a`. User confirmed retaining the existing 2.5% buyer fee, then explicitly requested CP6 review followed by CP7 in this turn. Applied Firebase authentication/rules review, UI/UX submission feedback and responsive design skills.
+
+- Replaced unauthenticated amount-driven checkout with durable server-quoted, owner-bound intents, shared active attempts and recovery of uncertain creation without repeating a provider POST.
+- Replaced the legacy webhook with a native Web Request adapter preserving original bytes, required test/live signatures, timestamp checks, durable inbox and atomic provider/economic deduplication.
+- Shared canonical posting credits principal once, separates buyer/provider fees, retains unmatched evidence, and supports admin retry, distinct-money allocation or linking an existing manual receipt without another credit.
+- Added customer checkout review/status and admin provider recovery/reconciliation UI; retired the two legacy browser checkout callers. Pending manual evidence blocks automatic provider credit; manual approval checks provider history.
+- Review fixed stale-owner returns (including ownership/mapping changes during provider calls), malformed-event identity poisoning, cross-checkout duplicate receipt disclosure, and missing retry/recovery/expiry audit records. Regression tests cover the fixes.
+- **127 tests passed**. CP6 plus CP5, CP4 and CP2/CP3 local Edge browser suites passed; desktop/mobile images inspected. These use synthetic provider/Firestore data. No real provider API/payment, Firebase SDK/emulator/rules, production environment, deployment or email was used.
+
+Read [CP6 implementation and activation gates](gateway-checkpoint.md). Both gateway flags default off. Changing a flag is insufficient: approved canonical quote/configuration, actual legacy writer retirement, rules/indexes and staging verification remain mandatory. Existing in-flight legacy sessions need reconciliation; they are not automatically migrated.
+
+Checkpoint subject: **`Payment CP6: secure PayMongo checkout and reconciliation`**. Find using `git log -1 --format='%h %s' --grep='Payment CP6:'`. CP7 is explicitly requested next. No remote push or backup archive was created.

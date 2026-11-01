@@ -17,8 +17,8 @@ This document identifies completed work, unfinished work and the information nee
 | CP2 | Account login, scoped reservation email links, private read-only history and responsive screens | Complete locally; activation disabled | `ddb7a78` | 43 tests and local browser checks passed at checkpoint |
 | CP3 | GCash/bank proof submission, capped private Firestore images, immutable corrections, pending status and demo QR | Complete locally; activation disabled | `26f8b3d` | 62 tests and local browser checks passed at checkpoint |
 | CP4 | Admin queue, evidence review, correction/rejection/reconciliation, canonical posting and customer ledger view | Complete locally; activation disabled | `f6230ff` | 84 tests and both local browser suites passed |
-| CP5 | Admin-only cash: record → print → photograph → approve | Complete locally; activation disabled | Resolve `Payment CP5:` using the command below | 102 tests and all three local browser suites passed |
-| CP6 | Secure PayMongo integration, provider validation and shared reconciliation | Not started | — | — |
+| CP5 | Admin-only cash: record → print → photograph → approve | Complete locally; activation disabled | `fb8d38a` | 102 tests and all three local browser suites passed |
+| CP6 | Secure PayMongo integration, provider validation and shared reconciliation | Complete locally; activation disabled | Resolve `Payment CP6:` by subject | 127 tests and all four browser suites passed |
 | CP7 | Deposit fulfillment, original reservation deadline, installment schedules and explicit release review | Not started | — | — |
 | CP8 | Notification delivery, reminders, reports/sheets/commissions, OCR and interface polish | Not started | — | — |
 | CP9 | Authorized migration, backup/restore, recovery, rules/indexes and release validation | Not started | — | — |
@@ -32,6 +32,7 @@ This document identifies completed work, unfinished work and the information nee
 ddb7a78 Payment CP2: add secure access and read-only payment views
 26f8b3d Payment CP3: add private manual proof submissions and demo QR
 f6230ff Payment CP4: add admin review and canonical manual posting
+fb8d38a Payment CP5: add admin cash record print photo approval
 ```
 
 The pre-payment baseline is `b5dd24e`. CP0 has no separate commit. To confirm these references in your copy:
@@ -39,11 +40,11 @@ The pre-payment baseline is `b5dd24e`. CP0 has no separate commit. To confirm th
 ```powershell
 git status --short
 git log --oneline --grep="Payment CP"
-git log -1 --format='%h %s' --grep='Payment CP5:'
+git log -1 --format='%h %s' --grep='Payment CP6:'
 git show --stat 26f8b3d
 ```
 
-CP5's hash is resolved by its unique subject because this guide is included in that same checkpoint commit.
+The latest checkpoint hash is resolved by its unique subject because this guide is included in that same checkpoint commit.
 
 ## Latest completed work and next implementation
 
@@ -51,19 +52,20 @@ CP4 adds the admin review API/interface, current transactional role checks, immu
 
 CP5 adds the four cash steps, immutable pending receipts and photos, cash-on-hand reconciliation, permanent register/reference uniqueness and shared canonical approval. The same admin may record and approve. See the [CP5 contract](cash-checkpoint.md).
 
-The next unimplemented checkpoint is **CP6: secure PayMongo integration and shared reconciliation**. CP6–CP9 remain unimplemented as listed above. CP5's local completion does not remove the production rules, migration, legacy-writer cutover, lifecycle and integration gates.
+The next checkpoint is **CP7: reservation and deposit lifecycle**, explicitly authorized after CP6 review. CP7–CP9 remain pending. CP6's local completion does not remove the production rules, migration, legacy-writer cutover, lifecycle and integration gates.
 
-The user confirmed during CP4: **credit the verified actual amount; retain any excess as unapplied credit**. This is the implemented default and is tested. Fees, penalty formulas, schedule generation and refunds remain separately gated.
+The user confirmed during CP4: **credit the verified actual amount; retain any excess as unapplied credit**. This is the implemented default and is tested. The CP6 2.5% buyer fee is confirmed; other fees, penalty formulas, schedule generation and refunds remain separately gated.
 
 ## Files to read before resuming
 
 | File | Purpose |
 |---|---|
 | [Payment blueprint](../../payment-feature-blueprint.md) | Confirmed business rules, target design, open decisions and acceptance scenarios |
-| [Checkpoint implementation log](checkpoints.md) | Detailed CP0–CP5 implementation and handoff records |
+| [Checkpoint implementation log](checkpoints.md) | Detailed CP0–CP6 implementation and handoff records |
 | [CP3 implementation contract](submission-checkpoint.md) | Evidence storage, schemas, limits, test results and activation requirements |
 | [CP4 implementation contract](review-checkpoint.md) | Admin decisions, canonical money, reconciliation and release gates |
 | [CP5 implementation contract](cash-checkpoint.md) | Cash steps, receipt identities, private photos, validation and release gates |
+| [CP6 implementation contract](gateway-checkpoint.md) | Authorized checkout, raw-body verification, provider reconciliation and activation gates |
 | [Rules review](access-rules-review.md) | Non-deployable Firestore review fragments and required integration tests |
 | This guide | Commit inventory, unfinished checkpoint and backup/restore procedure |
 

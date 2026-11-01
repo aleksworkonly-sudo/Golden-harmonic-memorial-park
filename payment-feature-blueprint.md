@@ -2,15 +2,15 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.6 · **Updated:** 2026-11-01 · Asia/Manila
+**Version:** 2.7 · **Updated:** 2026-11-01 · Asia/Manila
 
-**Status:** Design specification with CP0–CP5 implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, secure access, evidence submissions, admin principal posting and four-step cash workflow are implemented locally; the full payment feature is not live.
+**Status:** Design specification with CP0–CP6 implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, secure access, evidence submissions, admin principal posting and four-step cash workflow are implemented locally; the full payment feature is not live.
 
 **Current authorization:** The user selected Option A and explicitly authorized step-by-step application implementation on October 30. This supersedes the earlier blueprint-only edit boundary. Complete a tested checkpoint, save it and pause for review before the next feature. No production deployment, live payment or database migration is authorized by this checkpoint.
 
-**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md) and the [backup guide](docs/payments/checkpoint-backup-guide.md). CP0–CP3 establish the foundation, access and evidence; CP4 adds admin review, reconciliation, explicit principal allocations and canonical history. CP5 adds cash recording, provisional print, private printed-photo revisions and shared canonical approval. Activation remains disabled; CP6–CP9 are pending. Legacy financial writers/readers have not been cut over. Actual rules, contact versions, approved receiving/quote configuration, storage, canonical migration, writer cutover and staging remain activation gates. The demo QR is not a payment destination.
+**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md) and the [backup guide](docs/payments/checkpoint-backup-guide.md). CP0–CP3 establish the foundation, access and evidence; CP4 adds admin review, reconciliation, explicit principal allocations and canonical history. CP5 adds cash recording, provisional print, private printed-photo revisions and shared canonical approval. CP6 adds authorized PayMongo intents, required raw-body signatures, shared posting and provider reconciliation. Activation remains disabled; CP7–CP9 are pending. Legacy financial writers/readers have not been cut over. Actual rules, contact versions, approved receiving/quote configuration, storage, canonical migration, writer cutover and staging remain activation gates. The demo QR is not a payment destination.
 
-> This v2.6 specification retains the original baseline comparison and records authorized CP1–CP5 work. Confirmed decisions take precedence over legacy behavior and proposals. OBSERVED denotes repository findings, PROPOSED denotes future engineering requirements, and OPEN denotes unresolved policy. Consult checkpoint records for the current implementation rather than reading baseline tables as live inventories.
+> This v2.7 specification retains the original baseline comparison and records authorized CP1–CP6 work. Confirmed decisions take precedence over legacy behavior and proposals. OBSERVED denotes repository findings, PROPOSED denotes future engineering requirements, and OPEN denotes unresolved policy. Consult checkpoint records for the current implementation rather than reading baseline tables as live inventories.
 
 ## 1. Confirmed business decisions
 
@@ -34,6 +34,7 @@ The user confirmed the following during this review:
 | Post-deposit monthly amounts | **Explicitly deferred to business/accountant:** divide the remaining balance over the selected term, or retain the original monthly amount and shorten payoff |
 | 2% late-penalty formula | **Explicitly deferred to business/accountant:** calculation details remain undecided |
 | CP3 proof storage (confirmed October 31) | Capped private Firestore image documents for now; activation remains off. Technical caps and retention/operational gates are documented in the CP3 checkpoint. |
+| CP6 buyer fee (confirmed November 1) | Retain the existing **2.5% buyer fee** for PayMongo; keep it separate from principal and actual provider fees. |
 | CP5 approval separation (confirmed November 1) | The same admin may record and approve cash; every operation still requires current admin authority. |
 | CP4 verified amount | Credit the verified actual amount to outstanding principal; retain excess as unapplied credit. Per-item allocations are explicit; no penalty/fee/refund/schedule policy is inferred. |
 
@@ -166,7 +167,7 @@ These are observed source risks, not claims about exploited production vulnerabi
 - A canonical booking supports multiple plot items and preserves the legacy customer/presale source reference. Snapshot product price, discount, surcharge, deposit policy, schedule version and receiving-account version.
 - Normalize payment submissions, proof revisions and ledger entries; use stable IDs rather than timestamps or array position as new payment identities. Preserve legacy IDs during migration.
 - Pending proof never reduces the balance. OCR/reference/claimed amount are untrusted evidence. Admins verify actual receipt and record the actual received amount.
-- Separate principal/contract credit, penalties, buyer convenience fee, provider fee, settlement, unapplied credit and refund liability. The existing flat 2.5% checkout fee is observed code, not confirmed provider pricing.
+- Separate principal/contract credit, penalties, buyer convenience fee, provider fee, settlement, unapplied credit and refund liability. The user confirmed retaining the 2.5% buyer checkout fee for CP6; it is separate from actual provider fees and principal credit.
 - Posting transaction must couple payment deduplication, ledger allocations, booking/deposit state, receipt identity, applicable inventory state, audit and durable notification/outbox records. Send emails outside transaction callbacks.
 - Late/unmatched money on released bookings goes to reconciliation/refund review; it must not reclaim a new buyer's plot. Reversal/refund records link to original receipts rather than deleting history.
 - At three months, derive or enqueue staff review; do not implement the old lazy expiry, seven-day hold, automatic 48-hour reset or client reclaim logic.
@@ -647,7 +648,7 @@ The confirmed choices in Section 1 are settled. The following remain open; propo
 | Q07 | Receiving accounts/QRs, office location/hours, review turnaround and reminder timing? | Operations; avoid placeholder instructions or unapproved service promises |
 | Q08 | Does the deposit trigger first-payment agent/broker allocation on both manual and gateway receipts? How do reversals/refunds affect paid commissions? | Business/accountant; preserve historical snapshots until approved |
 | Q09 | Continue new cheque acceptance? What clearance/returned-cheque handling? | Business; historical cheque records remain supported |
-| Q10 | Buyer convenience fee by channel, provider settlement reconciliation, official receipt/invoice process and VAT applicability? | Business/accountant; current flat fee/tax code is observed, not confirmation |
+| Q10 | Provider settlement reconciliation, official receipt/invoice process, other channel fees and VAT applicability? | CP6 buyer fee confirmed at 2.5%; remaining accounting/tax details stay open |
 | Q11 | CP3 provider selected: capped private Firestore documents. Confirm operational caps, strict Spark requirement, retention/archive policy, backup/restore service and hosting budget before activation. | Business/operations; CP3 technical limits and Section 6 constrain options |
 | Q12 | Apply new terms only to new contracts or explicitly amend existing unpaid reservations? Active reservation/plot limits and eligible non-presale products? | Business; proposed safe migration preserves existing agreements |
 | Q13 | Co-owners/beneficiaries, cross-contract money transfer and at-need exceptions in initial scope? | Business; require explicit ownership/allocation policy before adding |
@@ -664,4 +665,8 @@ Before implementation, obtain the deployed Firestore rules/index inventory, appr
 - Proposed implementation, known source findings and unresolved business decisions are explicitly distinguished.
 - Requirement comparison and supplementary cash-module findings are recorded in Sections 3.1–3.2; A01–A39 are future acceptance cases, not executed tests. This review validates documentation consistency, not production readiness.
 - The initial review changed **only `payment-feature-blueprint.md`**. The user subsequently authorized Option A implementation; the CP0/CP1 source changes and validation are recorded in `docs/payments/checkpoints.md`.
-- Current handoff: CP5 has 102 passing tests and all three local browser suites, adding same-admin cash recording, provisional print attempts, private immutable receipt photos and canonical approval with held-cash reconciliation. See [CP5 contract](docs/payments/cash-checkpoint.md). Review this checkpoint, then continue with CP6 PayMongo/reconciliation when requested. Policy, deployed-rule, contact-version, provisioning, storage, legacy-writer/read-model cutover, integration and migration gates remain. No deployment or migration is authorized. The backup guide distinguishes completed source checkpoints from unimplemented work and production gates.
+- Historical CP5 handoff: CP5 has 102 passing tests and all three local browser suites, adding same-admin cash recording, provisional print attempts, private immutable receipt photos and canonical approval with held-cash reconciliation. See [CP5 contract](docs/payments/cash-checkpoint.md). Review this checkpoint, then continue with CP6 PayMongo/reconciliation when requested. Policy, deployed-rule, contact-version, provisioning, storage, legacy-writer/read-model cutover, integration and migration gates remain. No deployment or migration is authorized. The backup guide distinguishes completed source checkpoints from unimplemented work and production gates.
+
+### CP6 implementation update — November 1
+
+CP6 replaces the unsafe legacy checkout/webhook routes with separately disabled authorized intents and exact-byte signature verification. Principal, the confirmed 2.5% buyer fee and actual provider fees are separate; events/payment identities deduplicate through canonical posting. Uncertain creation requires recovery of the original session, and unmatched or overlapping money remains in admin reconciliation. Customer return URLs never establish paid status. See [CP6 contract](docs/payments/gateway-checkpoint.md) for current capabilities, cutover impact and release gates. **127 local tests and all four browser suites passed.** CP7 is explicitly authorized next; its installment amount and penalty formulas remain gated.

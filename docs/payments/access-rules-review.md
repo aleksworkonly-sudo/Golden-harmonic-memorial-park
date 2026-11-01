@@ -56,3 +56,11 @@ Cash queue indexes: `payments`, collection scope, `schemaVersion ASC` plus each 
 Cash shares the existing proof budget; account for all retained transfer/cash revisions in provisioning and recovery. Test actual rules against anonymous/owner/other-owner/guest/staff/admin direct access, role revocation during replay, print/photo/snapshot identity mismatches, concurrent recording/approval/photo replacement, register/reference collision across bookings, exhausted storage retaining cash, and exactly-once held-to-posted reconciliation. Local tests include these domain cases but do not certify the deployed rules or SDK. No production rules/indexes were accessed or deployed.
 
 See [CP5 contract and operational gates](cash-checkpoint.md). The skill-directed reviewer identified snapshot-versus-posting and cross-record receipt identity checks; both were added with negative tests. `legacyWritesBlocked` remains an assertion; legacy writer retirement and migration still gate release.
+
+## CP6 provider additions — not deployable rules
+
+Deny all browser access (including admin clients) to `paymentIntents/**`, `providerEvents/**`, `providerSessionBindings/**`, `providerIntentBindings/**` and `providerReceiptLinks/**`. Continue server-only economic/operation/ledger/receipt/audit/outbox scopes. Protect server quote allocations, `gatewayActiveId`, `gatewayHistory`, provider environment/account binding and receiving accounts. No collection-specific deny overrides an overlapping broad allow.
+
+Merge indexes for `paymentIntents`: submissionScope ASC, createdAt DESC, intentId DESC; admin attempts: providerAccountId ASC, environment ASC, createdAt DESC, intentId DESC. `providerEvents`: providerAccountId ASC, environment ASC, createdAt DESC, eventKey DESC. Confirm actual query inventory before deployment. Exempt unqueried evidence/quote snapshots and private checkout URLs from indexing; no raw signed bodies/card data are retained.
+
+Run deployed-rules/SDK negatives and concurrency tests, and staging tests for the `.mjs` named POST Web Request raw bytes, correct test/live keys, crash recovery, authentic provider events, duplicate event types, owner/role races and legacy overlap. Skill-directed review found and fixed owner return races, invalid evidence poisoning, conflicting duplicates and missing admin audit. Local tests are not deployed-rule certification.

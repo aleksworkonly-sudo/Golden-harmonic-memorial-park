@@ -69,7 +69,7 @@
   ];
 
   const METHODS = [
-    { id: 'paymongo', label: 'Pay Online with PayMongo', hint: 'Instant ₱5,000/plot reservation fee via GCash, Maya, or Card.' },
+    { id: 'paymongo', label: 'Pay Online with PayMongo', hint: 'Verify your reservation email, then review available online deposit options.' },
     { id: 'cash', label: 'Cash', hint: 'Pay in person at our office.' },
     { id: 'gcash', label: 'GCash', hint: 'Send to our GCash account.' },
     { id: 'bank', label: 'Bank transfer', hint: 'Deposit or transfer to our bank account.' },
@@ -551,35 +551,8 @@
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.ok) {
           if (method === 'paymongo') {
-            const depositAmount = 5000 * allLots.length;
-            try {
-              const pmRes = await fetch('/api/paymongo-checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  type: 'presale_reservation',
-                  amount: depositAmount,
-                  description: `Plot Reservation Deposit (${allLots.length} plot${allLots.length > 1 ? 's' : ''}) - Ref ${data.ref}`,
-                  presaleRef: data.ref,
-                  customerName: form.name,
-                  customerEmail: form.email,
-                  customerPhone: form.mobile,
-                  plotCode: allLots.map((l) => code(l.block, l.lot)).join(', '),
-                  plots: allLots.map((l) => ({ blockId: l.block, lotNo: l.lot, plotCode: code(l.block, l.lot) }))
-                })
-              });
-              const pmData = await pmRes.json().catch(() => ({}));
-              if (pmRes.ok && pmData.checkoutUrl) {
-                window.location.href = pmData.checkoutUrl;
-                return;
-              } else if (pmData.error) {
-                setError('Reservation created (' + data.ref + '), but payment session could not be opened: ' + pmData.error);
-                setDone(data);
-                return;
-              }
-            } catch (pmErr) {
-              console.warn('[presale] PayMongo checkout redirect error:', pmErr);
-            }
+            window.location.assign('/my-payments.html?mode=reservation&ref=' + encodeURIComponent(data.ref));
+            return;
           }
           setDone(data);
           return;

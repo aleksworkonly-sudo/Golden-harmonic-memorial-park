@@ -10,7 +10,7 @@
     if(!Number.isSafeInteger(n)) throw Error('Amount is too large.');return n;
   };
   const open=(p)=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(p.status);
-  const fresh=()=>({action:'request_correction',reason:'',buyerNote:'',amount:'',receivedAt:'',reference:'',funds:false,noFunds:false,allocations:{}});
+  const fresh=()=>({action:'request_correction',reason:'',buyerNote:'',amount:'',receivedAt:'',reference:'',funds:false,noFunds:false,gatewayReviewed:false,allocations:{}});
   function App() {
     const [enabled,setEnabled]=useState(null),[signed,setSigned]=useState(false),[email,setEmail]=useState(''),[password,setPassword]=useState('');
     const [rows,setRows]=useState([]),[cursor,setCursor]=useState(null),[filters,setFilters]=useState({status:'pending_verification',channel:'',sourceId:'',from:'',to:'',ageDays:0});
@@ -71,7 +71,7 @@
         if(form.action==='approve') {
           if(!b || detail.blocker)throw Error(detail.blocker || 'The booking needs review.');
           Object.assign(cmd,{expectedBookingVersion:b.version,allocations:b.items.map((item)=>({itemId:item.itemId,centavos:money(form.allocations[item.itemId] || '0')})).filter((item)=>item.centavos>0),
-            unappliedCentavos:Math.max(0,cmd.receivedCentavos-b.balanceCentavos)});
+            gatewayReviewed:form.gatewayReviewed,unappliedCentavos:Math.max(0,cmd.receivedCentavos-b.balanceCentavos)});
           if(cmd.allocations.reduce((sum,item)=>sum+item.centavos,0)!==Math.min(cmd.receivedCentavos,b.balanceCentavos))throw Error('Plot allocations must equal the principal amount being credited.');
         }
         setUncertain(false);setCommand(cmd);
@@ -113,6 +113,7 @@
                 !uncertain&&h('button',{className:'pv-secondary',disabled:busy,onClick:()=>setCommand(null)},'Back to review'))):
             h(React.Fragment,null,h('p',{className:'pv-status'},p.status.replaceAll('_',' ')),h('p',null,`Claimed ${peso(p.claimedCentavos)} · expected ${peso(p.quote.expectedAmountCentavos)} · ${p.quote.purpose}`),
               h('p',null,`Reference ${p.reference} · transfer date ${p.transferDate}`),h('p',{className:'pr-meta'},`${p.quote.label} · ${p.quote.accountName} · ${p.quote.accountNumber}`),
+              detail.gatewayActiveId&&h('p',{className:'pv-notice pv-warning'},'An open PayMongo attempt needs recovery or expiry before this transfer can post. Use Provider reconciliation.'),
               detail.possibleDuplicate&&h('p',{className:'pv-notice pv-warning'},'Another claim uses this receiving account/reference. Check actual funds and existing receipts; pending claims are not proof of duplication.'),
               detail.blocker&&h('p',{className:'pv-notice pv-warning'},detail.blocker),
               detail.reconciliation&&h('p',{className:'pv-notice'},detail.reconciliation.fundsConfirmed?`Received money held for reconciliation: ${peso(detail.reconciliation.received.receivedCentavos)}.`:'This case is awaiting reconciliation.'),
@@ -126,6 +127,7 @@
                 ['approve','reconcile'].includes(form.action)&&h(React.Fragment,null,checkbox('review-funds','I checked the statement and confirmed that these funds were received.','funds'),
                   (form.action==='approve'||form.funds)&&h(React.Fragment,null,field('review-amount','Actual amount received (₱)','amount','text',{required:true,inputMode:'decimal'}),
                     field('review-received','Actual received date/time (Philippines)','receivedAt','datetime-local',{required:true}),field('review-reference','Statement reference','reference','text',{required:true,maxLength:160}))),
+                form.action==='approve'&&detail.gatewayReviewRequired&&checkbox('review-gateway','I reviewed provider history and confirmed this transfer is separate money, not a PayMongo screenshot.','gatewayReviewed'),
                 form.action==='reject'&&checkbox('review-no-funds','I checked and found no received funds for this claim.','noFunds'),
                 form.action==='approve'&&b&&h('fieldset',{className:'pr-fieldset'},h('legend',null,'Allocate principal credit to plots'),h('p',null,'Allocate the verified amount up to the outstanding principal. Any excess is retained as unapplied credit.'),
                   b.items.map((item)=>h('div',{className:'pv-field',key:item.itemId},h('label',{htmlFor:`allocation-${item.itemId}`},`${item.plotId} — remaining ${peso(item.totalCentavos-item.creditCentavos)}`),
