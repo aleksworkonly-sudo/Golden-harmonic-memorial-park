@@ -5577,7 +5577,7 @@ function Dashboard({
     className: "sidebar-section"
   }, "Management"), /*#__PURE__*/React.createElement("nav", {
     className: "sidebar-nav"
-  }, visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
+  }, isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-review.html"},"Manual payment review"), visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
     key: t.id,
     className: `nav-item ${tab === t.id ? 'active' : ''}`,
     onClick: () => selectTab(t.id)

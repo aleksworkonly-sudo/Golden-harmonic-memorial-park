@@ -72,6 +72,7 @@ table { width:100%; border-collapse:collapse; font-size:15px; }
 th { text-align:left; color:var(--pv-muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
 td,th { padding:14px 10px; border-bottom:1px solid #e6e2d7; vertical-align:top; }
 .pv-amount { text-align:right; white-space:nowrap; }
+.pv-unapplied { display:block; font-size:12px; white-space:normal; }
 .pv-account { width:100%; text-align:left; justify-content:space-between; gap:12px; margin:8px 0; }
 .pv-skip { position:absolute; top:-100px; left:20px; padding:12px; background:white; z-index:10; }
 .pv-skip:focus { top:8px; }

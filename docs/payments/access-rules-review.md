@@ -1,4 +1,12 @@
-# CP2 access controls — review artifact, not deployment rules
+# CP2–CP4 access controls — review artifact, not deployment rules
+
+## CP4 canonical money and review additions
+
+Extend the composed server-only boundary to `paymentReconciliations/**`, `bookings/**`, `receipts/**`, `ledgerEntries/**`, `economicPayments/**` and `operationKeys/**`. No admin-browser exception. Protect audit/outbox/notification writes, canonical source links, scope/recipient versions and plot booking/ownership-version fields. A `legacyWritesBlocked` flag does not block existing writers; actually retire or route them through reviewed rules/endpoints before enabling a source.
+
+Queue indexes consist of schemaVersion plus each supported combination of equality filters (status, channel, sourceId), followed by submittedAt ASC/paymentId ASC; date/age inequalities use submittedAt. Canonical history needs bookingId ASC/recordedAt DESC/receiptId DESC. Duplicate observations use referenceClaims.claimKey. Keep proof base64 exempt and exempt unqueried large reconciliation/audit text after reviewing the complete inventory.
+
+Emulator gates include role removal during reads/idempotent replay, two admins, competing CP1/CP4 economic claims, correction versus approval, source/plot changes, opening/item invariants, held-money reconciliation, terminal counters and canonical customer/guest cutover. See [CP4 implementation and limits](review-checkpoint.md). The fragments below remain non-deployable review notes.
 
 This fragment is deliberately outside the root Firebase configuration. It is NOT a complete ruleset and must not replace the deployed rules. The `.agents` Firebase authentication skill's rules-author review recommended this boundary.
 

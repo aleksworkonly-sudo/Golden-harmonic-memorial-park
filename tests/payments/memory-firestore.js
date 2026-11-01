@@ -11,8 +11,8 @@ class Query {
     Object.assign(this, { db, collection, options });
   }
   where(field, operator, value) {
-    if (operator !== '==') throw new Error('Unsupported test query');
-    return new Query(this.db, this.collection, { ...this.options, filter: [field, value] });
+    if (!['==','>=','<=','<','>'].includes(operator)) throw new Error('Unsupported test query');
+    return new Query(this.db, this.collection, { ...this.options, filters:[...(this.options.filters || []), [field, operator, value]] });
   }
   orderBy(field, direction) {
     return new Query(this.db, this.collection, { ...this.options,
@@ -50,7 +50,7 @@ class MemoryFirestore {
         get: async (reference) => {
           if (writes.length) throw new Error('Read after write in transaction');
           if (!(reference instanceof Query)) return read(reference.path);
-          const { filter, order = [], cursor, limit = Infinity } = reference.options;
+          const { filters = [], order = [], cursor, limit = Infinity } = reference.options;
           const compare = (a, b) => {
             for (const [field, direction] of order) {
               const diff = a[field] === b[field] ? 0 : a[field] < b[field] ? -1 : 1;
@@ -60,7 +60,8 @@ class MemoryFirestore {
           };
           let rows = [...this.records].filter(([path, data]) =>
             path.startsWith(`${reference.collection}/`) && path.split('/').length === reference.collection.split('/').length + 1 &&
-            (!filter || data[filter[0]] === filter[1]));
+            filters.every(([field,operator,value])=>({ '==':()=>data[field]===value, '>=':()=>data[field]>=value,
+              '<=':()=>data[field]<=value, '<':()=>data[field]<value, '>':()=>data[field]>value })[operator]()));
           rows.sort((a, b) => compare(a[1], b[1]));
           if (cursor) {
             const anchor = Object.fromEntries(order.map(([field], index) => [field, cursor[index]]));

@@ -41,6 +41,7 @@
       data.warnings.map((warning, index) => h('p', { key:index, className:'pv-notice pv-warning' }, warning)),
       h('dl', { className:'pv-stats' }, [['Contract total',data.totalCentavos],['Recorded payments',data.paidCentavos],['Remaining balance',data.balanceCentavos]].map(([label,value]) =>
         h('div', { className:'pv-stat', key:label }, h('dt', null, label), h('dd', null, peso(value))))),
+      data.unappliedCentavos > 0 && h('p', {className:'pv-notice'},`Unapplied credit: ${peso(data.unappliedCentavos)}. This excess is retained separately for office review; it is not lost or deducted twice.`),
       h('section', { className:'pv-card' }, h('h2', null, 'Your next obligation'),
         h('p', { className:'pv-muted' }, 'Dates below come from your existing record. If a date is not available, the office will confirm it.'),
         h('dl', { className:'pv-dates' }, h('div', null, h('dt', null, data.planLabel === 'Spot cash' ? 'Spot-cash balance deadline' : 'Deposit deadline'), h('dd', null, date(data.deadlineDate))),
@@ -54,7 +55,7 @@
               h('thead', null, h('tr', null, h('th', { scope:'col' }, 'Date'), h('th', { scope:'col' }, 'Reference'), h('th', { scope:'col', className:'pv-amount' }, 'Amount'))),
               h('tbody', null, data.entries.map((entry) => h('tr', { key:entry.id }, h('td', null, date(entry.date)),
                 h('td', null, entry.reference || 'Office record', h('div', { className:'pv-muted' }, entry.reversal ? 'Reversal' : entry.method)),
-                h('td', { className:'pv-amount' }, peso(entry.amountCentavos))))))),
+                h('td', { className:'pv-amount' }, peso(entry.amountCentavos),entry.unappliedCentavos > 0 && h('small',{className:'pv-unapplied'},`Plus ${peso(entry.unappliedCentavos)} unapplied`))))))),
         data.nextCursor && h('button', { className:'pv-secondary pv-block', disabled:busy, onClick:loadMore }, 'Load earlier payments')),
       h('p', { className:'pv-muted' }, 'This page shows your records. Contact the office for payment assistance or corrections.'));
   }

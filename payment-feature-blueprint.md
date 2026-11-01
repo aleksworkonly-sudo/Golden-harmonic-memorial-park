@@ -2,15 +2,15 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.4 · **Updated:** 2026-10-31 · Asia/Manila
+**Version:** 2.5 · **Updated:** 2026-11-01 · Asia/Manila
 
-**Status:** Design specification with CP0–CP3 implementation checkpoints. Business decisions marked OPEN are release gates, not approved defaults. The foundation, gated access/screens and pending manual evidence submissions are implemented; the full payment feature is not live.
+**Status:** Design specification with CP0–CP4 implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, access, evidence submissions and gated admin/canonical principal posting are implemented locally; the full payment feature is not live.
 
 **Current authorization:** The user selected Option A and explicitly authorized step-by-step application implementation on October 30. This supersedes the earlier blueprint-only edit boundary. Complete a tested checkpoint, save it and pause for review before the next feature. No production deployment, live payment or database migration is authorized by this checkpoint.
 
-**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md). CP0 captures the baseline; CP1 adds internal server libraries; CP2 adds secure account/guest access; CP3 adds pending manual submissions, private Firestore proofs, immutable revisions and the decorative demo QR. Activation remains disabled. CP4–CP9 remain pending. Existing financial posting routes do not yet use the new foundation. CP2 retires the reference/mobile tracker endpoint. Rules, contact versions, approved receiving/quote configuration, storage budget, staging and CP4 review/posting are activation gates. The demo QR is not a real payment destination.
+**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md) and the [backup guide](docs/payments/checkpoint-backup-guide.md). CP0–CP3 establish the foundation, access and evidence; CP4 adds admin review, reconciliation, explicit principal allocations and canonical history. Activation remains disabled; CP5–CP9 are pending. Legacy financial writers/readers have not been cut over. Actual rules, contact versions, approved receiving/quote configuration, storage, canonical migration, writer cutover and staging remain activation gates. The demo QR is not a payment destination.
 
-> This v2.4 specification retains the original design and baseline comparison, and records the authorized CP1–CP3 work. Confirmed user decisions take precedence over source-code behavior and prior proposals. OBSERVED means found in repository source; PROPOSED means a future engineering requirement; OPEN means unresolved and must not be silently implemented. Unless identified as confirmed, observed, or implemented in the checkpoint record, the requirements below describe proposed future implementation.
+> This v2.5 specification retains the original baseline comparison and records authorized CP1–CP4 work. Confirmed decisions take precedence over legacy behavior and proposals. OBSERVED denotes repository findings, PROPOSED denotes future engineering requirements, and OPEN denotes unresolved policy. Consult checkpoint records for the current implementation rather than reading baseline tables as live inventories.
 
 ## 1. Confirmed business decisions
 
@@ -34,6 +34,7 @@ The user confirmed the following during this review:
 | Post-deposit monthly amounts | **Explicitly deferred to business/accountant:** divide the remaining balance over the selected term, or retain the original monthly amount and shorten payoff |
 | 2% late-penalty formula | **Explicitly deferred to business/accountant:** calculation details remain undecided |
 | CP3 proof storage (confirmed October 31) | Capped private Firestore image documents for now; activation remains off. Technical caps and retention/operational gates are documented in the CP3 checkpoint. |
+| CP4 verified amount | Credit the verified actual amount to outstanding principal; retain excess as unapplied credit. Per-item allocations are explicit; no penalty/fee/refund/schedule policy is inferred. |
 
 Wording must distinguish “no percentage down payment” from the retained **credited reservation deposit**. Do not advertise that there is no initial payment, charge the deposit on top of the contract total, or count its credit twice.
 
@@ -294,7 +295,7 @@ The oldest-first queue supports status, channel, client, date and age filters, w
 
 Admin checks reference/evidence, actual receiving account, actual credited amount and funds received in the bank/GCash account. Mismatched amounts require an explicit reconciliation decision; do not require a false “amount exactly matches” checkbox. Record `receivedAt`, actual amount, actor, evidence revision and reason for exceptions.
 
-Actions: verify, reject with reason, request resubmission with note. Accepting a partial payment requires a defined policy; real received money that cannot be applied normally is recorded as unapplied money/exception rather than erased by rejecting its screenshot. Refunds are separately authorized financial actions.
+Actions: verify, reject with reason, request resubmission with note, or retain in reconciliation. The CP4-confirmed policy credits verified actual money up to outstanding principal and retains excess as unapplied credit. Actual money that cannot be posted safely is retained as a confirmed-funds reconciliation exception, not erased by rejection. Deposit fulfillment and installment scheduling still require CP7; refunds remain separately authorized financial actions.
 
 ### 9.3 Cash and existing cheques
 
@@ -662,4 +663,4 @@ Before implementation, obtain the deployed Firestore rules/index inventory, appr
 - Proposed implementation, known source findings and unresolved business decisions are explicitly distinguished.
 - Requirement comparison and supplementary cash-module findings are recorded in Sections 3.1–3.2; A01–A39 are future acceptance cases, not executed tests. This review validates documentation consistency, not production readiness.
 - The initial review changed **only `payment-feature-blueprint.md`**. The user subsequently authorized Option A implementation; the CP0/CP1 source changes and validation are recorded in `docs/payments/checkpoints.md`.
-- Current handoff: CP3 has 62 passing tests and local browser validation, including private proof submission/corrections and the demo QR. Review this checkpoint, then continue with CP4 admin review and manual posting when requested. Applicable policy, deployed-rule, contact-version, quote/recipient provisioning, storage, integration and migration gates still apply; no deployment or migration has been authorized. Consult the checkpoint record for current implementation rather than treating earlier baseline tables as current code inventory.
+- Current handoff: CP4 has 84 passing tests and both local browser suites, including admin decisions, actual/excess principal posting, reconciliation and canonical customer history. Review this checkpoint, then continue with CP5 cash when requested. Policy, deployed-rule, contact-version, provisioning, storage, legacy-writer/read-model cutover, integration and migration gates remain. No deployment or migration is authorized. The backup guide distinguishes completed source checkpoints from unimplemented work and production gates.

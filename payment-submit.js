@@ -147,12 +147,14 @@
             !rows.length && h('p', { className:'pv-muted' },'No online proof submissions yet.'),
             rows.map((row) => h('article', { key:row.paymentId,className:'ps-case' },h('h4', null,`${labels[row.quote.purpose]} · ${peso(row.claimedCentavos)}`),
               h('p', { className:'ps-id' },row.paymentId),h('p', { className:'pv-status' },row.status.replaceAll('_',' ')),
-              h('p', null,`${row.reference} · ${row.transferDate} · Revision ${row.version}`),
+              h('p', null,`${row.reference} · ${row.transferDate} · Revision ${row.evidenceRevisionCount}`),
+              row.buyerNote && h('p', {className:'pv-notice'},row.buyerNote),
+              row.receiptId && h('p', null,`Acknowledgement ${row.receiptId} · Received ${peso(row.receivedCentavos)}. Refresh payment history for the current credited balance.`),
               h('div', { className:'pv-actions' },h('button', { className:'pv-secondary',disabled:busy,onClick:() => run(() => api('proof',{paymentId:row.paymentId,revisionId:row.revisionId}),
                 (result) => setShownProof({id:row.paymentId,url:`data:image/jpeg;base64,${result.base64}`})) },'View proof'),
                 ['pending_verification','resubmit_requested'].includes(row.status) && options.offers.some((item) => item.id === row.quote.id) && h('button', { className:'pv-secondary',disabled:busy,onClick:() => start(row) },'Correct submission')),
-              row.version > 1 && h('details', { className:'ps-proof' },h('summary', null,'Earlier proof revisions'),
-                h('div', { className:'pv-actions' },Array.from({length:Math.min(row.version - 1,9)},(_,index) => h('button', {
+              row.evidenceRevisionCount > 1 && h('details', { className:'ps-proof' },h('summary', null,'Earlier proof revisions'),
+                h('div', { className:'pv-actions' },Array.from({length:Math.min(row.evidenceRevisionCount - 1,9)},(_,index) => h('button', {
                   key:index,className:'pv-secondary',disabled:busy,onClick:() => run(() => api('proof',{paymentId:row.paymentId,revisionId:`r${index+1}`}),
                     (result) => setShownProof({id:row.paymentId,url:`data:image/jpeg;base64,${result.base64}`}))
                 },`View revision ${index+1}`)))),

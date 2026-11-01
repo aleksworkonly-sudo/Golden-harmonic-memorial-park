@@ -1,5 +1,7 @@
 # Payment implementation checkpoints
 
+For saved commit references, unfinished work and backup/restore steps, see the [checkpoint backup guide](checkpoint-backup-guide.md).
+
 ## Working agreement
 
 The user selected Option A and authorized application implementation on October 30, 2026 (Asia/Manila). Implement one reviewable feature at a time, validate it, save a checkpoint, then pause before the next feature. This supersedes the earlier blueprint-only edit restriction. It does not authorize production deployment, a live payment, migration, or database changes.
@@ -14,7 +16,7 @@ The requested payment QR is a random decorative **demo image**, created with the
 | CP1 | Internal shared payment foundation and isolated tests | Complete; checkpoint `4102bc3` |
 | CP2 | Account/guest access and read-only payment screens | Implemented and tested locally; activation remains disabled pending the gates below |
 | CP3 | Manual GCash/bank submission, private proofs and demo QR | Implemented and tested locally; disabled pending activation gates |
-| CP4 | Admin review/corrections and end-to-end manual posting | Not started |
+| CP4 | Admin review/corrections and end-to-end manual posting | Implemented and tested locally; disabled pending canonical cutover and activation gates |
 | CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Not started |
 | CP6 | Secure PayMongo integration and shared reconciliation | Not started |
 | CP7 | Deposit, reservation deadlines, schedules and review lifecycle | Not started |
@@ -150,4 +152,19 @@ Starting commit `ddb7a78`, clean working tree. The user authorized CP3 and selec
 
 Read [CP3 implementation, schemas, limits and activation requirements](submission-checkpoint.md) before resuming. New environment flag: `PAYMENT_SUBMISSIONS_ENABLED`, disabled by default and dependent on the full CP2 configuration. No environment credentials, production data or deployment was touched. Receiving-account/offer/budget provisioning remains a separately authorized task; previews must never be imported into production.
 
-Checkpoint subject: **`Payment CP3: add private manual proof submissions and demo QR`**; find with `git log -1 --format='%h %s' --grep='Payment CP3:'`. **Next checkpoint: CP4 only**, after review. Keep admin-only manual recording/approval and all confirmed business rules; do not infer Q01/Q02 or enable live collection by changing a flag.
+Checkpoint subject: **`Payment CP3: add private manual proof submissions and demo QR`**; find with `git log -1 --format='%h %s' --grep='Payment CP3:'`. CP4 was subsequently requested; its result follows below. Keep all confirmed rules; do not infer Q01/Q02 or enable live collection by changing a flag.
+
+## CP4 — admin review and canonical posting (November 1, 2026)
+
+Starting commit `26f8b3d`. The user authorized CP4 and confirmed crediting the verified actual amount, retaining excess as unapplied credit. During implementation the user also requested the [checkpoint backup guide](checkpoint-backup-guide.md), which tracks completed/pending work and source backup/restore steps; no backup archive or remote push was created.
+
+- Added admin-only oldest-first filtered/paginated queue, current/previous private proof review, correction/rejection/reconciliation and confirmed principal approval with explicit per-plot allocations. Internal reasons remain separate from buyer notes.
+- Added transactional current-role, case/evidence, source/quote/recipient, canonical contract, opening-credit and plot-ownership checks. Receipt, ledger, item/booking credit, unapplied money, case/counter, economic key, audit, notification and dormant outbox commit together.
+- Canonical source routing and customer/guest history avoid combining legacy and new representations. It requires approved schema-4 booking/source/plot mappings and reconciled opening balances; no mapping or migration was provisioned. `legacyWritesBlocked` is only an assertion until actual legacy rules/writers are changed.
+- Confirmed funds can be held in reconciliation without credit, then resolved into one receipt with the same economic identity. All terminal actions close existing reconciliation records and counters once. CP1/CP4 share permanent manual-transfer keys.
+- Split evidence revision counts from admin decision versions. Customer corrections retain prior proof and no longer lose their allowance through admin actions. Reference warnings cannot be hidden by the case's own ten revisions.
+- **84 tests passed**, plus CP4 and CP2/CP3 local Edge browser suites and inspected desktop/mobile previews. Real Firebase emulator/rules/indexes, migration/cutover, provider integration and production validation remain gates.
+
+Read [CP4 implementation, canonical schema and activation limits](review-checkpoint.md). New flag: `PAYMENT_REVIEW_ENABLED`, off by default and dependent on CP2 configuration. No deployment, live payment, email, production data/configuration or environment-file change occurred. Schedules, deposit lifecycle, refunds, penalties and automatic plot release remain outside CP4.
+
+Checkpoint subject: **`Payment CP4: add admin review and canonical manual posting`**. Resolve with `git log -1 --format='%h %s' --grep='Payment CP4:'`. **Next checkpoint: CP5 only**, after review.

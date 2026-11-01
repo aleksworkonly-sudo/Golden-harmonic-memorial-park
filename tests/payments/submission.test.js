@@ -129,7 +129,7 @@ test('missing budget, daily/revision caps and future dates reject without change
   await assert.rejects(f.core.submit(f.account,cmd),{code:'SUBMISSION_LIMIT'});
   await assert.rejects(f.core.submit(f.account,{...cmd,transferDate:'2026-11-01'}),{code:'INVALID_DATE'});
   f.db.put(`paymentSubmissionScopes/${f.key}`,{...f.db.read(`paymentSubmissionScopes/${f.key}`),dayCount:0});
-  const saved=await f.core.submit(f.account,cmd);const path=`payments/${saved.paymentId}`;f.db.put(path,{...f.db.read(path),version:10});
+  const saved=await f.core.submit(f.account,cmd);const path=`payments/${saved.paymentId}`;f.db.put(path,{...f.db.read(path),version:10,evidenceRevisionCount:10});
   await assert.rejects(f.core.submit(f.account,{...cmd,requestId:'request-0000000002',paymentId:saved.paymentId,expectedVersion:10}),{code:'SUBMISSION_LIMIT'});
 });
 
