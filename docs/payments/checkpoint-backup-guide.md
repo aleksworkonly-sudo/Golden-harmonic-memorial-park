@@ -10,6 +10,8 @@ This document identifies completed work, unfinished work and the information nee
 
 ## Checkpoint inventory
 
+The [presale QR/proof integration](presale-qr-checkpoint.md) is a subsequent local implementation. Include its source, tests, disabled QR manifest and placeholder asset in the next code checkpoint. It has not enabled real receiving accounts, migrated historical data or been deployed.
+
 After CP9, include the [Vercel function-limit fix](vercel-routing.md) in your
 next code backup. It consolidates deployment wrappers while preserving the
 checkpoint APIs and workflows. The original CP9 commit alone still exceeds

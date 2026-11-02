@@ -93,7 +93,7 @@
       h(React.Fragment,null,h('div',{className:'pv-actions'},h('button',{className:'pv-secondary',onClick:()=>{clear();window.auth?.signOut();}},'Sign out'),
         h('button',{className:'pv-secondary',disabled:busy || !!command,onClick:()=>loadQueue()},'Refresh queue')),
         h('section',{className:'pv-card'},h('h2',null,'Find a submission'),h('form',{className:'pr-filters',onSubmit:(e)=>{e.preventDefault();loadQueue(false,filters);}},
-          ...[['status','Status',['pending_verification','resubmit_requested','needs_reconciliation','verified','rejected']],['channel','Channel',['bank','gcash']]].map(([key,label,values])=>h('div',{key,className:'pv-field'},h('label',{htmlFor:`filter-${key}`},label),h('select',{id:`filter-${key}`,value:filters[key],disabled:!!command,onChange:(e)=>setFilters({...filters,[key]:e.target.value})},h('option',{value:''},'All'),values.map((value)=>h('option',{key:value,value},value.replaceAll('_',' ')))))),
+          ...[['status','Status',['pending_verification','resubmit_requested','needs_reconciliation','verified','rejected']],['channel','Channel',['bank','gcash','maya']]].map(([key,label,values])=>h('div',{key,className:'pv-field'},h('label',{htmlFor:`filter-${key}`},label),h('select',{id:`filter-${key}`,value:filters[key],disabled:!!command,onChange:(e)=>setFilters({...filters,[key]:e.target.value})},h('option',{value:''},'All'),values.map((value)=>h('option',{key:value,value},value.replaceAll('_',' ')))))),
           ...[['sourceId','Account / reservation ID','text'],['from','Submitted from','date'],['to','Submitted through','date'],['ageDays','At least this many days old','number']].map(([key,label,type])=>h('div',{key,className:'pv-field'},h('label',{htmlFor:`filter-${key}`},label),h('input',{id:`filter-${key}`,type,value:filters[key],min:0,disabled:!!command,onChange:(e)=>setFilters({...filters,[key]:key==='ageDays'?Number(e.target.value):e.target.value})}))),
           h('button',{className:'pv-primary',disabled:busy || !!command},'Apply filters'))),
         h('div',{className:'pr-grid'},h('section',{className:'pv-card'},h('h2',null,'Oldest first'),!rows.length&&h('p',null,'No submissions match these filters.'),
@@ -113,6 +113,7 @@
                 !uncertain&&h('button',{className:'pv-secondary',disabled:busy,onClick:()=>setCommand(null)},'Back to review'))):
             h(React.Fragment,null,h('p',{className:'pv-status'},p.status.replaceAll('_',' ')),h('p',null,`Claimed ${peso(p.claimedCentavos)} · expected ${peso(p.quote.expectedAmountCentavos)} · ${p.quote.purpose}`),
               h('p',null,`Reference ${p.reference} · transfer date ${p.transferDate}`),h('p',{className:'pr-meta'},`${p.quote.label} · ${p.quote.accountName} · ${p.quote.accountNumber}`),
+              p.payerName && h('p',null,`Wallet account: ${p.payerName} · ${p.payerMobile} · ${p.transferTime} (Philippines)`),
               detail.gatewayActiveId&&h('p',{className:'pv-notice pv-warning'},'An open PayMongo attempt needs recovery or expiry before this transfer can post. Use Provider reconciliation.'),
               detail.possibleDuplicate&&h('p',{className:'pv-notice pv-warning'},'Another claim uses this receiving account/reference. Check actual funds and existing receipts; pending claims are not proof of duplication.'),
               detail.blocker&&h('p',{className:'pv-notice pv-warning'},detail.blocker),
@@ -120,8 +121,9 @@
               b&&h('p',null,`Principal balance ${peso(b.balanceCentavos)} · unapplied ${peso(b.unappliedCentavos)} · contract version ${b.version}`),
               detail.history&&h('details',null,h('summary',null,'Latest recorded history and plots'),h('p',null,detail.history.plots.join(' · ')),h('ul',{className:'pr-history'},detail.history.entries.map((entry)=>h('li',{key:entry.id},`${entry.date || 'Date for review'} · ${entry.reference} · ${peso(entry.amountCentavos)}`)))),
               h('div',{className:'pv-field'},h('label',{htmlFor:'review-revision'},'Proof revision'),h('select',{id:'review-revision',value:revision,onChange:(e)=>{setRevision(e.target.value);setProof(null);}},detail.revisions.map((r)=>h('option',{key:r.revisionId,value:r.revisionId},`${r.revisionId} · ${r.reference} · ${peso(r.claimedCentavos)}`)))),
+              (()=>{const selected=detail.revisions.find(r=>r.revisionId===revision);return selected?.payerName && h('p',null,`Selected proof wallet: ${selected.payerName} · ${selected.payerMobile} · ${selected.transferDate} ${selected.transferTime} (Philippines)`);})(),
               h('details',null,h('summary',null,'Receipt-reading suggestions for selected revision'),
-                h('p',null,'These are unverified image suggestions. Confirm actual funds against the bank or GCash statement.'),
+                h('p',null,'These are unverified image suggestions. Confirm actual funds against the bank, GCash or Maya statement.'),
                 (()=>{const assistance=detail.revisions.find((r)=>r.revisionId===revision)?.claimAssistance;
                   return assistance?h(React.Fragment,null,h('p',null,`Entry source: ${assistance.source.replaceAll('_',' ')}`),h('ul',null,assistance.candidates.map((c,i)=>h('li',{key:i},`${c.field}: ${c.value} · confidence ${c.confidence}%`)))):h('p',null,'No receipt-reading suggestions were saved.');})()),
               h('button',{className:'pv-secondary',disabled:busy,onClick:()=>run(()=>api('proof',{paymentId:p.paymentId,revisionId:revision}),(image)=>setProof({revisionId:revision,url:`data:image/jpeg;base64,${image.base64}`}))},'Open selected proof'),

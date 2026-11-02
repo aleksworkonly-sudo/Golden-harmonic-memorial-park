@@ -35,6 +35,8 @@ p { margin:0 0 18px; }
 .ps-number { font-weight:700; overflow-wrap:anywhere; }
 .ps-demo { margin:0; text-align:center; font-size:13px; }
 .ps-demo img { width:180px; height:180px; max-width:100%; object-fit:contain; }
+.ps-receiving-qr { margin:0; text-align:center; font-size:13px; }
+.ps-receiving-qr img { display:block; width:180px; height:auto; max-width:100%; margin:auto; image-rendering:pixelated; }
 .ps-proof { margin:20px 0; }
 .ps-proof > img { display:block; max-width:100%; width:auto; max-height:340px; object-fit:contain; border:1px solid var(--pv-line); }
 .ps-proof figcaption { margin-top:8px; color:var(--pv-muted); font-size:14px; }

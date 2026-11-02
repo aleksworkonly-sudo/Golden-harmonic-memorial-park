@@ -26,11 +26,13 @@
     } finally { bitmap.close(); }
   }
 
-  function PaymentSubmission({ mode, customerId, plots, onAccessLost }) {
+  function PaymentSubmission({ mode, customerId, plots, onAccessLost, qrFirst = false, onSubmitted, reservationRef }) {
     const [enabled,setEnabled] = useState(null), [options,setOptions] = useState(null), [rows,setRows] = useState([]);
     const [cursor,setCursor] = useState(null), [busy,setBusy] = useState(false), [error,setError] = useState(''), [message,setMessage] = useState('');
     const [form,setForm] = useState(null), [review,setReview] = useState(false), [uncertain,setUncertain] = useState(false);
     const [shownProof,setShownProof] = useState(null);
+    const [proofEntry,setProofEntry] = useState(!qrFirst);
+    const autoStarted = useRef(false);
     const ticket = useRef(0), alert = useRef(null), heading = useRef(null), mounted = useRef(true), request = useRef(null);
     async function api(action, fields = {}) {
       const headers = { 'Content-Type':'application/json' };
@@ -40,7 +42,7 @@
       }
       let response;
       try { response = await fetch('/api/payment-submission', { method:'POST', credentials:'same-origin', headers,
-        body:JSON.stringify({ action, mode, ...(mode === 'account' ? { customerId } : {}), ...fields }) }); }
+        body:JSON.stringify({ action, mode, ...(mode === 'account' ? { customerId } : {}), ...(reservationRef ? {reservationRef} : {}), ...fields }) }); }
       catch (_) { throw Object.assign(new Error('Connection interrupted. Retry with these same details. If you leave, check your submissions before starting again.'), { uncertain:true }); }
       const result = await response.json().catch(() => ({}));
       if (['SESSION_REQUIRED','UNAUTHENTICATED','FORBIDDEN'].includes(result.code)) onAccessLost();
@@ -55,9 +57,17 @@
     }
     async function reload() {
       const [nextOptions,list] = await Promise.all([api('context'),api('list')]);
+      if (reservationRef && nextOptions.sourceId !== reservationRef) { onAccessLost(); throw new Error('Your active reservation changed. Verify access to this reservation again.'); }
       return { nextOptions,list };
     }
-    const applyReload = ({ nextOptions,list }) => { setOptions(nextOptions); setRows(list.cases); setCursor(list.nextCursor); };
+    const applyReload = ({ nextOptions,list }) => {
+      setOptions(nextOptions); setRows(list.cases); setCursor(list.nextCursor);
+      if (qrFirst && !autoStarted.current && nextOptions.offers.length && !list.cases.length) {
+        autoStarted.current = true;
+        const first = nextOptions.offers[0];
+        setForm({offerId:first.id,amount:String(first.expectedAmountCentavos/100),reference:'',transferDate:'',transferTime:'',payerName:'',payerMobile:'',image:'',existing:null});
+      }
+    };
     useEffect(() => {
       mounted.current = true;
       run(async () => {
@@ -71,8 +81,9 @@
     const update = (key,value) => { request.current = null; setForm((valueNow) => ({ ...valueNow,[key]:value, ...(valueNow.claimAssistance ? {claimAssistance:{...valueNow.claimAssistance,source:'ocr_edited'}} : {}) })); };
     const start = (row) => {
       setError(''); setMessage(''); setReview(false); setUncertain(false); setShownProof(null); request.current = null;
+      setProofEntry(!!row || !qrFirst);
       setForm({ offerId:row?.quote.id || options.offers[0]?.id || '', amount:row ? String(row.claimedCentavos / 100) : '',
-        reference:row?.reference || '', transferDate:row?.transferDate || '', image:'', existing:row || null });
+        reference:row?.reference || '', transferDate:row?.transferDate || '', transferTime:row?.transferTime || '',payerName:row?.payerName || '',payerMobile:row?.payerMobile || '',image:'', existing:row || null });
     };
     const offer = options?.offers.find((item) => item.id === form?.offerId);
     const reviewForm = (event) => {
@@ -83,6 +94,7 @@
       if (!Number.isSafeInteger(amount) || amount <= 0) return setError('Enter a positive peso amount with at most two decimal places.');
       request.current = { requestId:crypto.randomUUID(), offerId:offer.id, scopeVersion:options.scopeVersion,
         claimedCentavos:amount, transferDate:form.transferDate, reference:form.reference, image:form.image.split(',')[1],
+        ...(offer.payerDetailsRequired ? {payerName:form.payerName.trim(),payerMobile:form.payerMobile,transferTime:form.transferTime} : {}),
         ...(form.claimAssistance ? {claimAssistance:form.claimAssistance} : {}),
         ...(form.existing ? { paymentId:form.existing.paymentId, expectedVersion:form.existing.version } : {}) };
       setReview(true);
@@ -93,6 +105,7 @@
     }, (saved) => {
       setForm(null); setReview(false); setUncertain(false); request.current = null;
       setMessage(`Submission ${saved.paymentId} saved. Awaiting verification — your balance has not changed.`);
+      onSubmitted?.(saved);
       // Keep the durable acknowledgement visible even when a subsequent refresh fails.
       reload().then((result) => { if (mounted.current) applyReload(result); }).catch(() => {});
     });
@@ -102,8 +115,8 @@
       h('figcaption', null,caption), h('details', null,h('summary', null,'Inspect full-size image'),h('div', { className:'ps-zoom',tabIndex:0,role:'region','aria-label':'Full-size receipt image' },h('img', { src:url,alt:'Full-size payment evidence' }))));
 
     return h('section', { className:'pv-card', 'aria-label':'Manual payment evidence' },
-      h('p', { className:'pv-eyebrow' }, 'GCash & bank transfer'), h('h2', null,'Submit payment proof'),
-      h('p', { className:'pv-muted' }, 'Already transferred? Send your receipt for an admin to check. Uploading proof does not confirm payment or extend a deadline.'),
+      h('p', { className:'pv-eyebrow' }, 'GCash, Maya & bank transfer'), h('h2', null,qrFirst ? 'Pay your reservation deposit' : 'Submit payment proof'),
+      h('p', { className:'pv-muted' }, 'Only pay using the verified receiving instructions below. Uploading proof does not confirm payment or extend a deadline.'),
       error && h('div', { ref:alert,tabIndex:-1,role:'alert',className:'pv-notice pv-error' },error,
         !form && h('button', { className:'pv-secondary',disabled:busy,onClick:() => run(reload,(result) => { setEnabled(true); applyReload(result); }) },'Retry loading submissions')),
       message && h('p', { role:'status',className:'pv-notice' },message),
@@ -111,14 +124,22 @@
       enabled === false ? h('p', { className:'pv-notice' },'Online proof submission is not available yet. Please contact the office.') :
         options && h(React.Fragment, null,
           !options.offers.length && h('p', { className:'pv-notice' },'The office must confirm your payment amount and receiving instructions before you submit online.'),
-          !form && options.offers.length > 0 && h('button', { className:'pv-primary',disabled:busy,onClick:() => start(null) },'Add payment proof'),
+          !form && options.offers.length > 0 && !(qrFirst && rows.some(r=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(r.status))) && h('button', { className:'pv-primary',disabled:busy,onClick:() => start(null) },'Add payment proof'),
           form && h('div', { className:'ps-form' },
             h('h3', { ref:heading,tabIndex:-1 },review ? 'Review before submitting' : form.existing ? 'Correct your submission' : 'Payment details'),
+            !proofEntry && offer ? h(React.Fragment,null,
+              h('p',null,plots.join(' · ')),h('p',{className:'pv-status'},`Deposit to pay: ${peso(offer.expectedAmountCentavos)}`),
+              h('p',null,`${offer.label} · ${offer.accountName}`),
+              offer.qrImagePath ? h('figure',{className:'ps-receiving-qr'},h('img',{src:offer.qrImagePath,alt:`Verified ${offer.label} receiving QR for ${offer.accountName}`,width:240,height:240}),
+                h('figcaption',null,'Check the recipient name in your wallet before sending money.'),h('a',{href:offer.qrImagePath,download:true,className:'pv-secondary'},'Save QR image')) : h('p',{className:'pv-notice'},'A verified receiving QR is unavailable. Do not send payment.'),
+              h('p',null,'On the same phone, save the QR image and use your wallet’s scan-from-photo option. After paying, keep the receipt screenshot.'),
+              offer.qrImagePath && h('button',{className:'pv-primary',disabled:busy,onClick:()=>setProofEntry(true)},'I have paid — submit proof')) :
             review ? h(React.Fragment, null,
               h('p', null,plots.join(' · ') || 'Your selected account'),
               h('dl', { className:'ps-review' },[
                 ['Purpose',labels[offer.purpose]],['Expected amount',peso(offer.expectedAmountCentavos)],['Your claimed amount',peso(request.current.claimedCentavos)],
                 ['Recipient',`${offer.label} · ${offer.accountName} · ${offer.accountNumber}`],['Transfer date',form.transferDate],['Reference',form.reference]
+                ,...(offer.payerDetailsRequired ? [['Wallet account holder',form.payerName],['Wallet mobile',form.payerMobile],['Transaction time (Philippines)',form.transferTime]] : [])
               ].map(([label,value]) => h('div', { key:label },h('dt', null,label),h('dd', null,value)))),
               request.current.claimedCentavos !== offer.expectedAmountCentavos && h('p', { className:'pv-notice pv-warning' },'Your amount differs from the expected amount. The admin will review it; the expected amount will stay unchanged.'),
               preview(form.image,'Check that all transfer details are readable.'),
@@ -132,10 +153,14 @@
                     options.offers.map((item) => h('option', { key:item.id,value:item.id },`${labels[item.purpose]} · ${item.label} · ${peso(item.expectedAmountCentavos)}`)))),
                 offer && h('div', { className:'ps-instructions' },h('div', null,h('h4', null,offer.label),h('p', null,offer.accountName),h('p', { className:'ps-number' },offer.accountNumber),h('p', null,offer.instructions),
                   h('button', { type:'button',className:'pv-secondary',onClick:() => run(() => navigator.clipboard.writeText(offer.accountNumber),() => setMessage('Receiving account number copied.')) },'Copy account number')),
-                  h('figure', { className:'ps-demo' },h('img', { src:'/payment-demo-qr.png',alt:'Decorative demo QR image — not for payment',width:180,height:180 }),h('figcaption', null,'Demo QR — not for payment'))),
+                  offer.qrImagePath ? h('figure', { className:'ps-receiving-qr' },h('img', { src:offer.qrImagePath,alt:`Receiving QR for ${offer.accountName}`,width:180,height:180 }),h('figcaption', null,'Verify the recipient before payment')) :
+                    h('p',{className:'pv-notice'},'No verified receiving QR is configured. Contact the office for payment instructions.')),
+                offer?.payerDetailsRequired && field('proof-payer-name','Wallet account holder name','text','payerName',{minLength:2,maxLength:120,autoComplete:'name'}),
+                offer?.payerDetailsRequired && field('proof-payer-mobile','Wallet mobile number','tel','payerMobile',{pattern:'(09[0-9]{9}|\\+639[0-9]{9})',maxLength:13,placeholder:'09XXXXXXXXX',autoComplete:'tel'}),
                 field('proof-amount','Amount you transferred (₱)','text','amount',{ inputMode:'decimal',maxLength:16 }),
                 field('proof-reference','Transfer reference','text','reference',{ maxLength:100 }),
                 field('proof-date','Transfer date (Philippines)','date','transferDate'),
+                offer?.payerDetailsRequired && field('proof-time','Transaction time (Philippines)','time','transferTime'),
                 h('div', { className:'pv-field' },h('label', { htmlFor:'proof-file' },'Receipt image'),
                   h('input', { id:'proof-file',type:'file',accept:'image/jpeg,image/png,image/webp',disabled:busy,'aria-describedby':'proof-file-help',onChange:(event) => {
                     const file = event.target.files[0]; update('image','');

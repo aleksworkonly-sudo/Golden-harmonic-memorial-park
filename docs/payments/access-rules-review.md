@@ -1,5 +1,11 @@
 # CP2–CP5 access controls — review artifact, not deployment rules
 
+## Presale QR integration additions
+
+Keep `presalePaymentRequests/**` and `presaleHoldLimits/**` server-only, including against authenticated admin browsers. The recovery capability is hashed at rest; protect its payload hash/result and the session records from direct reads and writes. Extend source/plot/booking protections to atomic new manual reservations, `accessVersion`, `paymentMigrationLock`, receiving QR/account identity and version, zero opening balances and submission scopes. These notes are not a replacement ruleset. Test the composed baseline before enabling `PAYMENT_PRESALE_ENABLED`.
+
+Creation sessions authorize only proof operations for their own newly created reservation for 30 minutes. They must fail at history, provider and reporting endpoints; they do not verify email ownership. Test another-tab session changes, changed contact/version, logout, expiry, replay, correction versus approval, unauthorized QR configuration, and concurrent plot claims against the actual SDK/rules. See [presale integration](presale-qr-checkpoint.md).
+
 ## CP4 canonical money and review additions
 
 Extend the composed server-only boundary to `paymentReconciliations/**`, `bookings/**`, `receipts/**`, `ledgerEntries/**`, `economicPayments/**` and `operationKeys/**`. No admin-browser exception. Protect audit/outbox/notification writes, canonical source links, scope/recipient versions and plot booking/ownership-version fields. A `legacyWritesBlocked` flag does not block existing writers; actually retire or route them through reviewed rules/endpoints before enabling a source.

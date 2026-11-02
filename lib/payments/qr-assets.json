@@ -1,0 +1,8 @@
+{
+  "gcash": {
+    "channel": "gcash",
+    "accountName": "Golden Harmonic",
+    "imagePath": "/payment-qr/gcash-placeholder.png",
+    "verified": false
+  }
+}
