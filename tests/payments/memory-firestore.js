@@ -20,7 +20,7 @@ class Query {
   }
   startAfter(...cursor) { return new Query(this.db, this.collection, { ...this.options, cursor }); }
   limit(count) { return new Query(this.db, this.collection, { ...this.options, limit: count }); }
-  doc(id) { return { path: `${this.collection}/${id}` }; }
+  doc(id = `auto-${++this.db.nextId}`) { return { id, path: `${this.collection}/${id}` }; }
 }
 
 class MemoryFirestore {
@@ -30,6 +30,7 @@ class MemoryFirestore {
     this.beforeCommit = null;
     this.failNextCommit = false;
     this.retries = 0;
+    this.nextId = 0;
   }
   collection(name) { return new Query(this, name); }
   read(path) { return copy(this.records.get(path)); }
@@ -71,7 +72,9 @@ class MemoryFirestore {
           return { docs: rows.slice(0, limit).map(([path]) => read(path)) };
         },
         create: (reference, data) => writes.push(['create', reference.path, copy(data)]),
-        update: (reference, data) => writes.push(['update', reference.path, copy(data)])
+        update: (reference, data) => writes.push(['update', reference.path, copy(data)]),
+        set: (reference, data) => writes.push(['set', reference.path, copy(data)]),
+        delete: (reference) => writes.push(['delete', reference.path])
       };
       const result = await callback(tx);
       if (this.beforeCommit) {
@@ -89,11 +92,15 @@ class MemoryFirestore {
       }
       const staged = new Map(this.records);
       for (const [type, path, data] of writes) {
+        if (type === 'delete') { staged.delete(path); continue; }
         if (type === 'create' && staged.has(path)) throw new Error('Document already exists');
         if (type === 'update' && !staged.has(path)) throw new Error('Document does not exist');
         staged.set(path, type === 'update' ? { ...staged.get(path), ...data } : data);
       }
-      for (const [, path] of writes) this.put(path, staged.get(path));
+      for (const [, path] of writes) {
+        if (staged.has(path)) this.put(path, staged.get(path));
+        else { this.records.delete(path); this.versions.set(path,(this.versions.get(path) || 0)+1); }
+      }
       return copy(result);
     }
     throw new Error('Transaction retry limit exceeded');

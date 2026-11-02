@@ -21,7 +21,7 @@ The requested payment QR is a random decorative **demo image**, created with the
 | CP6 | Secure PayMongo integration and shared reconciliation | Implemented and tested locally; activation disabled |
 | CP7 | Deposit, original deadlines, installment timing and retained-hold review | Implemented and tested locally; amounts/penalties and live activation remain gated |
 | CP8 | Notifications/reminders, read-only statements/collections, recorded allocations and OCR | Implemented and tested locally; dispatch and activation disabled; unconfirmed formulas remain gated |
-| CP9 | Migration, recovery and release validation | Not started |
+| CP9 | Migration, recovery and release validation | Local rehearsal tools/cutover guards implemented and tested; actual migration, rules and production release pending |
 
 ## CP0 — baseline and policy gates
 
@@ -226,3 +226,17 @@ Starting commit `64c0d83`. The user requested CP8 and confirmed reminders **thre
 Read [CP8 contract, configuration, limits and release gates](operations-checkpoint.md). Both new flags default off. No production contact/configuration, credentials, real email/payment, migration or deployment was used. Actual composed rules/indexes, Firebase SDK/emulator, provider delivery, dispatch capacity, real receipt samples and retention remain gates. Old canonical reminder writers are skipped, so coordinate cutover and messaging activation deliberately.
 
 Checkpoint subject: **`Payment CP8: add communications reports and receipt reading`**. Resolve with `git log -1 --format='%h %s' --grep='Payment CP8:'`. **Next: CP9 only when requested.** No remote push or backup archive was created.
+
+## CP9 — local migration/recovery rehearsals and cutover guards (November 2, 2026)
+
+Starting commit `a28045c`. The user requested CP9 and continuation. No sanitized data or deployed rules/index baseline was supplied; after explaining those terms, work proceeded with synthetic records. Applied Firebase authentication with delegated rules/cutover review, UI/UX recovery guidance and responsive design. This checkpoint implements local tooling; it does not complete live migration or certify production readiness.
+
+- Added bounded portable JSON inventory, explicit reviewed migration drafts, deterministic source/target hashes, offline application, manifest verification and restore into an empty/identical isolated snapshot. Changed/newer records are refused; no Firebase connection or live-apply mode exists.
+- Drafts preserve original sources, accepted amounts/dates and immutable opening/item allocations, require exact plot coverage, and keep posting/lifecycle/notifications disabled. Ambiguous deposits/provider overlap, signed history, duplicates and pending evidence require review rather than fabricated credit.
+- Added release data reconciliation for ledger/receipt/item/economic identities and plot locks, orphan records and unresolved external money/email states. Every production gate remains explicitly unverified; the tool cannot assert production readiness.
+- Guarded legacy source/plot edits using fresh transactions and current roles. Presale plot effects and commission links are atomic; migrated portal records route to secure history. Financial trash restoration/deletion is disabled, provisioned contact versions advance atomically, stale reservation counters cannot overwrite existing sources, and old acknowledgements/reminders reject or skip migration markers.
+- **186 unit/HTTP tests passed; all seven local browser suites passed.** The CP9 browser check parses the full JSX, exercises protected portal routing/legacy fallback/logout and 320/390/768 px layouts. Its screenshot was inspected. All seven CLI operations were rehearsed with synthetic examples; the draft audit returned expected exit 2. Syntax/JSON and whitespace checks passed.
+
+Read [CP9 scope, CLI usage, restore procedure and real release gates](release-checkpoint.md). Actual rules/index files and Java/emulator support were absent, so no composed-rule or real SDK/emulator certification is claimed. Cached/direct SDK writers, full historical receipt/economic adapters, portfolio reader cutover, in-flight Auth/email/provider handling, real backups and staging evidence remain release work. No production credentials/data, deployment, live payment/email or remote push were used. Only synthetic temporary backup artifacts were created; these are not backups of the user's database.
+
+Checkpoint subject: **`Payment CP9: add migration recovery rehearsals and cutover guards`**. Resolve with `git log -1 --format='%h %s' --grep='Payment CP9:'`. **Pause for review.** Next work requires the real baseline and explicitly authorized staging/migration/release scope; there is no implied CP10 or production activation.

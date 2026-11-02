@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "test:payments": "node --test tests/payments/*.test.js",
-    "preview:payments": "node tests/payments/preview-server.js"
+    "preview:payments": "node tests/payments/preview-server.js",
+    "rehearse:payments": "node scripts/payments/rehearse.cjs"
   },
   "dependencies": {
     "firebase-admin": "^12.0.0",

@@ -91,7 +91,7 @@ async function runPresaleReminders({ admin, db, now = Date.now(), send = sendBre
   for (const doc of snap.docs) {
     const a = doc.data();
     out.checked++;
-    if (a.canonicalBookingId) { out.skipped++; continue; }
+    if (Object.hasOwn(a,'canonicalBookingId') || Object.hasOwn(a,'paymentMigrationLock')) { out.skipped++; continue; }
     if (a.status === 'cancelled' || !a.email) { out.skipped++; continue; }
     const L = ledger(a);
     if (!L.nextDue || L.balance <= 0) { out.skipped++; continue; }

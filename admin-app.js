@@ -120,7 +120,9 @@ function Toast({
     return () => clearTimeout(t);
   }, []);
   return /*#__PURE__*/React.createElement("div", {
-    className: "toast"
+    className: "toast",
+    role: "status",
+    "aria-live": "polite"
   }, msg);
 }
 
@@ -320,6 +322,7 @@ function Login({
 // the same doc just overwrites its trash entry) before removing the original,
 // so staff have a backup/recovery point in the admin panel.
 async function moveToTrash(collectionName, id, data, actorEmail) {
+  window.paymentLegacyGuard.assertTrashCollection(collectionName);
   await window.db.collection('trash').doc(`${collectionName}_${id}`).set({
     collection: collectionName,
     originalId: id,
@@ -531,7 +534,7 @@ function isDueToday(dateStr) {
   return dateStr === new Date().toISOString().slice(0, 10);
 }
 async function changeStage(customerId, newStage, actorEmail) {
-  await window.db.collection('customers').doc(customerId).update({
+  await window.paymentLegacyGuard.update('customers', customerId, {
     status: newStage,
     notes: firebase.firestore.FieldValue.arrayUnion({
       type: 'system',
@@ -844,7 +847,8 @@ function PlotManagement({
     },
     onUnassign: async () => {
       if (!confirm(`Remove this assignment? ${plotCode(block, detailSlot)} will become available again.`)) return;
-      await window.db.collection('plots').doc(detailDoc._id).delete();
+      try { await window.paymentLegacyGuard.removePlot(detailDoc._id); }
+      catch (error) { onToast(error.message || 'Could not change this plot.'); return; }
       setDetailSlot(null);
       onToast(`${plotCode(block, detailSlot)} unassigned`);
     }
@@ -875,7 +879,7 @@ function AssignPlotModal({
     setErr('');
     try {
       const id = `${block.id}_${lotNo}`;
-      await window.db.collection('plots').doc(id).set({
+      await window.paymentLegacyGuard.setPlot(id, {
         blockId: block.id,
         lotNo,
         customerId,
@@ -1062,18 +1066,11 @@ function Customers({
     });
   };
   const updateStatus = async (id, status) => {
-    await changeStage(id, status, currentUser && currentUser.email);
-    setToast('Customer updated');
+    try { await changeStage(id, status, currentUser && currentUser.email); setToast('Customer updated'); }
+    catch (error) { setToast(error.message || 'Could not update this customer.'); }
   };
   const deleteCustomer = async (id, name) => {
-    if (!confirm(`Delete ${name}? They'll be moved to Recently Deleted.`)) return;
-    const doc = rows.find(r => r._id === id);
-    const {
-      _id,
-      ...data
-    } = doc || {};
-    await moveToTrash('customers', id, data, currentUser && currentUser.email);
-    setToast('Customer moved to Recently Deleted');
+    setToast('Customer deletion requires a reviewed backup/recovery process. No record was deleted.');
   };
   if (!rows) return /*#__PURE__*/React.createElement("div", {
     className: "loading"
@@ -1713,8 +1710,8 @@ function Pipeline({
     setDragOverStage(null);
     const id = e.dataTransfer.getData('text/plain');
     if (!id) return;
-    await changeStage(id, stageId, currentUser && currentUser.email);
-    setToast('Moved to ' + STAGE_LABEL[stageId]);
+    try { await changeStage(id, stageId, currentUser && currentUser.email); setToast('Moved to ' + STAGE_LABEL[stageId]); }
+    catch (error) { setToast(error.message || 'Could not move this customer.'); }
   };
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "section-hd"
@@ -1942,8 +1939,9 @@ function CustomerDetailModal({
     setPortalBusy(true);
     setPortalError('');
     try {
+      await window.paymentLegacyGuard.assertCurrent('customers',customer._id);
       const uid = await createPortalAccount(customer.email);
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers', customer._id, {
         authUid: uid,
         portalCreatedAt: Date.now(),
         portalCreatedBy: currentUser && currentUser.email || 'unknown'
@@ -1977,7 +1975,7 @@ function CustomerDetailModal({
     setPortalBusy(true);
     setPortalError('');
     try {
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers', customer._id, {
         authUid: uid,
         portalCreatedAt: Date.now(),
         portalCreatedBy: currentUser && currentUser.email || 'unknown'
@@ -2023,7 +2021,7 @@ function CustomerDetailModal({
     if (!noteText.trim()) return;
     setAddingNote(true);
     try {
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers', customer._id, {
         notes: firebase.firestore.FieldValue.arrayUnion({
           type: 'manual',
           text: noteText.trim(),
@@ -2033,6 +2031,8 @@ function CustomerDetailModal({
       });
       setNoteText('');
       onToast('Note added');
+    } catch (error) {
+      onToast(error.message || 'Could not add this note.');
     } finally {
       setAddingNote(false);
     }
@@ -2040,11 +2040,13 @@ function CustomerDetailModal({
   const saveFollowUp = async () => {
     setSavingFollowUp(true);
     try {
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers', customer._id, {
         followUpAt: followUp.date || null,
         followUpNote: followUp.note || ''
       });
       onToast('Follow-up saved');
+    } catch (error) {
+      onToast(error.message || 'Could not update this follow-up.');
     } finally {
       setSavingFollowUp(false);
     }
@@ -2052,11 +2054,13 @@ function CustomerDetailModal({
   const savePlan = async () => {
     setSavingPlan(true);
     try {
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers', customer._id, {
         plan: buildPlanPayload(plan)
       });
       setEditingPlan(false);
       onToast('Plan updated');
+    } catch (error) {
+      onToast(error.message || 'Could not update this plan.');
     } finally {
       setSavingPlan(false);
     }
@@ -2066,7 +2070,7 @@ function CustomerDetailModal({
     if (!pay.amount || Number(pay.amount) <= 0) return;
     setBusy(true);
     try {
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers', customer._id, {
         payments: firebase.firestore.FieldValue.arrayUnion({
           date: pay.date,
           amount: Number(pay.amount),
@@ -2081,6 +2085,8 @@ function CustomerDetailModal({
         note: ''
       });
       onToast('Payment logged');
+    } catch (error) {
+      onToast(error.message || 'Could not record this payment.');
     } finally {
       setBusy(false);
     }
@@ -2603,7 +2609,7 @@ function CustomerSheetEditor({ data, onClose, onToast, canSave, actor }) {
         patch.paymentConfirmedAt = app.paymentConfirmedAt || now;
         patch.confirmedBy = actor || 'admin';
       }
-      await window.db.collection('presaleApplications').doc(app._id).update(patch);
+      await window.paymentLegacyGuard.update('presaleApplications', app._id, patch);
       onToast && onToast('Saved to ' + app.ref);
       onClose();
     } catch (e) {
@@ -3369,9 +3375,12 @@ function RecentlyDeleted({
   const restore = async r => {
     setBusyId(r._id);
     try {
+      window.paymentLegacyGuard.assertTrashCollection(r.collection);
       await window.db.collection(r.collection).doc(r.originalId).set(r.data);
       await window.db.collection('trash').doc(r._id).delete();
       setToast(`${typeLabel(r.collection)} restored`);
+    } catch (error) {
+      setToast(error.message || 'Could not restore this record.');
     } finally {
       setBusyId(null);
     }
@@ -3493,6 +3502,8 @@ function PendingPayments({
         const snap = await tx.get(ref);
         if (!snap.exists) throw new Error('That customer record no longer exists.');
         const data = snap.data();
+        window.paymentLegacyGuard.assertLegacy(data);
+        await window.paymentLegacyGuard.role(tx,true);
         const current = (data.paymentSubmissions || []).find(s => s.submittedAt === subToResolve.submittedAt);
         if (!current) throw new Error('That submission is gone — it may have already been removed.');
         if ((current.status || 'pending') !== 'pending') {
@@ -3939,7 +3950,7 @@ function PresaleApplications({
   const update = async (a, patch, msg) => {
     setBusy(true);
     try {
-      await window.db.collection('presaleApplications').doc(a._id).update(patch);
+      await window.paymentLegacyGuard.update('presaleApplications', a._id, patch);
       setToast(msg);
     } catch (err) {
       setToast(err && err.message || 'Could not save');
@@ -3994,10 +4005,7 @@ function PresaleApplications({
         paymentConfirmedAt: a.paymentConfirmedAt || now,
         confirmedBy: actor
       };
-      await window.db.collection('presaleApplications').doc(a._id).update(patch);
-      await Promise.all(presalePlots(a).map(x => window.db.collection('plots').doc(`${x.blockId}_${x.lotNo}`).update({
-        hold: false
-      }).catch(() => {})));
+      await window.paymentLegacyGuard.updatePresaleWithPlots(a._id,patch,'release_hold');
       setRefText('');
       setAmtText('');
       setRemarksText('');
@@ -4047,9 +4055,10 @@ function PresaleApplications({
     }
     setBusy(true);
     try {
+      await window.paymentLegacyGuard.assertCurrent('presaleApplications',a._id);
       const saleMs = a.createdAt || Date.now();
       const dates = agentDates(saleMs);
-      const ref = await window.db.collection('agentCommissions').add({
+      await window.paymentLegacyGuard.attachCommission(a._id, {
         agentId: agent._id,
         agentName: agent.name,
         agentEmail: agent.email || '',
@@ -4064,12 +4073,10 @@ function PresaleApplications({
         appRef: a.ref,
         createdAt: Date.now(),
         createdBy: actor
-      });
-      await window.db.collection('presaleApplications').doc(a._id).update({
+      }, {
         agentId: agent._id,
         agentName: agent.name,
-        agentCommission: comm,
-        agentCommissionId: ref.id
+        agentCommission: comm
       });
       setAgentPick('');
       setCommText('');
@@ -4085,12 +4092,11 @@ function PresaleApplications({
     if (!window.confirm(`Cancel ${a.ref} and free ${presalePlots(a).length > 1 ? 'all ' + presalePlots(a).length + ' plots' : 'plot ' + a.plotCode}? This cannot be undone.`)) return;
     setBusy(true);
     try {
-      await window.db.collection('presaleApplications').doc(a._id).update({
+      await window.paymentLegacyGuard.updatePresaleWithPlots(a._id, {
         status: 'cancelled',
         cancelledAt: Date.now(),
         cancelledBy: actor
-      });
-      await Promise.all(presalePlots(a).map(x => window.db.collection('plots').doc(`${x.blockId}_${x.lotNo}`).delete()));
+      }, 'cancel');
       setToast(presalePlots(a).length > 1 ? 'The plots are free again' : `${a.plotCode} is free again`);
       setOpen(null);
     } catch (err) {
@@ -4791,7 +4797,7 @@ function PresaleApplications({
     onClick: async () => {
       setBusy(true);
       try {
-        await window.db.collection('presaleApplications').doc(sel._id).update({
+        await window.paymentLegacyGuard.update('presaleApplications', sel._id, {
           brokerName: brokerText.trim()
         });
         setBrokerText('');

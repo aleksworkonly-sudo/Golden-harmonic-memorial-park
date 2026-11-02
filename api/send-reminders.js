@@ -155,7 +155,7 @@ module.exports = async (req, res) => {
     const c = doc.data();
     results.checked++;
     // Canonical contracts use CP8's durable worker; legacy arithmetic must not send parallel bills.
-    if (c.canonicalBookingId) { results.skipped++; continue; }
+    if (Object.hasOwn(c,'canonicalBookingId') || Object.hasOwn(c,'paymentMigrationLock')) { results.skipped++; continue; }
 
     const plan = c.plan;
     if (!plan || !plan.startDate || !plan.monthlyAmount || !plan.termMonths || plan.termKey === 'cash') {

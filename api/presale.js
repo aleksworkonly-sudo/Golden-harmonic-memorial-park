@@ -223,8 +223,9 @@ module.exports = async function handler(req, res) {
       if (dupSnap.docs.some((d) => d.data().status !== 'cancelled')) {
         const e = new Error('dup'); e.code = 'DUP'; throw e;
       }
-      const n = (counterSnap.exists ? counterSnap.data().n : 0) + 1;
-      const ref = `PS-${String(n).padStart(4, '0')}`;
+      const reserved = await require('../lib/payments/presale-reference').reserveReference(tx,db,counterSnap);
+      const n = reserved.number;
+      const ref = reserved.id;
       const now = Date.now();
       const first = plots[0];
 
@@ -242,7 +243,7 @@ module.exports = async function handler(req, res) {
           createdBy: 'presale-web'
         });
       });
-      tx.set(db.collection('presaleApplications').doc(ref), {
+      tx.create(reserved.reference, {
         ref, status: 'new', // new -> verified -> paid (or cancelled)
         // first plot kept in the old single-plot fields so older screens still work
         blockId: first.blockId, lotNo: first.lotNo, plotCode: first.plotCode, typeId: first.typeId,
@@ -265,6 +266,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({ ok: true, ref: result.ref, plotCode: result.plotCode, typeId: result.typeId, plots: plots.map((x) => ({ plotCode: x.plotCode, typeId: x.typeId, price: x.price - discOf(x.typeId, plan === 'installment' ? 'installment' : 'cash') })), plan, years, method, total, monthly, spot });
   } catch (err) {
+    if (err.code === 'REFERENCE_REVIEW') return res.status(409).json({ error: 'Reservation numbering needs office review. Please contact the office before trying again.' });
     if (err.code === 'TAKEN') return res.status(409).json({ error: 'taken', block: err.plot.blockId, lot: err.plot.lotNo });
     if (err.code === 'DUP') return res.status(409).json({ error: 'dup' });
     console.error('[presale] failed', err);

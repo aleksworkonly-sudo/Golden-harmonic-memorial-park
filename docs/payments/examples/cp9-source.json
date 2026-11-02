@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": 1793592000000,
+  "documents": [
+    {
+      "path": "customers/SAMPLE-001",
+      "data": {
+        "authUid": "synthetic-buyer",
+        "plan": {
+          "totalPrice": 25000,
+          "monthlyAmount": 2000
+        },
+        "payments": [
+          {
+            "amount": 5000,
+            "date": "2026-10-01",
+            "ref": "SAMPLE-BANK-001",
+            "alloc": {
+              "agent": 100
+            }
+          }
+        ]
+      }
+    },
+    {
+      "path": "plots/SAMPLE_1",
+      "data": {
+        "customerId": "SAMPLE-001",
+        "status": "reserved",
+        "hold": true
+      }
+    }
+  ]
+}

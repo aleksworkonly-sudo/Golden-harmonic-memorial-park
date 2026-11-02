@@ -20,8 +20,8 @@ This document identifies completed work, unfinished work and the information nee
 | CP5 | Admin-only cash: record → print → photograph → approve | Complete locally; activation disabled | `fb8d38a` | 102 tests and all three local browser suites passed |
 | CP6 | Secure PayMongo integration, provider validation and shared reconciliation | Complete locally; activation disabled | `4bdd8fa` | 127 tests and all four browser suites passed |
 | CP7 | Verified deposits, original deadline, installment timing and retained-hold review | Complete locally; amounts/penalties and activation gated | `64c0d83` | 145 tests and all five browser suites passed |
-| CP8 | Notification delivery, reminders, collections/statements, recorded allocations and OCR | Complete locally; dispatch and activation disabled | Resolve `Payment CP8:` by subject | 167 tests and all six browser suites passed; real pinned OCR read a synthetic sample |
-| CP9 | Authorized migration, backup/restore, recovery, rules/indexes and release validation | Not started | — | — |
+| CP8 | Notification delivery, reminders, collections/statements, recorded allocations and OCR | Complete locally; dispatch and activation disabled | `a28045c` | 167 tests and all six browser suites passed; real pinned OCR read a synthetic sample |
+| CP9 | Offline migration/restore tools, cutover guards and release-data validation | Local tooling complete; real migration/rules/release pending | Resolve `Payment CP9:` by subject | 186 tests, all seven browser suites and synthetic CLI rehearsal passed |
 
 “Complete locally” means the checkpoint's source and local tests were saved. It does not mean the feature is enabled in production. Test counts describe those saved commits, not a guarantee about an uncommitted working tree.
 
@@ -35,6 +35,7 @@ f6230ff Payment CP4: add admin review and canonical manual posting
 fb8d38a Payment CP5: add admin cash record print photo approval
 4bdd8fa Payment CP6: secure PayMongo checkout and reconciliation
 64c0d83 Payment CP7: track deposits and reservation review
+a28045c Payment CP8: add communications reports and receipt reading
 ```
 
 The pre-payment baseline is `b5dd24e`. CP0 has no separate commit. To confirm these references in your copy:
@@ -42,7 +43,7 @@ The pre-payment baseline is `b5dd24e`. CP0 has no separate commit. To confirm th
 ```powershell
 git status --short
 git log --oneline --grep="Payment CP"
-git log -1 --format='%h %s' --grep='Payment CP8:'
+git log -1 --format='%h %s' --grep='Payment CP9:'
 git show --stat 26f8b3d
 ```
 
@@ -58,7 +59,9 @@ CP7 adds verified deposit fulfillment, original deadlines, date-only installment
 
 CP8 adds private acknowledgements/notices, bounded email delivery/recovery, the confirmed reservation reminders, read-only ledger reports and optional on-device receipt reading. It displays only recorded commission/tax allocations. See the [CP8 contract](operations-checkpoint.md).
 
-The next checkpoint is **CP9: migration, recovery and release validation**, only when requested. Binding installment amounts, penalties, automatic commission/tax calculation, portfolio/settlement exports, cash-intention codes and release/extension/refund workflows remain gated or proposed follow-ups. CP8 does not remove production rules, contact provisioning, dispatch-capacity, migration, legacy-writer cutover or integration gates.
+CP9 adds offline inventory/migration drafts, portable JSON backup/restore rehearsal, release data audits and legacy cutover guards. See the [CP9 contract](release-checkpoint.md). **Real migration and production release are still pending.** Synthetic backups created during testing contain made-up data, not the user's source repository/database backup.
+
+Next work is the real deployed baseline, historical adapters and explicitly authorized staging/recovery/release validation after review. Binding installment amounts, penalties, automatic commission/tax calculation, portfolio/settlement exports, cash-intention codes and release/extension/refund workflows remain gated or proposed follow-ups. CP9 does not remove production rules, verified contact provisioning, dispatch-capacity, full migration/cutover or integration gates.
 
 The user confirmed during CP4: **credit the verified actual amount; retain any excess as unapplied credit**. This is the implemented default and is tested. The CP6 2.5% buyer fee is confirmed; other fees, penalty formulas, schedule generation and refunds remain separately gated.
 
@@ -67,13 +70,14 @@ The user confirmed during CP4: **credit the verified actual amount; retain any e
 | File | Purpose |
 |---|---|
 | [Payment blueprint](../../payment-feature-blueprint.md) | Confirmed business rules, target design, open decisions and acceptance scenarios |
-| [Checkpoint implementation log](checkpoints.md) | Detailed CP0–CP8 implementation and handoff records |
+| [Checkpoint implementation log](checkpoints.md) | Detailed CP0–CP9 local implementation and handoff records |
 | [CP3 implementation contract](submission-checkpoint.md) | Evidence storage, schemas, limits, test results and activation requirements |
 | [CP4 implementation contract](review-checkpoint.md) | Admin decisions, canonical money, reconciliation and release gates |
 | [CP5 implementation contract](cash-checkpoint.md) | Cash steps, receipt identities, private photos, validation and release gates |
 | [CP6 implementation contract](gateway-checkpoint.md) | Authorized checkout, raw-body verification, provider reconciliation and activation gates |
 | [CP7 implementation contract](lifecycle-checkpoint.md) | Deposit dates, retained-hold review, schema, tests and remaining policy gates |
 | [CP8 implementation contract](operations-checkpoint.md) | Notifications, outbox recovery, reminders, reports, OCR, tests and activation gates |
+| [CP9 implementation contract](release-checkpoint.md) | Offline migration/restore, cutover guards, synthetic examples and unverified release gates |
 | [Rules review](access-rules-review.md) | Non-deployable Firestore review fragments and required integration tests |
 | This guide | Commit inventory, unfinished checkpoint and backup/restore procedure |
 
@@ -130,7 +134,7 @@ git apply 'D:\Backups\GH-payments-2026-11-01\working-tree.patch'
 git status --short
 ```
 
-Do this in the separate restored directory. Restoring source does not restore a production database or safely reverse payments already recorded after a deployment. Production rollback and data recovery remain CP9 work.
+Do this in the separate restored directory. Restoring source does not restore a production database or safely reverse payments already recorded after a deployment. CP9 supplies an offline JSON restore rehearsal; native production rollback, data recovery and preservation of post-backup payments still require verified operational procedures.
 
 ## Rules to retain across every checkpoint
 

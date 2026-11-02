@@ -2289,7 +2289,7 @@ function PortalDashboard({ customer, onLogout }) {
     if (!form.amount || Number(form.amount) <= 0) return;
     setBusy(true);
     try {
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers',customer._id, {
         paymentSubmissions: firebase.firestore.FieldValue.arrayUnion({
           referenceNumber: form.referenceNumber.trim(),
           amount: Number(form.amount),
@@ -2300,7 +2300,7 @@ function PortalDashboard({ customer, onLogout }) {
           status: 'pending',
           submittedAt: Date.now()
         })
-      });
+      }, {ownerSubmission:true});
       setForm({ method: form.method, referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
       setToast('Submitted — our staff will confirm this against the transaction.');
       setTimeout(() => setToast(''), 6000);
@@ -2308,6 +2308,15 @@ function PortalDashboard({ customer, onLogout }) {
       setToast(ex.message || 'Could not submit — please try again.');
     } finally { setBusy(false); }
   };
+
+  if (Object.prototype.hasOwnProperty.call(customer,'canonicalBookingId') || Object.prototype.hasOwnProperty.call(customer,'paymentMigrationLock')) return (
+    <section className="gh-portal-empty" aria-label="Secure payment history">
+      <h3>Your secure payment history</h3>
+      <p>Open secure payment history to view your current balance, acknowledgements and payment options. Contact the office if access is still being prepared.</p>
+      <a className="gh-portal-btn-primary" style={{display:'block',boxSizing:'border-box',minHeight:44,textAlign:'center',textDecoration:'none'}} href="/my-payments?mode=account">Open secure payment history</a>
+      <button type="button" className="gh-portal-link-btn" onClick={onLogout}>Log out</button>
+    </section>
+  );
 
   return (
     <div>
