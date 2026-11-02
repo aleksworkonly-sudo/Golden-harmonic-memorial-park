@@ -4,7 +4,7 @@ This follows CP9 and the Vercel routing fix. The user authorized a held-plot →
 
 ## Current availability
 
-**Real collection remains unavailable.** The user identified the receiving method as GCash and the name as **Golden Harmonic**, then confirmed the supplied image is a placeholder after local decoding returned only `09090909999`. It is stored unchanged at `payment-qr/gcash-placeholder.png`; `lib/payments/qr-assets.json` marks it unverified. The customer payment UI does not display this as payment instructions. No Maya QR was supplied. No credentials, production records, payment flags or deployed settings were changed.
+**Replacement GCash QR configured in source; live activation pending setup.** The first image was confirmed to be a placeholder after decoding returned only `09090909999`. The user then supplied a replacement GCash QR, explicitly confirmed its encoded recipient `JU**L B.` is authorized, and requested that name be displayed. The active manifest now uses `/payment-qr/gcash-v1.jpg` bound to `paymentReceivingAccounts/gcash-qr-v1`. The old placeholder is inactive. No Maya QR was supplied. See [exact Firebase/Vercel activation steps](gcash-activation.md). No production records, flags or deployment were changed from this logged-out workspace.
 
 The complete flow is exercised with separate synthetic receiving configuration in local tests. Production code has no preview bypass. Merely setting an environment flag cannot enable a placeholder QR.
 

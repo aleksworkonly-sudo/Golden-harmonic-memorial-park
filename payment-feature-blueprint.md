@@ -2,9 +2,9 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.12 · **Updated:** 2026-11-02 · Asia/Manila
+**Version:** 2.13 · **Updated:** 2026-11-02 · Asia/Manila
 
-**Presale follow-up:** Manual GCash/Maya reservation-to-proof integration is implemented locally: hold before QR, preserve the three-month deadline, collect payer details/private screenshot, and use existing admin verification and canonical posting. The supplied GCash QR was confirmed to be a placeholder; real collection remains disabled and Maya awaits its own QR. See [presale QR checkpoint](docs/payments/presale-qr-checkpoint.md) for scope and activation prerequisites.
+**Presale follow-up:** Manual GCash/Maya reservation-to-proof integration is implemented locally: hold before QR, preserve the three-month deadline, collect payer details/private screenshot, and use existing admin verification and canonical posting. The replacement GCash QR and recipient `JU**L B.` were explicitly authorized and are configured in source; live availability still requires the [Firebase/Vercel setup](docs/payments/gcash-activation.md) and deployment. Maya awaits its own QR. See [presale QR checkpoint](docs/payments/presale-qr-checkpoint.md) for scope and activation prerequisites.
 
 **Hosting follow-up:** Seven existing payment API URLs now share one Vercel
 function through explicit rewrites. The reminder helper lives outside `api/`,

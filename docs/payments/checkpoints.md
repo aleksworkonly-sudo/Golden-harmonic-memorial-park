@@ -257,3 +257,10 @@ The user authorized the held-plot → QR → proof → admin-verification flow, 
 - **207 unit/HTTP tests passed.** The new presale browser suite plus existing customer-proof and admin-review browser suites passed with synthetic data. Mobile layouts at 320/390/768 px and screenshots were checked; JavaScript syntax and whitespace checks passed. The existing source function-budget guard still confirms nine API entry points; this follow-up did not run another Vercel build or deployment.
 
 Read [presale QR checkpoint](presale-qr-checkpoint.md) for the implementation, exact configuration and unresolved release prerequisites. Real receiving QR/account configuration, composed Firestore rules/indexes and staging validation remain required. No live money, production credentials, database migration, external email, git commit, push or deployment was performed for this follow-up. Changes remain in the working tree for review.
+
+
+## GCash receiving QR configuration (November 2, 2026)
+
+The user replaced the placeholder with an InstaPay/GCash QR and explicitly confirmed the encoded recipient `JU**L B.` is authorized to receive park payments. The original replacement JPG is bundled unchanged and its hash is pinned. The active manifest binds it to `gcash-qr-v1`, version 1, with no invented mobile number. Maya remains unconfigured. A matching receiving-document JSON and [exact Firebase/Vercel activation guide](gcash-activation.md) are included.
+
+**209 unit/HTTP tests passed**, including availability and submission context using the actual manifest/configuration against synthetic Firestore. No live payment was sent. Vercel CLI was logged out and browser control unavailable; the user selected manual setup instructions. No Firebase records, deployed environment variables, deployment, commit or push were changed. The source is ready for setup/deployment; live availability was not claimed.

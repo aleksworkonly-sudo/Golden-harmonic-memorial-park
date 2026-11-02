@@ -152,7 +152,7 @@
                   h('select', { id:'proof-option',required:true,value:form.offerId,disabled:busy || !!form.existing,onChange:(e) => update('offerId',e.target.value) },
                     options.offers.map((item) => h('option', { key:item.id,value:item.id },`${labels[item.purpose]} · ${item.label} · ${peso(item.expectedAmountCentavos)}`)))),
                 offer && h('div', { className:'ps-instructions' },h('div', null,h('h4', null,offer.label),h('p', null,offer.accountName),h('p', { className:'ps-number' },offer.accountNumber),h('p', null,offer.instructions),
-                  h('button', { type:'button',className:'pv-secondary',onClick:() => run(() => navigator.clipboard.writeText(offer.accountNumber),() => setMessage('Receiving account number copied.')) },'Copy account number')),
+                  offer.accountNumber && h('button', { type:'button',className:'pv-secondary',onClick:() => run(() => navigator.clipboard.writeText(offer.accountNumber),() => setMessage('Receiving account number copied.')) },'Copy account number')),
                   offer.qrImagePath ? h('figure', { className:'ps-receiving-qr' },h('img', { src:offer.qrImagePath,alt:`Receiving QR for ${offer.accountName}`,width:180,height:180 }),h('figcaption', null,'Verify the recipient before payment')) :
                     h('p',{className:'pv-notice'},'No verified receiving QR is configured. Contact the office for payment instructions.')),
                 offer?.payerDetailsRequired && field('proof-payer-name','Wallet account holder name','text','payerName',{minLength:2,maxLength:120,autoComplete:'name'}),
