@@ -42,7 +42,9 @@
       h('dl', { className:'pv-stats' }, [['Contract total',data.totalCentavos],['Recorded payments',data.paidCentavos],['Remaining balance',data.balanceCentavos]].map(([label,value]) =>
         h('div', { className:'pv-stat', key:label }, h('dt', null, label), h('dd', null, peso(value))))),
       data.unappliedCentavos > 0 && h('p', {className:'pv-notice'},`Unapplied credit: ${peso(data.unappliedCentavos)}. This excess is retained separately for office review; it is not lost or deducted twice.`),
-      h('section', { className:'pv-card' }, h('h2', null, 'Your next obligation'),
+      data.lifecycle && window.PaymentLifecycle && h(window.PaymentLifecycle, { model:data.lifecycle }),
+      data.lifecycle && data.nextDueDate && h('p', { className:'pv-notice' }, `Existing recorded next due date: ${date(data.nextDueDate)}. The office must reconcile this accepted record with the reservation timing calendar; no existing obligation has been replaced.`),
+      !data.lifecycle && h('section', { className:'pv-card' }, h('h2', null, 'Your next obligation'),
         h('p', { className:'pv-muted' }, 'Dates below come from your existing record. If a date is not available, the office will confirm it.'),
         h('dl', { className:'pv-dates' }, h('div', null, h('dt', null, data.planLabel === 'Spot cash' ? 'Spot-cash balance deadline' : 'Deposit deadline'), h('dd', null, date(data.deadlineDate))),
           h('div', null, h('dt', null, 'Next installment due'), h('dd', null, data.planLabel === 'Spot cash' ? 'Not applicable' : date(data.nextDueDate))))),

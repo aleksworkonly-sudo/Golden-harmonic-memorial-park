@@ -2,15 +2,15 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.7 · **Updated:** 2026-11-01 · Asia/Manila
+**Version:** 2.8 · **Updated:** 2026-11-02 · Asia/Manila
 
-**Status:** Design specification with CP0–CP6 implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, secure access, evidence submissions, admin principal posting and four-step cash workflow are implemented locally; the full payment feature is not live.
+**Status:** Design specification with CP0–CP7 implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, secure access, evidence submissions, admin principal posting and four-step cash workflow are implemented locally; the full payment feature is not live.
 
 **Current authorization:** The user selected Option A and explicitly authorized step-by-step application implementation on October 30. This supersedes the earlier blueprint-only edit boundary. Complete a tested checkpoint, save it and pause for review before the next feature. No production deployment, live payment or database migration is authorized by this checkpoint.
 
-**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md) and the [backup guide](docs/payments/checkpoint-backup-guide.md). CP0–CP3 establish the foundation, access and evidence; CP4 adds admin review, reconciliation, explicit principal allocations and canonical history. CP5 adds cash recording, provisional print, private printed-photo revisions and shared canonical approval. CP6 adds authorized PayMongo intents, required raw-body signatures, shared posting and provider reconciliation. Activation remains disabled; CP7–CP9 are pending. Legacy financial writers/readers have not been cut over. Actual rules, contact versions, approved receiving/quote configuration, storage, canonical migration, writer cutover and staging remain activation gates. The demo QR is not a payment destination.
+**Implementation record:** See [payment checkpoints](docs/payments/checkpoints.md) and the [backup guide](docs/payments/checkpoint-backup-guide.md). CP0–CP3 establish the foundation, access and evidence; CP4 adds admin review, reconciliation, explicit principal allocations and canonical history. CP5 adds cash recording, provisional print, private printed-photo revisions and shared canonical approval. CP6 adds authorized PayMongo intents, required raw-body signatures, shared posting and provider reconciliation. CP7 adds verified deposit fulfillment, original deadlines, date-only installment calendars and admin retained-hold review. Activation remains disabled; CP8–CP9 are pending. Legacy financial writers/readers have not been cut over. Actual rules, contact versions, approved receiving/quote configuration, storage, canonical migration, writer cutover and staging remain activation gates. The demo QR is not a payment destination.
 
-> This v2.7 specification retains the original baseline comparison and records authorized CP1–CP6 work. Confirmed decisions take precedence over legacy behavior and proposals. OBSERVED denotes repository findings, PROPOSED denotes future engineering requirements, and OPEN denotes unresolved policy. Consult checkpoint records for the current implementation rather than reading baseline tables as live inventories.
+> This v2.8 specification retains the original baseline comparison and records authorized CP1–CP7 work. Confirmed decisions take precedence over legacy behavior and proposals. OBSERVED denotes repository findings, PROPOSED denotes future engineering requirements, and OPEN denotes unresolved policy. Consult checkpoint records for the current implementation rather than reading baseline tables as live inventories.
 
 ## 1. Confirmed business decisions
 
@@ -34,6 +34,8 @@ The user confirmed the following during this review:
 | Post-deposit monthly amounts | **Explicitly deferred to business/accountant:** divide the remaining balance over the selected term, or retain the original monthly amount and shorten payoff |
 | 2% late-penalty formula | **Explicitly deferred to business/accountant:** calculation details remain undecided |
 | CP3 proof storage (confirmed October 31) | Capped private Firestore image documents for now; activation remains off. Technical caps and retention/operational gates are documented in the CP3 checkpoint. |
+| CP7 deposit anchor | Use the actual received date of the payment that completes the aggregate verified deposit requirement. |
+| CP7 overdue review | Flag overdue reservations for admin review and **keep all plots held**. No release action in this checkpoint. |
 | CP6 buyer fee (confirmed November 1) | Retain the existing **2.5% buyer fee** for PayMongo; keep it separate from principal and actual provider fees. |
 | CP5 approval separation (confirmed November 1) | The same admin may record and approve cash; every operation still requires current admin authority. |
 | CP4 verified amount | Credit the verified actual amount to outstanding principal; retain excess as unapplied credit. Per-item allocations are explicit; no penalty/fee/refund/schedule policy is inferred. |
@@ -42,7 +44,7 @@ Wording must distinguish “no percentage down payment” from the retained **cr
 
 **Confirmed timeline example:** reservation submitted November 10, 2026 → deposit deadline February 10, 2027. Deposit paid December 15, 2026 → first monthly installment January 15, 2027. Deposit paid February 10, 2027 → first monthly installment March 10, 2027. No deposit by the deadline → staff review while the plot remains held until a release decision.
 
-Implementation still needs to distinguish actual received date, claimed date, submission date and verification date. Proposed approach: an admin verifies evidence of actual receipt; later verification must not silently move the payment date or penalize timely payment. Partial-deposit acceptance and the anchor for multiple partial payments remain open.
+Implementation still needs to distinguish actual received date, claimed date, submission date and verification date. Proposed approach: an admin verifies evidence of actual receipt; later verification must not silently move the payment date or penalize timely payment. CP7 confirms that multiple verified payments may satisfy the aggregate deposit threshold; the payment completing that threshold anchors installments. Minimum partial payment and installment allocation policies remain open.
 
 ## 2. Review scope, skills and verification limits
 
@@ -211,7 +213,7 @@ A spot-cash customer may pay in full immediately or make the credited deposit fi
 - Month arithmetic uses the original anchor day, clamped independently to each target month: Jan 31 → Feb 28 → Mar 31. Do not repeatedly add a month to an already-clamped date.
 - Once the installment formula is approved, calculate exact centavo schedules with a documented rounding rule and final adjustment. Schedule amounts must sum exactly to the financed balance.
 - Deposit payment date means evidenced actual receipt, confirmed by admin or provider. A browser date alone cannot establish it. Later verification must retain the evidenced payment date.
-- Partial-deposit policy is OPEN. Proposed anchor if accepted: the receipt that brings cumulative verified deposit credit to the required total. This proposal is not approval to accept partial deposits.
+- CP7 CONFIRMED: multiple verified payments satisfy the aggregate deposit requirement when cumulative credited principal reaches the required total. Use the actual received date of the completing payment as the anchor. Minimum partial-payment and installment allocation policies remain OPEN.
 - The advertised 2% monthly penalty is retained, but basis, compounding, grace, charge dates, allocation and waivers remain OPEN. Do not automate charges from this document alone. Unresolved does not mean zero: preserve existing agreed obligations, and block any new binding charge/settlement calculation that needs the missing policy instead of silently waiving it.
 
 ### 7.3 Lifecycle
@@ -297,11 +299,11 @@ The oldest-first queue supports status, channel, client, date and age filters, w
 
 Admin checks reference/evidence, actual receiving account, actual credited amount and funds received in the bank/GCash account. Mismatched amounts require an explicit reconciliation decision; do not require a false “amount exactly matches” checkbox. Record `receivedAt`, actual amount, actor, evidence revision and reason for exceptions.
 
-Actions: verify, reject with reason, request resubmission with note, or retain in reconciliation. The CP4-confirmed policy credits verified actual money up to outstanding principal and retains excess as unapplied credit. Actual money that cannot be posted safely is retained as a confirmed-funds reconciliation exception, not erased by rejection. Deposit fulfillment and installment scheduling still require CP7; refunds remain separately authorized financial actions.
+Actions: verify, reject with reason, request resubmission with note, or retain in reconciliation. The CP4-confirmed policy credits verified actual money up to outstanding principal and retains excess as unapplied credit. Actual money that cannot be posted safely is retained as a confirmed-funds reconciliation exception, not erased by rejection. CP7 now derives verified deposit fulfillment and installment timing; binding installment amounts remain accountant-gated. Refunds remain separately authorized financial actions.
 
 ### 9.3 Cash and existing cheques
 
-PROPOSED, deferred to CP7 reservation lifecycle: buyer cash selection issues an idempotent payment code and instructions, status `awaiting_cash`. This is distinct from an admin recording cash received at the office. A customer statement that cash was paid is not verification.
+PROPOSED follow-up, not included in the verified-deposit/retained-hold CP7 scope: buyer cash selection issues an idempotent payment code and instructions, status `awaiting_cash`. This is distinct from an admin recording cash received at the office. A customer statement that cash was paid is not verification.
 
 **Confirmed October 30: retain all four office steps.** Only admins may record and approve; the newer branch's staff access is not approved by this decision.
 
@@ -641,7 +643,7 @@ The confirmed choices in Section 1 are settled. The following remain open; propo
 |---|---|---|
 | Q01 | After credited deposit, spread remaining principal/surcharge balance over selected 12/24/36/60 months, or keep the original monthly amount and shorten payoff? | Explicitly deferred by user to business/accountant; blocks binding new installment quote |
 | Q02 | 2% monthly penalty basis, grace, charge date, partial months, compounding, cap, rounding, allocation and waivers? | Explicitly deferred by user to business/accountant; blocks automated penalty calculation |
-| Q03 | Accept partial deposits/installments? What minimum, deadline treatment and threshold-reaching date apply? | Business; real funds still need accounting even when not sufficient to satisfy an obligation |
+| Q03 | Minimum partial payment and installment allocation rules? | CP7 confirms cumulative verified deposit fulfillment and the completing receipt date as anchor. Remaining rules require business confirmation; an incomplete deposit never resets the deadline. |
 | Q04 | Refund/cancellation terms, multi-plot partial release, transfer/co-owner changes, extension limits and default escalation? | Business; no automatic forfeiture or refund, and no invented three-missed-payment rule |
 | Q05 | Which admin capabilities may void/refund, extend/release, correct references or change receiving accounts? Second approval threshold and staff read/triage scope? | Management; manual confirmation/cash recording is already settled as admin-only |
 | Q06 | Account-holder email-verification rollout and secure linking/recovery for legacy duplicates? | Management/engineering; presale email verification link is already confirmed |
@@ -669,4 +671,8 @@ Before implementation, obtain the deployed Firestore rules/index inventory, appr
 
 ### CP6 implementation update — November 1
 
-CP6 replaces the unsafe legacy checkout/webhook routes with separately disabled authorized intents and exact-byte signature verification. Principal, the confirmed 2.5% buyer fee and actual provider fees are separate; events/payment identities deduplicate through canonical posting. Uncertain creation requires recovery of the original session, and unmatched or overlapping money remains in admin reconciliation. Customer return URLs never establish paid status. See [CP6 contract](docs/payments/gateway-checkpoint.md) for current capabilities, cutover impact and release gates. **127 local tests and all four browser suites passed.** CP7 is explicitly authorized next; its installment amount and penalty formulas remain gated.
+CP6 replaces the unsafe legacy checkout/webhook routes with separately disabled authorized intents and exact-byte signature verification. Principal, the confirmed 2.5% buyer fee and actual provider fees are separate; events/payment identities deduplicate through canonical posting. Uncertain creation requires recovery of the original session, and unmatched or overlapping money remains in admin reconciliation. Customer return URLs never establish paid status. See [CP6 contract](docs/payments/gateway-checkpoint.md) for current capabilities, cutover impact and release gates. **127 local tests and all four browser suites passed.** CP7 followed this checkpoint; installment amount and penalty formulas remain gated.
+
+### CP7 implementation update — November 2
+
+CP7 adds aggregate verified-principal deposit tracking, the original three-calendar-month deadline, and installment timing anchored to the deposit-completion receipt. It retains spot-cash balance deadlines and generates no unapproved monthly amount or penalty. Admins can save audited retained-hold reviews; the confirmed CP7 scope keeps plots held and provides no release/extension operation. Account and email-link reservation views share the calculation. Historical, adjusted, malformed or oversized ledger histories remain in reconciliation without discarding new confirmed money. See [CP7 contract](docs/payments/lifecycle-checkpoint.md) for schema, scope and activation gates. **145 local tests and all five browser suites passed.** Next is CP8 when requested; live activation and migration remain unauthorized.

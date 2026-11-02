@@ -19,7 +19,7 @@ The requested payment QR is a random decorative **demo image**, created with the
 | CP4 | Admin review/corrections and end-to-end manual posting | Implemented and tested locally; disabled pending canonical cutover and activation gates |
 | CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Implemented and tested locally; disabled pending activation/cutover gates |
 | CP6 | Secure PayMongo integration and shared reconciliation | Implemented and tested locally; activation disabled |
-| CP7 | Deposit, reservation deadlines, schedules and review lifecycle | Not started |
+| CP7 | Deposit, original deadlines, installment timing and retained-hold review | Implemented and tested locally; amounts/penalties and live activation remain gated |
 | CP8 | Notifications/reminders, reports/sheets/commissions, OCR and UI polish | Not started |
 | CP9 | Migration, recovery and release validation | Not started |
 
@@ -197,3 +197,17 @@ Starting commit `fb8d38a`. User confirmed retaining the existing 2.5% buyer fee,
 Read [CP6 implementation and activation gates](gateway-checkpoint.md). Both gateway flags default off. Changing a flag is insufficient: approved canonical quote/configuration, actual legacy writer retirement, rules/indexes and staging verification remain mandatory. Existing in-flight legacy sessions need reconciliation; they are not automatically migrated.
 
 Checkpoint subject: **`Payment CP6: secure PayMongo checkout and reconciliation`**. Find using `git log -1 --format='%h %s' --grep='Payment CP6:'`. CP7 is explicitly requested next. No remote push or backup archive was created.
+
+## CP7 — verified deposits and retained-hold review (November 2, 2026)
+
+Starting commit `4bdd8fa`. User confirmed anchoring installments to the payment completing the aggregate verified deposit, and **flagging overdue reservations for review while keeping plots held**. Work resumed after a usage-limit interruption. Applied Firebase authentication and delegated invariant/rules review, UI/UX confirmation feedback and responsive design skills.
+
+- Shared posting derives verified principal deposit fulfillment and receipt-date anchors atomically with money. Fees, unapplied excess and pending evidence do not count. Receipt replay does not move dates or duplicate credit.
+- Preserves the original three-month Manila deadline, spot-cash full-balance rule and original-anchor month-end arithmetic. Installment dates are visible; amounts and penalties remain explicitly accountant-gated. Existing accepted amounts/next-due fields remain intact.
+- Added admin-only paginated reservation review, fresh detail checks, confirmation and idempotent retained-hold notes with immutable audit. Review never clears an unmet deadline, extends dates, releases plots or changes money.
+- Customer/guest history shares current lifecycle results without admin notes. Historical credit, reversals, malformed provenance and more than 500 ledger entries require reconciliation; valid new receipts remain recordable under existing financial checks.
+- Review corrected malformed-history exceptions and redundant-ID pagination. **145 unit/HTTP tests passed; all five local Edge browser suites passed.** Desktop/mobile screenshots, JavaScript/JSON syntax and whitespace were checked. No real Firebase/emulator/index/rules, provider payment, deployment, production configuration or email was used.
+
+Read [CP7 contract](lifecycle-checkpoint.md). `PAYMENT_LIFECYCLE_ENABLED` gates the admin route; server-owned `bookings.lifecycleEnabled` separately opts approved canonical contracts into posting/read derivation. Neither was enabled in production. Policies, provisioning, actual legacy writer retirement, rules/indexes and staging remain activation gates. Buyer cash-intention codes remain proposed follow-up; binding schedule amounts, penalties, historical repair, refunds/extensions/releases are not silently implemented.
+
+Checkpoint subject: **`Payment CP7: track deposits and reservation review`**. Resolve with `git log -1 --format='%h %s' --grep='Payment CP7:'`. **Next: CP8 only when requested.** No push or backup archive was created.

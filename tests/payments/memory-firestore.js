@@ -16,7 +16,7 @@ class Query {
   }
   orderBy(field, direction) {
     return new Query(this.db, this.collection, { ...this.options,
-      order: [...(this.options.order || []), [field, direction]] });
+      order: [...(this.options.order || []), [String(field), direction]] });
   }
   startAfter(...cursor) { return new Query(this.db, this.collection, { ...this.options, cursor }); }
   limit(count) { return new Query(this.db, this.collection, { ...this.options, limit: count }); }
@@ -62,10 +62,11 @@ class MemoryFirestore {
             path.startsWith(`${reference.collection}/`) && path.split('/').length === reference.collection.split('/').length + 1 &&
             filters.every(([field,operator,value])=>({ '==':()=>data[field]===value, '>=':()=>data[field]>=value,
               '<=':()=>data[field]<=value, '<':()=>data[field]<value, '>':()=>data[field]>value })[operator]()));
-          rows.sort((a, b) => compare(a[1], b[1]));
+          const orderedValue = ([path, data]) => ({ ...data, __name__:path.split('/').pop() });
+          rows.sort((a, b) => compare(orderedValue(a), orderedValue(b)));
           if (cursor) {
             const anchor = Object.fromEntries(order.map(([field], index) => [field, cursor[index]]));
-            rows = rows.filter(([, data]) => compare(data, anchor) > 0);
+            rows = rows.filter((row) => compare(orderedValue(row), anchor) > 0);
           }
           return { docs: rows.slice(0, limit).map(([path]) => read(path)) };
         },
