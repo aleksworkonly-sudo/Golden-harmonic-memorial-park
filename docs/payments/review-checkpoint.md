@@ -23,7 +23,7 @@ The `PAY-` acknowledgement is an internal identity, not official tax numbering o
 ## Implementation
 
 - `review.js`: admin-only queue/detail/proof reads and atomic decisions, including current transactional role checks before replaying a saved result.
-- `review-http.js` / `api/payment-review.js`: `PAYMENT_REVIEW_ENABLED` plus complete CP2 configuration; same-origin JSON POST, bearer identity, 32 KiB body bound, field allowlists, shared traffic caps and private/no-store responses.
+- `review-http.js` / `/api/payment-review` (via `api/payments.js`): `PAYMENT_REVIEW_ENABLED` plus complete CP2 configuration; same-origin JSON POST, bearer identity, 32 KiB body bound, field allowlists, shared traffic caps and private/no-store responses.
 - `payment-review.html/js/css`: existing green/cream style, responsive queue cards, labels, proof zoom, focused errors/confirmation, decision review and safe retries. Private UI clears on sign-out, identity change, bfcache restoration or a 15-minute review timer. No persisted browser proof/token draft.
 - `canonical.js`: explicit source-to-booking checks and ledger history for opted-in sources. Unmigrated sources retain the CP2 legacy reader. Broken canonical mappings fail closed; old/new payment representations are never summed together.
 - `identities.js`: preserves CP1's exact manual economic key and receipt identities. Display/configuration versions and channel labels cannot reset uniqueness. CP1 retains its narrow internal-only posting behavior.

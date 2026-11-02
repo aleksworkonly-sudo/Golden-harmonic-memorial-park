@@ -10,6 +10,11 @@ This document identifies completed work, unfinished work and the information nee
 
 ## Checkpoint inventory
 
+After CP9, include the [Vercel function-limit fix](vercel-routing.md) in your
+next code backup. It consolidates deployment wrappers while preserving the
+checkpoint APIs and workflows. The original CP9 commit alone still exceeds
+the Hobby function limit.
+
 | Checkpoint | Implementation | Status | Saved commit | Recorded validation |
 |---|---|---|---|---|
 | CP0 | Baseline, scope, policy questions and acceptance criteria | Complete; saved with CP1 | `4102bc3` | Baseline documented |

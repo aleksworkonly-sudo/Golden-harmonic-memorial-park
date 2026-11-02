@@ -2,7 +2,12 @@
 
 **System:** Golden Harmonic Memorial Park
 
-**Version:** 2.10 · **Updated:** 2026-11-02 · Asia/Manila
+**Version:** 2.11 · **Updated:** 2026-11-02 · Asia/Manila
+
+**Hosting follow-up:** Seven existing payment API URLs now share one Vercel
+function through explicit rewrites. The reminder helper lives outside `api/`,
+leaving nine function entry points. Payment handlers, frontend design and
+activation gates are unchanged. See [deployment routing](docs/payments/vercel-routing.md).
 
 **Status:** Design specification with CP0–CP9 local implementation checkpoints. Business decisions marked OPEN remain release gates. The foundation, secure access, evidence submissions, admin principal posting and four-step cash workflow are implemented locally; the full payment feature is not live.
 

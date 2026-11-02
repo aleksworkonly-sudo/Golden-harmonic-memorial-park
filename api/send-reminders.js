@@ -31,7 +31,7 @@ if (!admin.apps.length) {
   });
 }
 const db = admin.firestore();
-const { runPresaleReminders } = require('./_presale-reminders');
+const { runPresaleReminders } = require('../lib/presale-reminders');
 
 const REMINDER_DAYS_BEFORE = 3; // email sent this many days before the due date
 const FOLLOWUP_DAYS_AFTER = 3;  // email sent this many days after, if still unpaid

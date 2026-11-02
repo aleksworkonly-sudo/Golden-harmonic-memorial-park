@@ -24,11 +24,11 @@ Implemented locally on **November 2, 2026 (Asia/Manila)**, starting from CP7 `64
 | Current identity and contract checks | `lib/payments/operations-access.js` |
 | Acknowledgements, statements, collections and notices | `lib/payments/reports.js` |
 | Delivery preparation, leases, reminders and recovery | `lib/payments/outbox.js` |
-| HTTP access and worker authentication | `lib/payments/operations-http.js`, `api/payment-operations.js`, `api/payment-messaging-worker.js` |
+| HTTP access and worker authentication | `lib/payments/operations-http.js`; public `/api/payment-operations` and `/api/payment-messaging-worker` now share `api/payments.js` |
 | Admin interface | `payment-operations-admin.html`, `payment-operations-admin.js`, `payment-operations.css` |
 | Customer notices and print acknowledgements | `payment-communications.js`, `payment-view.js`, `my-payments.html` |
 | Optional receipt reading | `payment-ocr.js`, `payment-submit.js`, `payment-review.js` |
-| Existing scheduler integration | `api/send-reminders.js`, `api/_presale-reminders.js` |
+| Existing scheduler integration | `api/send-reminders.js`, `lib/presale-reminders.js` |
 | Synthetic verification | `tests/payments/operations-fixture.js`, `operations.test.js`, `operations-http.test.js`, `operations-browser.cjs` |
 
 `POST /api/payment-operations` supports `notices` and `receipt` through current buyer access; `statement`, `collections`, `queue`, `prepare`, `reconcile` and `reminders` require a current admin/superadmin record. Same-origin JSON, 8 KiB body bounds, field allowlists, shared traffic limits and no-store responses apply. Provider errors/secrets are not returned. Private receipt access checks current source/booking mapping and retained owner binding.

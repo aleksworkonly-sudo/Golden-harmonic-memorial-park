@@ -6,6 +6,11 @@ Checkpoint subject: **`Payment CP9: add migration recovery rehearsals and cutove
 
 ## What this checkpoint does
 
+**Hosting follow-up:** CP9's original deployment exceeded the Vercel Hobby
+function limit. See [the routing fix](vercel-routing.md) for the shared payment
+entry point, preserved public URLs and function-budget verification. This does
+not change the migration or activation gates below.
+
 | Capability | Implementation |
 |---|---|
 | Legacy inventory | Flags ambiguous amounts/dates, duplicate references, missing ownership, provider overlap, pending proof, signed history and status-only credit |

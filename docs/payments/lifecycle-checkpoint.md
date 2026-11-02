@@ -25,7 +25,7 @@ All CP4 manual, CP5 cash and CP6 gateway receipts use the shared posting path. F
 |---|---|
 | `lib/payments/lifecycle-model.js` | Verified-principal derivation, dates, timing calendar and bounded reconciliation fallback |
 | `lib/payments/lifecycle.js` | Current-admin queue/detail and idempotent retained-hold decision |
-| `lib/payments/lifecycle-http.js`, `api/payment-lifecycle.js` | Separately gated, same-origin, rate-limited, allowlisted admin API |
+| `lib/payments/lifecycle-http.js`, `/api/payment-lifecycle` via `api/payments.js` | Separately gated, same-origin, rate-limited, allowlisted admin API |
 | `lib/payments/posting.js` | Atomic lifecycle projection alongside shared financial posting |
 | `lib/payments/canonical.js`, `access.js` | Fresh lifecycle on owner-bound account/reservation history reads |
 | `payment-lifecycle.js` | Shared customer/admin deposit and timing presentation |

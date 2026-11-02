@@ -70,6 +70,20 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/payment-access", "destination": "/api/payments" },
+    { "source": "/api/payment-submission", "destination": "/api/payments" },
+    { "source": "/api/payment-review", "destination": "/api/payments" },
+    { "source": "/api/payment-cash", "destination": "/api/payments" },
+    { "source": "/api/payment-lifecycle", "destination": "/api/payments" },
+    { "source": "/api/payment-operations", "destination": "/api/payments" },
+    { "source": "/api/payment-messaging-worker", "destination": "/api/payments" },
+    { "source": "/api/payment-access.js", "destination": "/api/payments" },
+    { "source": "/api/payment-submission.js", "destination": "/api/payments" },
+    { "source": "/api/payment-review.js", "destination": "/api/payments" },
+    { "source": "/api/payment-cash.js", "destination": "/api/payments" },
+    { "source": "/api/payment-lifecycle.js", "destination": "/api/payments" },
+    { "source": "/api/payment-operations.js", "destination": "/api/payments" },
+    { "source": "/api/payment-messaging-worker.js", "destination": "/api/payments" },
     {
       "source": "/presale",
       "destination": "/presale.html"
