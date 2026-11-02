@@ -5577,7 +5577,7 @@ function Dashboard({
     className: "sidebar-section"
   }, "Management"), /*#__PURE__*/React.createElement("nav", {
     className: "sidebar-nav"
-  }, isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-review.html"},"Manual payment review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html"},"Cash receipts"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html"},"Provider reconciliation"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html"},"Reservation review"), visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
+  }, isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-review.html"},"Manual payment review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html"},"Cash receipts"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html"},"Provider reconciliation"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html"},"Reservation review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html"},"Payment communications and reports"), visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
     key: t.id,
     className: `nav-item ${tab === t.id ? 'active' : ''}`,
     onClick: () => selectTab(t.id)

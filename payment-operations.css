@@ -1,0 +1,17 @@
+.po-message { white-space:pre-wrap; overflow-wrap:anywhere; }
+.po-controls { display:flex; flex-wrap:wrap; gap:12px; margin-block:16px; }
+.po-controls > * { flex:1 1 180px; min-width:0; }
+.po-table { max-width:100%; overflow-x:auto; }
+.po-table table { table-layout:fixed; min-width:640px; width:100%; }
+.po-table th:first-child { width:110px; }
+.po-table th:nth-child(2) { width:30%; }
+.po-table th, .po-table td { overflow-wrap:anywhere; }
+.payment-print-area { overflow-wrap:anywhere; }
+@media print {
+  body.payment-print * { visibility:hidden; }
+  body.payment-print .payment-print-area, body.payment-print .payment-print-area * { visibility:visible; }
+  body.payment-print .payment-print-area { position:absolute; inset:0; margin:0; border:0; }
+  body.payment-print .payment-print-area button { display:none; }
+  body.payment-print .po-table { overflow:visible; }
+  body.payment-print .po-table table { min-width:0; }
+}

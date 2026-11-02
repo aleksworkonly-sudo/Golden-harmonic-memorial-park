@@ -49,6 +49,7 @@
         h('dl', { className:'pv-dates' }, h('div', null, h('dt', null, data.planLabel === 'Spot cash' ? 'Spot-cash balance deadline' : 'Deposit deadline'), h('dd', null, date(data.deadlineDate))),
           h('div', null, h('dt', null, 'Next installment due'), h('dd', null, data.planLabel === 'Spot cash' ? 'Not applicable' : date(data.nextDueDate))))),
       data.pendingCount > 0 && h('p', { className:'pv-notice' }, `${data.pendingCount} earlier payment submission${data.pendingCount === 1 ? '' : 's'} awaiting review. New online proofs are listed separately below. Pending amounts do not reduce your balance.`),
+      window.PaymentCommunications && h(window.PaymentCommunications,{key:`communications:${mode}:${data.id}`,mode,customerId:data.id,entries:data.canonical?data.entries:[],onAccessLost}),
       window.PaymentGateway && h(window.PaymentGateway, { key:`gateway:${mode}:${data.id}`, mode, customerId:data.id, onAccessLost }),
       window.PaymentSubmission && h(window.PaymentSubmission, { key:`${mode}:${data.id}`, mode, customerId:data.id, plots:data.plots, onAccessLost }),
       h('section', { className:'pv-card' }, h('h2', null, 'Recorded payment history'),

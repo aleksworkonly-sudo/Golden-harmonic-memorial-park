@@ -136,9 +136,9 @@ test('wrong/duplicate/excess allocations, unsupported fields, false receipt and 
 });
 
 test('failed commit leaves no partial ledger, receipt, outbox or budget change; retry succeeds',async()=>{
-  const f=reviewFixture(),saved=await f.submit(),cmd=f.decision(saved);const budget=f.db.read('paymentProofBudget/manual');
+  const f=reviewFixture(),saved=await f.submit(),cmd=f.decision(saved);const budget=f.db.read('paymentProofBudget/manual'),outboxBefore=f.db.count('emailOutbox');
   f.db.failNextCommit=true;await assert.rejects(f.review.decide('admin',cmd),/Simulated/);
-  assert.equal(f.db.count('receipts'),0);assert.equal(f.db.count('economicPayments'),0);assert.equal(f.db.count('emailOutbox'),0);
+  assert.equal(f.db.count('receipts'),0);assert.equal(f.db.count('economicPayments'),0);assert.equal(f.db.count('emailOutbox'),outboxBefore);
   assert.equal(f.db.read('bookings/booking-c1').netCreditCentavos,0);assert.deepEqual(f.db.read('paymentProofBudget/manual'),budget);
   await f.review.decide('admin',cmd);assert.equal(f.db.count('receipts'),1);
 });

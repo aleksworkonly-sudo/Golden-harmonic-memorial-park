@@ -68,7 +68,7 @@
     }, []);
     useEffect(() => { if (error) alert.current?.focus(); }, [error]);
     useEffect(() => { if (form) heading.current?.focus(); }, [review,!!form]);
-    const update = (key,value) => { request.current = null; setForm((valueNow) => ({ ...valueNow,[key]:value })); };
+    const update = (key,value) => { request.current = null; setForm((valueNow) => ({ ...valueNow,[key]:value, ...(valueNow.claimAssistance ? {claimAssistance:{...valueNow.claimAssistance,source:'ocr_edited'}} : {}) })); };
     const start = (row) => {
       setError(''); setMessage(''); setReview(false); setUncertain(false); setShownProof(null); request.current = null;
       setForm({ offerId:row?.quote.id || options.offers[0]?.id || '', amount:row ? String(row.claimedCentavos / 100) : '',
@@ -83,6 +83,7 @@
       if (!Number.isSafeInteger(amount) || amount <= 0) return setError('Enter a positive peso amount with at most two decimal places.');
       request.current = { requestId:crypto.randomUUID(), offerId:offer.id, scopeVersion:options.scopeVersion,
         claimedCentavos:amount, transferDate:form.transferDate, reference:form.reference, image:form.image.split(',')[1],
+        ...(form.claimAssistance ? {claimAssistance:form.claimAssistance} : {}),
         ...(form.existing ? { paymentId:form.existing.paymentId, expectedVersion:form.existing.version } : {}) };
       setReview(true);
     };
@@ -138,9 +139,12 @@
                 h('div', { className:'pv-field' },h('label', { htmlFor:'proof-file' },'Receipt image'),
                   h('input', { id:'proof-file',type:'file',accept:'image/jpeg,image/png,image/webp',disabled:busy,'aria-describedby':'proof-file-help',onChange:(event) => {
                     const file = event.target.files[0]; update('image','');
-                    if (file) run(() => prepareImage(file),(url) => update('image',url));
-                  } }),h('small', { id:'proof-file-help' },'JPG, PNG or WEBP up to 5 MB. We compress the image; inspect the preview before confirming. No automatic text extraction is used.')),
+                    if (file) run(() => prepareImage(file),(url) => { update('image',url); setForm((f)=>({...f,claimAssistance:null})); });
+                  } }),h('small', { id:'proof-file-help' },'JPG, PNG or WEBP up to 5 MB. Inspect the compressed preview. Optional receipt reading gives suggestions only; always check the details.')),
                 form.image && preview(form.image,'Your selected receipt image'),
+                form.image && window.PaymentOCR && h(window.PaymentOCR,{key:form.image,image:form.image,
+                  onCandidates:(candidates)=>setForm((f)=>({...f,claimAssistance:{source:'manual',candidates}})),
+                  onApply:(key,value)=>setForm((f)=>({...f,[key]:value,claimAssistance:{...f.claimAssistance,source:'ocr'}}))}),
                 h('div', { className:'pv-actions' },h('button', { type:'submit',className:'pv-primary',disabled:busy || !form.image },'Review submission'),
                   h('button', { type:'button',className:'pv-secondary',disabled:busy,onClick:() => setForm(null) },'Cancel')))),
           !form && h(React.Fragment, null,h('div', { className:'pv-actions' },h('h3', null,'Your payment submissions and cash records'),h('button', { className:'pv-secondary',disabled:busy,onClick:() => run(reload,applyReload) },'Refresh submissions')),

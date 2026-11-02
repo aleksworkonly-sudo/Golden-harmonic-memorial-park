@@ -20,7 +20,7 @@ The requested payment QR is a random decorative **demo image**, created with the
 | CP5 | Admin-only Record → Print → Photo → Approve cash workflow | Implemented and tested locally; disabled pending activation/cutover gates |
 | CP6 | Secure PayMongo integration and shared reconciliation | Implemented and tested locally; activation disabled |
 | CP7 | Deposit, original deadlines, installment timing and retained-hold review | Implemented and tested locally; amounts/penalties and live activation remain gated |
-| CP8 | Notifications/reminders, reports/sheets/commissions, OCR and UI polish | Not started |
+| CP8 | Notifications/reminders, read-only statements/collections, recorded allocations and OCR | Implemented and tested locally; dispatch and activation disabled; unconfirmed formulas remain gated |
 | CP9 | Migration, recovery and release validation | Not started |
 
 ## CP0 — baseline and policy gates
@@ -211,3 +211,18 @@ Starting commit `4bdd8fa`. User confirmed anchoring installments to the payment 
 Read [CP7 contract](lifecycle-checkpoint.md). `PAYMENT_LIFECYCLE_ENABLED` gates the admin route; server-owned `bookings.lifecycleEnabled` separately opts approved canonical contracts into posting/read derivation. Neither was enabled in production. Policies, provisioning, actual legacy writer retirement, rules/indexes and staging remain activation gates. Buyer cash-intention codes remain proposed follow-up; binding schedule amounts, penalties, historical repair, refunds/extensions/releases are not silently implemented.
 
 Checkpoint subject: **`Payment CP7: track deposits and reservation review`**. Resolve with `git log -1 --format='%h %s' --grep='Payment CP7:'`. **Next: CP8 only when requested.** No push or backup archive was created.
+
+## CP8 — communications, reports and receipt reading (November 2, 2026)
+
+Starting commit `64c0d83`. The user requested CP8 and confirmed reminders **three days and one day before, then one day after the original deadline**, plus **recorded allocations only** while commission/tax formulas remain unapproved. Work resumed after a usage-limit interruption. Applied local Firebase authentication with delegated rules/invariant review, UI/UX feedback guidance and responsive design skills.
+
+- Added customer account/guest notices and immutable private print acknowledgements; an admin operations screen provides outbox inspection, fixed-recipient message preparation, uncertain delivery recovery, collection CSV/print and read-only customer monitoring statements.
+- Added separately gated Brevo dispatch with durable bounded claims, stable provider idempotency keys, attempts/backoff, conservative uncertain outcomes and audited admin recovery. Payment posting remains independent of email outcomes. The worker integrates with the existing authenticated cron; actual capacity/frequency must be configured and verified before activation.
+- Added deduplicated reservation reminders with current lifecycle, contact, pending-proof and gateway checks. Catch-up selects the latest applicable stage; it never bills unapproved installment/penalty amounts or releases plots.
+- Reports reconcile canonical credit, separate fees/unapplied money, avoid double counting linked provider receipts and exclude opening balances from collections. Only recorded allocation snapshots are displayed; broader portfolio/settlement/refund exports and financial sheet edits remain follow-ups.
+- Added optional local receipt reading, explicit suggestion acceptance, progress/cancel/timeout, preserved manual input and immutable bounded review metadata. The demo QR remains unchanged.
+- Review fixed invalid mappings starving reminder progress, obsolete reminder stages, notification chronology, provider idempotency header use and oversized worker batches. **167 unit/HTTP tests and all six browser suites passed.** The pinned OCR reader successfully read a synthetic receipt on a diagnostic rerun after an initial timeout; manual fallback passed. Desktop/mobile screenshots were inspected; final syntax/whitespace checks passed.
+
+Read [CP8 contract, configuration, limits and release gates](operations-checkpoint.md). Both new flags default off. No production contact/configuration, credentials, real email/payment, migration or deployment was used. Actual composed rules/indexes, Firebase SDK/emulator, provider delivery, dispatch capacity, real receipt samples and retention remain gates. Old canonical reminder writers are skipped, so coordinate cutover and messaging activation deliberately.
+
+Checkpoint subject: **`Payment CP8: add communications reports and receipt reading`**. Resolve with `git log -1 --format='%h %s' --grep='Payment CP8:'`. **Next: CP9 only when requested.** No remote push or backup archive was created.

@@ -72,3 +72,23 @@ Keep `reservationReviews/**` server-only for both read and write, including auth
 Admin queue: `bookings`, `lifecycleEnabled == true`, ordered by document ID (`FieldPath.documentId()`) ascending, 20 per page plus one cursor lookahead. Do not require a redundant bookingId field. Ledger derivation: `ledgerEntries`, bookingId equality, bounded at 501 to detect a 500-entry support limit; no silently truncated financial history. Check these queries against actual single-field/composite index inventory and emulator SDK behavior. Exempt unqueried calendar/review reason/snapshot fields where appropriate. No replacement/deployable index or rules inventory is supplied.
 
 Emulator/staging cases must include direct anonymous/owner/other-owner/guest/staff/admin get/list/create/update/delete on private review/lifecycle state, current role revocation before cached replay, canonical source/terms races, concurrent posting/review, missing/mismatched redundant IDs, out-of-order receipts, malformed/oversized history and preservation of plot/money state after deadline passage or retain-hold decisions. Local tests cover domain behavior only. Skill-directed review found malformed-ledger TypeErrors and pagination omissions; both were fixed with regressions. No production rules, credentials or data were accessed.
+
+## CP8 communications and reports — not deployable rules
+
+Keep `emailOutbox/**`, `emailAttempts/**`, `paymentWorkerState/**` and `notifications/**` server-only for read/write, including against admin browsers. Extend the existing private ledger/receipt/review/audit/operation boundaries. Protect `bookings.notificationContact`, its monotonically increasing version and verified owner/email assertions; protect recorded allocation snapshots and every legacy contact/allocation writer. Historical receipt `ownerBinding` must not be changed to make a new owner pass authorization. No collection-specific denial overrides a matching broad allow.
+
+Merge the actual query shapes into the existing project index inventory; do not deploy a replacement inventory from these notes:
+
+| Collection | Query/order |
+|---|---|
+| `emailOutbox` | state equality, document ID ASC for queue/preparation cursors |
+| `emailOutbox` | state equality, nextAttemptAt <= now, nextAttemptAt ASC for ready/retry work |
+| `emailOutbox` | state == sending, leaseUntil <= now, leaseUntil ASC for expired attempts |
+| `notifications` | submissionScope equality, createdAt DESC, document ID DESC |
+| `ledgerEntries` | bookingId equality, recordedAt ASC, receiptId ASC for statements |
+| `ledgerEntries` | receivedDate range, receivedDate ASC, receiptId ASC for collections |
+| `bookings` | lifecycleEnabled equality, document ID ASC for reminder scans |
+
+The final document-ID order is explicit via `FieldPath.documentId()`, not a redundant field. Validate actual SDK query/index behavior, required fields on migrated historical records, and Firestore transaction limits. Exempt unqueried outbox text, OCR candidate arrays, allocation snapshot arrays and attempt/audit reasons where appropriate. Define monitored retention for private messages and attempts; preserve uncertain records needed for recovery.
+
+Extend emulator/staging tests to all direct-access roles, current owner/contact/terms changes, role removal before cached recovery, source remapping, guest expiry/renewal, two worker claims, crashes after provider acceptance, expired leases and stale reminders. Check report gross/principal/fees, zero opening balances, linked manual/provider receipts, scoped cursors and oversized/reversal ranges. Exercise realistic reservation counts and queue drainage with the intended scheduler; the bounded worker is not proof of adequate production capacity. The skill-directed reviewer identified reminder starvation, stale stages, notice chronology and the missing provider idempotency header; these were corrected with local regressions. No actual rules or indexes were inspected/deployed. See [CP8 contract](operations-checkpoint.md).
