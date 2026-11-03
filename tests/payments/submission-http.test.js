@@ -60,3 +60,40 @@ test('anonymous and forged command fields cannot create evidence; backend except
   const failed=await call(handler,{action:'context',mode:'account',customerId:'c1'});
   assert.equal(failed.code,503);assert.equal(JSON.stringify(failed.body).includes('secret'),false);
 });
+
+test('missing history index does not mean receiving instructions or the reservation are missing',async()=>{
+  const f=fixture(),logs=[];
+  const transaction=f.db.runTransaction.bind(f.db);
+  f.db.runTransaction=work=>transaction(tx=>{
+    const get=tx.get.bind(tx);
+    tx.get=ref=>ref.collection==='payments' && ref.options.order ?
+      Promise.reject(Object.assign(new Error('9 FAILED_PRECONDITION: The query requires an index. PRIVATE_FIRESTORE_URL'),{code:9})) : get(ref);
+    return work(tx);
+  });
+  const handler=createSubmissionHandler({env,services:()=>({db:f.db,auth:f.auth}),logger:{error:(...args)=>logs.push(args)}});
+  const target={mode:'account',customerId:'c1'};
+  const context=await call(handler,{action:'context',...target});
+  assert.equal(context.code,200);
+  assert.equal(context.body.offers.length,1);
+  const list=await call(handler,{action:'list',...target});
+  assert.equal(list.code,503);
+  assert.equal(list.body.code,'SUBMISSION_INDEX_REQUIRED');
+  assert.match(list.body.error,/office needs to finish/);
+  assert.deepEqual(logs[0],[ '[payment-submission]',{action:'list',stage:'list',reason:'missing_index',grpcCode:9} ]);
+  assert.equal(JSON.stringify({logs,body:list.body}).includes('PRIVATE_FIRESTORE_URL'),false);
+  assert.equal(f.db.count('paymentProofs'),0);
+});
+
+test('read failures and uncertain proof writes have different recovery messages',async()=>{
+  const logs=[];
+  const handler=createSubmissionHandler({env,services:()=>{throw Object.assign(new Error('PRIVATE_CREDENTIAL'),{code:14});},
+    logger:{error:(...args)=>logs.push(args)}});
+  for(const action of ['context','list','proof','submit']){
+    const result=await call(handler,{action,mode:'account',customerId:'c1'});
+    assert.equal(result.code,503);
+    assert.equal(result.body.code,action==='submit'?'SUBMISSION_UNAVAILABLE':'SUBMISSION_READ_UNAVAILABLE');
+    assert.equal(JSON.stringify(result.body).includes('PRIVATE_CREDENTIAL'),false);
+  }
+  assert.equal(logs.length,4);
+  assert.ok(logs.every(([,entry])=>entry.stage==='services' && entry.grpcCode===14));
+});

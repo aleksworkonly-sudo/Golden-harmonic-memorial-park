@@ -95,3 +95,5 @@ The other configuration checks are `/api/payment-access`, `/api/payment-submissi
 Check the deployed image at `/payment-qr/gcash-v1.jpg`. In an authorized staging reservation, confirm holds occur before the QR, the displayed recipient is `JU**L B.`, the deposit is ₱5,000 per plot, and proof submission reaches the admin queue without crediting money. Confirm correction retains holds/deadline and admin approval requires actual statement verification. Do not approve synthetic proof as real received money.
 
 The application never marks a payment verified merely because a QR was scanned or a screenshot uploaded. Manual admin verification remains required.
+
+If a saved reservation shows “Could not finish the request” before the QR, check the submission-history composite index first. See the [QR loading audit and recovery steps](qr-loading-audit.md). `GET /api/payment-submission` only reports a feature flag; it does not check Firestore indexes. The read-only `scripts/payments/check-readiness.cjs` script can verify the payment query prerequisites using the deployed project's server environment.
