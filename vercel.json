@@ -91,6 +91,10 @@
     {
       "source": "/my-payments",
       "destination": "/my-payments.html"
+    },
+    {
+      "source": "/receipt",
+      "destination": "/receipt.html"
     }
   ]
 }
