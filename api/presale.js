@@ -19,7 +19,7 @@
 
 const admin = require('firebase-admin');
 const { createPresalePaymentService } = require('../lib/payments/presale-payment');
-const { configuration, requesterIdentity, sessionCookie } = require('../lib/payments/access-http');
+const { configuration, isCustomerPaymentOrigin, requesterIdentity, sessionCookie } = require('../lib/payments/access-http');
 const { createAccessService } = require('../lib/payments/access');
 const { PaymentError, requireCondition } = require('../lib/payments/errors');
 
@@ -225,8 +225,9 @@ module.exports = async function handler(req, res) {
   if (['gcash','maya'].includes(method)) {
     try {
       const config = configuration(process.env);
-      requireCondition(config.origin && req.headers.origin === config.origin && (!req.headers['sec-fetch-site'] || req.headers['sec-fetch-site'] === 'same-origin'),
-        'INVALID_ORIGIN','Open the reservation form from the park website.',403);
+      requireCondition(isCustomerPaymentOrigin(req, process.env), 'INVALID_ORIGIN',
+        config.origin ? `This website address cannot submit reservations. Open ${config.origin}/presale and send your details there. No reservation was created.` :
+          'The reservation website address is not configured. Please contact the office. No reservation was created.',403);
       requireCondition(/^application\/json(?:;|$)/i.test(req.headers['content-type'] || ''),'INVALID_CONTENT_TYPE','Send JSON reservation details.',415);
       const access = createAccessService({db,auth:admin.auth(),rateSecret:process.env.PAYMENT_ACCESS_RATE_SECRET});
       await access.checkTraffic(requesterIdentity(req,process.env));

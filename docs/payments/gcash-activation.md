@@ -58,6 +58,10 @@ Open the website's Vercel project → Settings → Environment Variables. Choose
 
 The origin shown is from this project's configured website URL. If customers use a different domain, set its exact HTTPS origin instead. **No trailing slash, pathname or quotes.** A different origin will fail the request-origin check.
 
+Customer reservations, QR/proof submission and payment access also accept this build's exact HTTPS deployment address from Vercel's server-provided `VERCEL_URL`, when `VERCEL=1`, the request host matches, and the browser reports `Sec-Fetch-Site: same-origin`. This fixes the reservation error when opening the deployment's Visit URL. No wildcard Vercel origins, forwarded hosts, other deployments or branch aliases are trusted. Keep `PAYMENT_ACCESS_ORIGIN` on the public website: verification emails and admin/payment-gateway tools continue to use it. Custom domains still need that exact configuration. See [Vercel system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables).
+
+If an older build says “Open the reservation form from the park website,” use the public `/presale` address or deploy the origin-check fix. GCash availability and a working image URL alone do not test reservation POST permissions. The origin rejection occurs before a reservation is created; retrying the same unrecognized address cannot resolve it.
+
 If the rate secret is missing, generate a new one in PowerShell and copy it without printing:
 
 ```powershell

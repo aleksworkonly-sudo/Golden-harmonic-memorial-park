@@ -85,3 +85,32 @@ test('Brevo sender uses a fixed template/subject and never forwards provider err
   assert.ok(payload.textContent.includes('expires in 15 minutes'));
   assert.equal(payload.htmlContent,undefined);
 });
+
+test('deployment origin allowance rejects other deployments, forged hosts and cross-site requests before database access', async () => {
+  const host='park-current-team.vercel.app';
+  const deploymentEnv={...env,VERCEL:'1',VERCEL_URL:host};
+  const headers={origin:`https://${host}`,host,'sec-fetch-site':'same-origin'};
+  const cases=[
+    {headers:{origin:'https://unrelated.vercel.app',host:'unrelated.vercel.app'}},
+    {headers:{origin:`https://${host}.evil.test`}},
+    {headers:{origin:`http://${host}`}},
+    {headers:{origin:'null'}},
+    {headers:{origin:undefined}},
+    {headers:{host:'unrelated.vercel.app','x-forwarded-host':host}},
+    {headers:{host:undefined,'x-forwarded-host':host}},
+    {headers:{'sec-fetch-site':'cross-site'}},
+    {headers:{'sec-fetch-site':'same-site'}},
+    {headers:{'sec-fetch-site':undefined}},
+    {env:{VERCEL:undefined}},
+    {env:{VERCEL_URL:undefined}},
+    {env:{VERCEL_URL:`${host}/path`}},
+    {env:{PAYMENT_ACCESS_ORIGIN:'http://park.example.test'}}
+  ];
+  let databaseCalls=0;
+  for(const entry of cases){
+    const handler=createAccessHandler({env:{...deploymentEnv,...entry.env},services:()=>{databaseCalls++;throw Error('Must reject before database');}});
+    const result=await call(handler,{action:'account_list'},{headers:{...headers,...entry.headers}});
+    assert.equal(result.code,entry.env?.PAYMENT_ACCESS_ORIGIN?503:403,JSON.stringify(entry));
+  }
+  assert.equal(databaseCalls,0);
+});
