@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "presaleEnabled": true,
+  "version": 1,
+  "channel": "gcash",
+  "label": "GCash",
+  "accountName": "JU**L B.",
+  "accountNumber": "",
+  "instructions": "Scan this QR in GCash and confirm the recipient is JU**L B. Enter the exact deposit shown, then keep the receipt and submit your payment details for admin verification.",
+  "qrAssetId": "gcash",
+  "qrVerified": true
+}

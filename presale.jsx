@@ -69,9 +69,10 @@
   ];
 
   const METHODS = [
-    { id: 'paymongo', label: 'Pay Online with PayMongo', hint: 'Instant ₱5,000/plot reservation fee via GCash, Maya, or Card.' },
+    { id: 'paymongo', label: 'Pay Online with PayMongo', hint: 'Verify your reservation email, then review available online deposit options.' },
     { id: 'cash', label: 'Cash', hint: 'Pay in person at our office.' },
-    { id: 'gcash', label: 'GCash', hint: 'Send to our GCash account.' },
+    { id: 'gcash', label: 'GCash', hint: 'Hold your plots, scan the verified QR, then submit proof for admin review.' },
+    { id: 'maya', label: 'Maya', hint: 'Available when a verified Maya receiving QR is configured.' },
     { id: 'bank', label: 'Bank transfer', hint: 'Deposit or transfer to our bank account.' },
     { id: 'cheque', label: 'Cheque', hint: 'Bring or send a cheque to our office.' }
   ];
@@ -449,7 +450,16 @@
     });
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-    const [done, setDone] = useState(null);
+    const [done, setDone] = useState(() => {
+      try { return JSON.parse(sessionStorage.getItem('ghmp-presale-payment') || 'null'); } catch (_) { return null; }
+    });
+    const [wallets,setWallets] = useState({gcash:false,maya:false});
+    const [recovery,setRecovery] = useState(() => {
+      try { return JSON.parse(sessionStorage.getItem('ghmp-presale-request') || 'null'); } catch (_) { return null; }
+    });
+    useEffect(()=>{let active=true;fetch('/api/presale?paymentOptions=1',{cache:'no-store'})
+      .then(r=>r.json()).then(v=>{if(active)setWallets({gcash:v.gcash===true,maya:v.maya===true});}).catch(()=>{});
+      return ()=>{active=false;};},[]);
     const topRef = useRef(null);
     const detailsRef = useRef(null);
     // Keep what the buyer typed, so an accidental close does not lose it.
@@ -530,61 +540,48 @@
     const submit = async (e) => {
       e.preventDefault();
       setError('');
+      if (!recovery && ['gcash','maya'].includes(method) && !wallets[method]) return setError('A verified receiving QR is not available for this method yet. Please contact the office or choose another payment method.');
+      if (!recovery) {
       if (form.name.trim().length < 3) return setError('Please write your full name.');
       if (form.address.trim().length < 5) return setError('Please write your complete address.');
       if (form.mobile.replace(/\D/g, '').length < 10) return setError('Please write your mobile number (11 digits).');
       if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) return setError('Please write a correct email address.');
       if (!form.consent) return setError('Please tick the box so our staff may contact you.');
       if (plan === 'installment' && customNum > 0 && customNum < monthlyFor(term)) return setError('Your own monthly amount cannot be less than ' + peso(monthlyFor(term)) + '. Please write that amount or more, or leave it empty.');
+      }
       setBusy(true);
       try {
+        const manual = ['gcash','maya'].includes(method);
+        const payload = recovery || {
+          lots: allLots.map((l) => ({ block: l.block, lot: l.lot })), plan, years: plan === 'cash' ? 0 : years, method,
+          customMonthly: plan === 'installment' && customNum > 0 ? customNum : 0,
+          name: form.name, address: form.address, mobile: form.mobile, email: form.email,
+          consent: form.consent, website: form.website,
+          ...(manual ? {requestId:Array.from(crypto.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join('')} : {})
+        };
+        if (payload.requestId) {
+          // Saving must succeed before sending, so refresh can retry the same capability.
+          sessionStorage.setItem('ghmp-presale-request',JSON.stringify(payload));
+          setRecovery(payload);
+        }
         const res = await fetch('/api/presale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lots: allLots.map((l) => ({ block: l.block, lot: l.lot })), plan, years: plan === 'cash' ? 0 : years, method,
-            customMonthly: plan === 'installment' && customNum > 0 ? customNum : 0,
-            name: form.name, address: form.address, mobile: form.mobile, email: form.email,
-            consent: form.consent, website: form.website
-          })
+          body: JSON.stringify(payload)
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.ok) {
+          if (data.paymentFlow === 'manual_qr') sessionStorage.setItem('ghmp-presale-payment',JSON.stringify(data));
+          sessionStorage.removeItem('ghmp-presale-request');setRecovery(null);
           if (method === 'paymongo') {
-            const depositAmount = 5000 * allLots.length;
-            try {
-              const pmRes = await fetch('/api/paymongo-checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  type: 'presale_reservation',
-                  amount: depositAmount,
-                  description: `Plot Reservation Deposit (${allLots.length} plot${allLots.length > 1 ? 's' : ''}) - Ref ${data.ref}`,
-                  presaleRef: data.ref,
-                  customerName: form.name,
-                  customerEmail: form.email,
-                  customerPhone: form.mobile,
-                  plotCode: allLots.map((l) => code(l.block, l.lot)).join(', '),
-                  plots: allLots.map((l) => ({ blockId: l.block, lotNo: l.lot, plotCode: code(l.block, l.lot) }))
-                })
-              });
-              const pmData = await pmRes.json().catch(() => ({}));
-              if (pmRes.ok && pmData.checkoutUrl) {
-                window.location.href = pmData.checkoutUrl;
-                return;
-              } else if (pmData.error) {
-                setError('Reservation created (' + data.ref + '), but payment session could not be opened: ' + pmData.error);
-                setDone(data);
-                return;
-              }
-            } catch (pmErr) {
-              console.warn('[presale] PayMongo checkout redirect error:', pmErr);
-            }
+            window.location.assign('/my-payments.html?mode=reservation&ref=' + encodeURIComponent(data.ref));
+            return;
           }
           setDone(data);
           return;
         }
         if (!res.ok) {
+          if (res.status < 500) { sessionStorage.removeItem('ghmp-presale-request');setRecovery(null); }
           if (res.status === 405) {
             setError('The local preview server (Live Server) cannot process API payments. Please run via "vercel dev" or test on the deployed site.');
             return;
@@ -661,7 +658,17 @@
     /* ---------- screens ---------- */
     let body;
 
-    if (done) {
+    if (done?.paymentFlow === 'manual_qr') {
+      body = <window.PresalePayment reservation={done} />;
+    } else if (recovery) {
+      body = <div style={WRAP}><div style={S.card}>
+        <h2 style={S.h2}>Recover your reservation request</h2>
+        <p style={S.lead}>Your previous request may already have held the plots. Retry that same request to recover its result. Do not pay or start another reservation.</p>
+        {error && <p role="alert" style={S.note}>{error}</p>}
+        <button type="button" style={S.big} disabled={busy} onClick={submit}>{busy?'Checking…':'Check / retry saved reservation'}</button>
+        <p><a href="/my-payments?mode=reservation">Already have a reference? Open secure payment access</a></p>
+      </div></div>;
+    } else if (done) {
       const m = METHODS.find((x) => x.id === done.method) || { label: 'PayMongo' };
       const info = { cash: PAY_INFO.office, gcash: PAY_INFO.gcash, bank: PAY_INFO.bank, cheque: PAY_INFO.cheque, paymongo: 'PayMongo Gateway (GCash, Maya, Cards)' }[done.method];
       body = (
@@ -759,10 +766,11 @@
             <div style={{ fontSize: 16, fontWeight: 600, margin: '14px 0 8px' }}>{plan === 'cash' ? 'How will you pay the full amount?' : 'How will you pay each month?'}</div>
             {METHODS.map((m) => (
               <label key={m.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '12px 10px', borderRadius: 10, border: method === m.id ? '2px solid #2f5d4c' : '1px solid #c9bd9f', background: method === m.id ? '#eaf2ec' : '#fff', marginBottom: 8, cursor: 'pointer', fontSize: 18 }}>
-                <input type="radio" name="method" checked={method === m.id} onChange={() => setMethod(m.id)} style={{ width: 24, height: 24 }} />
-                <span><b>{m.label}</b><br /><span style={{ fontSize: 15, color: '#4a564f' }}>{m.hint}</span></span>
+                <input type="radio" name="method" checked={method === m.id} disabled={m.id==='maya' && !wallets.maya} onChange={() => setMethod(m.id)} style={{ width: 24, height: 24 }} />
+                <span><b>{m.label}</b><br /><span style={{ fontSize: 15, color: '#4a564f' }}>{['gcash','maya'].includes(m.id) && !wallets[m.id] ? 'Unavailable — awaiting a verified receiving QR. Do not send money.' : m.hint}</span></span>
               </label>))}
             <div style={{ ...S.note, marginTop: 8 }}>
+              {['gcash','maya'].includes(method) && <p><b>Reservation deposit:</b> {peso(allLots.length*5000)}, credited toward your plan. Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.</p>}
               {plan === 'cash' ? <div><b>You pay:</b> {peso(total)} by {methodInfo.label}</div> :
                 <div><b>You pay:</b> {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}.</div>}
               <div style={{ marginTop: 4, fontSize: 15 }}>Our staff will tell you exactly how and where to pay when they call you.</div>

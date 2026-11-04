@@ -1,0 +1,195 @@
+'use strict';
+
+(() => {
+  if (!window.React) return;
+  const h = React.createElement;
+  const { useState, useEffect, useRef } = React;
+  const peso = (value) => new Intl.NumberFormat('en-PH', { style:'currency', currency:'PHP' }).format(value / 100);
+  const labels = { deposit:'Reservation deposit', installment:'Installment', advance:'Advance payment', settlement:'Remaining balance' };
+
+  async function prepareImage(file) {
+    if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      throw new Error('Choose a JPG, PNG or WEBP image no larger than 5 MB.');
+    }
+    const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This image could not be opened. Choose another receipt image.'); });
+    try {
+      if (bitmap.width * bitmap.height > 16000000 || Math.min(bitmap.width,bitmap.height) < 64) throw new Error('Use a clear image between 64 pixels and 16 megapixels.');
+      const ratio = Math.min(1,1600 / Math.max(bitmap.width,bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * ratio); canvas.height = Math.round(bitmap.height * ratio);
+      const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+      for (const quality of [0.85,0.75,0.65]) {
+        const url = canvas.toDataURL('image/jpeg',quality);
+        if (url.length <= 430000) return url;
+      }
+      throw new Error('Crop to the receipt and try again. Keep the reference, amount, recipient and date readable.');
+    } finally { bitmap.close(); }
+  }
+
+  function PaymentSubmission({ mode, customerId, plots, onAccessLost, qrFirst = false, onSubmitted, reservationRef }) {
+    const [enabled,setEnabled] = useState(null), [options,setOptions] = useState(null), [rows,setRows] = useState([]);
+    const [cursor,setCursor] = useState(null), [busy,setBusy] = useState(false), [error,setError] = useState(''), [message,setMessage] = useState('');
+    const [form,setForm] = useState(null), [review,setReview] = useState(false), [uncertain,setUncertain] = useState(false);
+    const [shownProof,setShownProof] = useState(null);
+    const [proofEntry,setProofEntry] = useState(!qrFirst);
+    const autoStarted = useRef(false);
+    const ticket = useRef(0), alert = useRef(null), heading = useRef(null), mounted = useRef(true), request = useRef(null);
+    async function api(action, fields = {}) {
+      const headers = { 'Content-Type':'application/json' };
+      if (mode === 'account') {
+        if (!window.auth?.currentUser) { onAccessLost(); throw new Error('Please sign in again.'); }
+        headers.Authorization = `Bearer ${await window.auth.currentUser.getIdToken()}`;
+      }
+      let response;
+      try { response = await fetch('/api/payment-submission', { method:'POST', credentials:'same-origin', headers,
+        body:JSON.stringify({ action, mode, ...(mode === 'account' ? { customerId } : {}), ...(reservationRef ? {reservationRef} : {}), ...fields }) }); }
+      catch (_) { throw Object.assign(new Error('Connection interrupted. Retry with these same details. If you leave, check your submissions before starting again.'), { uncertain:true }); }
+      const result = await response.json().catch(() => ({}));
+      if (['SESSION_REQUIRED','UNAUTHENTICATED','FORBIDDEN'].includes(result.code)) onAccessLost();
+      if (!response.ok) throw Object.assign(new Error(result.error || 'Could not finish this request. Try again.'), { uncertain:response.status >= 500 });
+      return result;
+    }
+    async function run(work, apply) {
+      const current = ++ticket.current; setBusy(true); setError(''); setMessage('');
+      try { const result = await work(); if (mounted.current && current === ticket.current) apply(result); }
+      catch (ex) { if (mounted.current && current === ticket.current) setError(ex.message); }
+      finally { if (mounted.current && current === ticket.current) setBusy(false); }
+    }
+    async function reload() {
+      const [nextOptions,list] = await Promise.all([api('context'),api('list')]);
+      if (reservationRef && nextOptions.sourceId !== reservationRef) { onAccessLost(); throw new Error('Your active reservation changed. Verify access to this reservation again.'); }
+      return { nextOptions,list };
+    }
+    const applyReload = ({ nextOptions,list }) => {
+      setOptions(nextOptions); setRows(list.cases); setCursor(list.nextCursor);
+      if (qrFirst && !autoStarted.current && nextOptions.offers.length && !list.cases.length) {
+        autoStarted.current = true;
+        const first = nextOptions.offers[0];
+        setForm({offerId:first.id,amount:String(first.expectedAmountCentavos/100),reference:'',transferDate:'',transferTime:'',payerName:'',payerMobile:'',image:'',existing:null});
+      }
+    };
+    useEffect(() => {
+      mounted.current = true;
+      run(async () => {
+        const config = await fetch('/api/payment-submission', { cache:'no-store' }).then((res) => res.json());
+        return config.enabled ? { enabled:true, ...await reload() } : { enabled:false };
+      }, (result) => { setEnabled(result.enabled); if (result.enabled) applyReload(result); });
+      return () => { mounted.current = false; ticket.current++; request.current = null; };
+    }, []);
+    useEffect(() => { if (error) alert.current?.focus(); }, [error]);
+    useEffect(() => { if (form) heading.current?.focus(); }, [review,!!form]);
+    const update = (key,value) => { request.current = null; setForm((valueNow) => ({ ...valueNow,[key]:value, ...(valueNow.claimAssistance ? {claimAssistance:{...valueNow.claimAssistance,source:'ocr_edited'}} : {}) })); };
+    const start = (row) => {
+      setError(''); setMessage(''); setReview(false); setUncertain(false); setShownProof(null); request.current = null;
+      setProofEntry(!!row || !qrFirst);
+      setForm({ offerId:row?.quote.id || options.offers[0]?.id || '', amount:row ? String(row.claimedCentavos / 100) : '',
+        reference:row?.reference || '', transferDate:row?.transferDate || '', transferTime:row?.transferTime || '',payerName:row?.payerName || '',payerMobile:row?.payerMobile || '',image:'', existing:row || null });
+    };
+    const offer = options?.offers.find((item) => item.id === form?.offerId);
+    const reviewForm = (event) => {
+      event.preventDefault(); setError('');
+      if (!offer || !form.image) return setError('Choose a payment option and attach a readable proof image.');
+      const match = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/.exec(form.amount);
+      const amount = match ? Number(match[1]) * 100 + Number((match[2] || '').padEnd(2,'0')) : NaN;
+      if (!Number.isSafeInteger(amount) || amount <= 0) return setError('Enter a positive peso amount with at most two decimal places.');
+      request.current = { requestId:crypto.randomUUID(), offerId:offer.id, scopeVersion:options.scopeVersion,
+        claimedCentavos:amount, transferDate:form.transferDate, reference:form.reference, image:form.image.split(',')[1],
+        ...(offer.payerDetailsRequired ? {payerName:form.payerName.trim(),payerMobile:form.payerMobile,transferTime:form.transferTime} : {}),
+        ...(form.claimAssistance ? {claimAssistance:form.claimAssistance} : {}),
+        ...(form.existing ? { paymentId:form.existing.paymentId, expectedVersion:form.existing.version } : {}) };
+      setReview(true);
+    };
+    const confirm = () => run(async () => {
+      try { return await api('submit', { command:request.current }); }
+      catch (ex) { if (mounted.current && ex.uncertain) setUncertain(true); throw ex; }
+    }, (saved) => {
+      setForm(null); setReview(false); setUncertain(false); request.current = null;
+      setMessage(`Submission ${saved.paymentId} saved. Awaiting verification — your balance has not changed.`);
+      onSubmitted?.(saved);
+      // Keep the durable acknowledgement visible even when a subsequent refresh fails.
+      reload().then((result) => { if (mounted.current) applyReload(result); }).catch(() => {});
+    });
+    const field = (id,label,type,key,extra = {}) => h('div', { className:'pv-field' }, h('label', { htmlFor:id },label),
+      h('input', { id,type,value:form[key],required:true,disabled:busy,onChange:(e) => update(key,e.target.value),...extra }));
+    const preview = (url,caption) => h('figure', { className:'ps-proof' }, h('img', { src:url,alt:caption }),
+      h('figcaption', null,caption), h('details', null,h('summary', null,'Inspect full-size image'),h('div', { className:'ps-zoom',tabIndex:0,role:'region','aria-label':'Full-size receipt image' },h('img', { src:url,alt:'Full-size payment evidence' }))));
+
+    return h('section', { className:'pv-card', 'aria-label':'Manual payment evidence' },
+      h('p', { className:'pv-eyebrow' }, 'GCash, Maya & bank transfer'), h('h2', null,qrFirst ? 'Pay your reservation deposit' : 'Submit payment proof'),
+      h('p', { className:'pv-muted' }, 'Only pay using the verified receiving instructions below. Uploading proof does not confirm payment or extend a deadline.'),
+      error && h('div', { ref:alert,tabIndex:-1,role:'alert',className:'pv-notice pv-error' },error,
+        !form && h('button', { className:'pv-secondary',disabled:busy,onClick:() => run(reload,(result) => { setEnabled(true); applyReload(result); }) },'Retry loading submissions')),
+      message && h('p', { role:'status',className:'pv-notice' },message),
+      busy && h('p', { role:'status' },'Please wait…'),
+      enabled === false ? h('p', { className:'pv-notice' },'Online proof submission is not available yet. Please contact the office.') :
+        options && h(React.Fragment, null,
+          !options.offers.length && h('p', { className:'pv-notice' },'The office must confirm your payment amount and receiving instructions before you submit online.'),
+          !form && options.offers.length > 0 && !(qrFirst && rows.some(r=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(r.status))) && h('button', { className:'pv-primary',disabled:busy,onClick:() => start(null) },'Add payment proof'),
+          form && h('div', { className:'ps-form' },
+            h('h3', { ref:heading,tabIndex:-1 },review ? 'Review before submitting' : form.existing ? 'Correct your submission' : 'Payment details'),
+            !proofEntry && offer ? h(React.Fragment,null,
+              h('p',null,plots.join(' · ')),h('p',{className:'pv-status'},`Deposit to pay: ${peso(offer.expectedAmountCentavos)}`),
+              h('p',null,`${offer.label} · ${offer.accountName}`),
+              offer.qrImagePath ? h('figure',{className:'ps-receiving-qr'},h('img',{src:offer.qrImagePath,alt:`Verified ${offer.label} receiving QR for ${offer.accountName}`,width:240,height:240}),
+                h('figcaption',null,'Check the recipient name in your wallet before sending money.'),h('a',{href:offer.qrImagePath,download:true,className:'pv-secondary'},'Save QR image')) : h('p',{className:'pv-notice'},'A verified receiving QR is unavailable. Do not send payment.'),
+              h('p',null,'On the same phone, save the QR image and use your wallet’s scan-from-photo option. After paying, keep the receipt screenshot.'),
+              offer.qrImagePath && h('button',{className:'pv-primary',disabled:busy,onClick:()=>setProofEntry(true)},'I have paid — submit proof')) :
+            review ? h(React.Fragment, null,
+              h('p', null,plots.join(' · ') || 'Your selected account'),
+              h('dl', { className:'ps-review' },[
+                ['Purpose',labels[offer.purpose]],['Expected amount',peso(offer.expectedAmountCentavos)],['Your claimed amount',peso(request.current.claimedCentavos)],
+                ['Recipient',`${offer.label} · ${offer.accountName} · ${offer.accountNumber}`],['Transfer date',form.transferDate],['Reference',form.reference]
+                ,...(offer.payerDetailsRequired ? [['Wallet account holder',form.payerName],['Wallet mobile',form.payerMobile],['Transaction time (Philippines)',form.transferTime]] : [])
+              ].map(([label,value]) => h('div', { key:label },h('dt', null,label),h('dd', null,value)))),
+              request.current.claimedCentavos !== offer.expectedAmountCentavos && h('p', { className:'pv-notice pv-warning' },'Your amount differs from the expected amount. The admin will review it; the expected amount will stay unchanged.'),
+              preview(form.image,'Check that all transfer details are readable.'),
+              h('p', { className:'pv-notice' },'This is a claim for review, not a receipt confirming that the park received money.'),
+              uncertain && h('p', { className:'pv-notice pv-warning' },'The previous response was uncertain. Retry these same details to recover the saved result without duplicating it.'),
+              h('div', { className:'pv-actions' }, h('button', { className:'pv-primary',disabled:busy,onClick:confirm },uncertain ? 'Check / retry submission' : 'Confirm and submit proof'),
+                !uncertain && h('button', { className:'pv-secondary',disabled:busy,onClick:() => setReview(false) },'Back to edit')))
+              : h('form', { onSubmit:reviewForm },
+                h('div', { className:'pv-field' },h('label', { htmlFor:'proof-option' },'Payment option'),
+                  h('select', { id:'proof-option',required:true,value:form.offerId,disabled:busy || !!form.existing,onChange:(e) => update('offerId',e.target.value) },
+                    options.offers.map((item) => h('option', { key:item.id,value:item.id },`${labels[item.purpose]} · ${item.label} · ${peso(item.expectedAmountCentavos)}`)))),
+                offer && h('div', { className:'ps-instructions' },h('div', null,h('h4', null,offer.label),h('p', null,offer.accountName),h('p', { className:'ps-number' },offer.accountNumber),h('p', null,offer.instructions),
+                  offer.accountNumber && h('button', { type:'button',className:'pv-secondary',onClick:() => run(() => navigator.clipboard.writeText(offer.accountNumber),() => setMessage('Receiving account number copied.')) },'Copy account number')),
+                  offer.qrImagePath ? h('figure', { className:'ps-receiving-qr' },h('img', { src:offer.qrImagePath,alt:`Receiving QR for ${offer.accountName}`,width:180,height:180 }),h('figcaption', null,'Verify the recipient before payment')) :
+                    h('p',{className:'pv-notice'},'No verified receiving QR is configured. Contact the office for payment instructions.')),
+                offer?.payerDetailsRequired && field('proof-payer-name','Wallet account holder name','text','payerName',{minLength:2,maxLength:120,autoComplete:'name'}),
+                offer?.payerDetailsRequired && field('proof-payer-mobile','Wallet mobile number','tel','payerMobile',{pattern:'(09[0-9]{9}|\\+639[0-9]{9})',maxLength:13,placeholder:'09XXXXXXXXX',autoComplete:'tel'}),
+                field('proof-amount','Amount you transferred (₱)','text','amount',{ inputMode:'decimal',maxLength:16 }),
+                field('proof-reference','Transfer reference','text','reference',{ maxLength:100 }),
+                field('proof-date','Transfer date (Philippines)','date','transferDate'),
+                offer?.payerDetailsRequired && field('proof-time','Transaction time (Philippines)','time','transferTime'),
+                h('div', { className:'pv-field' },h('label', { htmlFor:'proof-file' },'Receipt image'),
+                  h('input', { id:'proof-file',type:'file',accept:'image/jpeg,image/png,image/webp',disabled:busy,'aria-describedby':'proof-file-help',onChange:(event) => {
+                    const file = event.target.files[0]; update('image','');
+                    if (file) run(() => prepareImage(file),(url) => { update('image',url); setForm((f)=>({...f,claimAssistance:null})); });
+                  } }),h('small', { id:'proof-file-help' },'JPG, PNG or WEBP up to 5 MB. Inspect the compressed preview. Optional receipt reading gives suggestions only; always check the details.')),
+                form.image && preview(form.image,'Your selected receipt image'),
+                form.image && window.PaymentOCR && h(window.PaymentOCR,{key:form.image,image:form.image,
+                  onCandidates:(candidates)=>setForm((f)=>({...f,claimAssistance:{source:'manual',candidates}})),
+                  onApply:(key,value)=>setForm((f)=>({...f,[key]:value,claimAssistance:{...f.claimAssistance,source:'ocr'}}))}),
+                h('div', { className:'pv-actions' },h('button', { type:'submit',className:'pv-primary',disabled:busy || !form.image },'Review submission'),
+                  h('button', { type:'button',className:'pv-secondary',disabled:busy,onClick:() => setForm(null) },'Cancel')))),
+          !form && h(React.Fragment, null,h('div', { className:'pv-actions' },h('h3', null,'Your payment submissions and cash records'),h('button', { className:'pv-secondary',disabled:busy,onClick:() => run(reload,applyReload) },'Refresh submissions')),
+            !rows.length && h('p', { className:'pv-muted' },'No online proof submissions yet.'),
+            rows.map((row) => h('article', { key:row.paymentId,className:'ps-case' },h('h4', null,`${row.channel==='cash'?'Cash · ':''}${labels[row.quote.purpose]} · ${peso(row.claimedCentavos)}`),
+              h('p', { className:'ps-id' },row.paymentId),h('p', { className:'pv-status' },row.status.replaceAll('_',' ')),
+              h('p', null,row.channel==='cash' ? `Cash received ${row.transferDate} · ${row.cashReceiptId} · ${row.evidenceRevisionCount ? 'Printed receipt photo available' : 'Office completing print/photo review'}` : `${row.reference} · ${row.transferDate} · Revision ${row.evidenceRevisionCount}`),
+              row.buyerNote && h('p', {className:'pv-notice'},row.buyerNote),
+              row.receiptId && h('p', null,`Acknowledgement ${row.receiptId} · Received ${peso(row.receivedCentavos)}. Refresh payment history for the current credited balance.`),
+              h('div', { className:'pv-actions' },row.evidenceRevisionCount>0 && h('button', { className:'pv-secondary',disabled:busy,onClick:() => run(() => api('proof',{paymentId:row.paymentId,revisionId:row.revisionId}),
+                (result) => setShownProof({id:row.paymentId,url:`data:image/jpeg;base64,${result.base64}`})) },'View proof'),
+                row.channel!=='cash' && ['pending_verification','resubmit_requested'].includes(row.status) && options.offers.some((item) => item.id === row.quote.id) && h('button', { className:'pv-secondary',disabled:busy,onClick:() => start(row) },'Correct submission')),
+              row.evidenceRevisionCount > 1 && h('details', { className:'ps-proof' },h('summary', null,'Earlier proof revisions'),
+                h('div', { className:'pv-actions' },Array.from({length:Math.min(row.evidenceRevisionCount - 1,9)},(_,index) => h('button', {
+                  key:index,className:'pv-secondary',disabled:busy,onClick:() => run(() => api('proof',{paymentId:row.paymentId,revisionId:`r${index+1}`}),
+                    (result) => setShownProof({id:row.paymentId,url:`data:image/jpeg;base64,${result.base64}`}))
+                },`View revision ${index+1}`)))),
+              shownProof?.id === row.paymentId && h('div', null,preview(shownProof.url,'Saved private proof'),h('button', { className:'pv-secondary',onClick:() => setShownProof(null) },'Hide proof')))),
+            cursor && h('button', { className:'pv-secondary',disabled:busy,onClick:() => run(() => api('list',{cursor}),(result) => { setRows((current) => [...current,...result.cases]); setCursor(result.nextCursor); }) },'Load earlier submissions'))));
+  }
+  window.PaymentSubmission = PaymentSubmission;
+  window.preparePaymentImage = prepareImage;
+})();

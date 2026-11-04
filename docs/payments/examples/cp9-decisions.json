@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "sourcePath": "customers/SAMPLE-001",
+      "sourceHash": "105c6bcfaa472512bed8bc65ede23c21f0174e9375e1a6417daecf647d99f0b7",
+      "reviewReference": "SYNTHETIC-REVIEW-ONLY",
+      "totalCentavos": 2500000,
+      "openingCreditCentavos": 500000,
+      "items": [
+        {
+          "plotId": "SAMPLE_1",
+          "totalCentavos": 2500000,
+          "creditCentavos": 500000
+        }
+      ]
+    }
+  ]
+}

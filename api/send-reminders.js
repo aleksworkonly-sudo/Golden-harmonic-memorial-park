@@ -31,7 +31,7 @@ if (!admin.apps.length) {
   });
 }
 const db = admin.firestore();
-const { runPresaleReminders } = require('./_presale-reminders');
+const { runPresaleReminders } = require('../lib/presale-reminders');
 
 const REMINDER_DAYS_BEFORE = 3; // email sent this many days before the due date
 const FOLLOWUP_DAYS_AFTER = 3;  // email sent this many days after, if still unpaid
@@ -141,12 +141,21 @@ module.exports = async (req, res) => {
 
   const today = new Date();
   const results = { checked: 0, remindersSent: 0, followupsSent: 0, skipped: 0, errors: [] };
+  if (process.env.PAYMENT_EMAIL_DISPATCH_ENABLED === 'true') {
+    // The outer cron secret is verified above; this invokes the separately gated bounded CP8 worker.
+    const worker = require('../lib/payments/operations-http').createMessagingWorker();
+    const reply = { setHeader() {}, status(code) { this.code=code; return this; }, json(value) { this.value=value; return this; } };
+    await worker({method:'POST',headers:{authorization:`Bearer ${process.env.PAYMENT_WORKER_SECRET || ''}`}},reply);
+    results.canonicalMessaging = {status:reply.code,result:reply.value};
+  }
 
   const snap = await db.collection('customers').get();
 
   for (const doc of snap.docs) {
     const c = doc.data();
     results.checked++;
+    // Canonical contracts use CP8's durable worker; legacy arithmetic must not send parallel bills.
+    if (Object.hasOwn(c,'canonicalBookingId') || Object.hasOwn(c,'paymentMigrationLock')) { results.skipped++; continue; }
 
     const plan = c.plan;
     if (!plan || !plan.startDate || !plan.monthlyAmount || !plan.termMonths || plan.termKey === 'cash') {

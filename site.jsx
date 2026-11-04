@@ -70,61 +70,61 @@ const PLAN_TERMS = [
 const BASE_TIERS = [
 {
   id: 'regular', name: 'Regular Plot', category: 'Regular Plots', price: 30000,
-  desc: 'A standard single-interment lot in our open-lawn sections. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Open-lawn setting'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Open-lawn setting'],
   label: 'regular plot — open lawn', image: '/regular_plot.jpg'
 },
 {
   id: 'premium', name: 'Premium Plot', category: 'Regular Plots', price: 42500,
-  desc: 'An upgraded standard plot in one of the park\'s preferred sections. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Preferred section placement'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Preferred section placement'],
   label: 'premium plot — preferred section', image: '/premium_plot.jpg'
 },
 {
   id: 'corner-premium', name: 'Corner Premium Plot', category: 'Regular Plots', price: 47500,
-  desc: 'A corner plot in our most requested standard section. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Corner placement'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Corner placement'],
   label: 'corner premium plot', image: '/corner_premium_plot.jpg'
 },
 {
   id: 'garden-regular', name: 'Regular Garden Plot', category: 'Garden Plots', price: 37500,
-  desc: 'A single-interment lot within our landscaped garden sections. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Garden setting'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Garden setting'],
   label: 'regular garden plot'
 },
 {
   id: 'garden-premium', name: 'Premium Garden Plot', category: 'Garden Plots', price: 47500,
-  desc: 'An upgraded garden plot in a preferred section of the garden. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Preferred garden section'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Preferred garden section'],
   label: 'premium garden plot'
 },
 {
   id: 'garden-corner', name: 'Corner Prime Garden Plot', category: 'Garden Plots', price: 57500,
-  desc: 'A corner plot in our most requested garden section. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Prime corner placement'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Prime corner placement'],
   label: 'corner prime garden plot'
 },
 {
   id: 'family-vault', name: 'Family Vault Package', category: 'Family Vault', price: 105000,
-  desc: 'An apartment-style below-ground vault holding 3 coffins in one plot.',
-  features: ['3 coffins in one plot', 'Apartment-style below-ground vault', 'Payment plans available (surcharge applies)'],
+  desc: 'Contains five (5) crypt spaces. Purchase includes one (1) crypt only; the remaining four may be separately owned.',
+  features: ['1 crypt included (vault has 5 crypt spaces)', 'Payment plans available (surcharge applies)'],
   label: 'family vault — apartment-style'
 },
 {
   // Live price comes from Firestore 'products' (id: 'valor'); this is the fallback
   id: 'valor', name: 'Valor Plot', category: 'Family Vault', price: 40000,
-  desc: 'A dignified resting place honoring those who served — veterans and service members.',
-  features: ['2 interment spaces', 'Perpetual care included', 'Memorial marker with laurel emblem'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem'],
   label: 'valor plot — memorial marker', image: '/valor_plot.png'
 }];const PLOT_MESSAGES = {
-  'regular': 'A peaceful, standard resting place in our open-lawn section — a simple and dignified choice for your loved one.',
-  'premium': 'A preferred-section resting place offering a quieter, more intimate setting within the park.',
-  'corner-premium': 'A corner placement in our most requested section — extra space and a distinguished location.',
-  'garden-regular': 'A resting place surrounded by landscaped gardens, offering a serene and naturally beautiful setting.',
-  'garden-premium': 'An upgraded garden placement in one of our most sought-after sections, combining beauty and tranquility.',
-  'garden-corner': 'Our most exclusive garden placement — a prime corner spot in the most requested section of the park.',
-  'family-vault': 'A shared resting place for up to three loved ones in one apartment-style vault — ideal for keeping family together.',
-  'valor': 'A dignified resting place honoring those who served — a fitting tribute to a veteran or service member.'
+  'regular': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'corner-premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'garden-regular': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'garden-premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'garden-corner': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'valor': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'family-vault': 'Contains five (5) crypt spaces. Purchase includes one (1) crypt only; the remaining four may be separately owned.'
 }
 
 
@@ -503,16 +503,14 @@ function App() {
           status: 'success',
           type,
           ref,
-          message: type === 'presale_reservation'
-            ? `Reservation deposit received! Your plot reservation (Ref: ${ref || 'Presale'}) is secured. Our team will contact you shortly.`
-            : `Payment received! Your payment via PayMongo has been recorded and credited to your plan.`
+          message: 'Checkout returned. Payment confirmation is still pending. Open secure payment history to check the recorded result.'
         });
         if (type === 'portal_installment') setPortalOpen(true);
         window.history.replaceState(null, '', window.location.pathname + window.location.hash);
       } else if (status === 'cancelled') {
         setPaymentNotice({
           status: 'cancelled',
-          message: 'PayMongo checkout was cancelled. No charges were made.'
+          message: 'You returned from checkout. This does not establish whether funds were received. Check secure payment history before paying again.'
         });
         window.history.replaceState(null, '', window.location.pathname + window.location.hash);
       }
@@ -579,7 +577,15 @@ function App() {
     window.db.collection('products').orderBy('sortOrder').get()
       .then(snap => {
         if (!snap.empty) {
-          const fromDb = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          // Price, name and order come from the database; the wording that describes
+          // what a buyer receives (desc + features) comes from this file, so an old
+          // description saved in the Products tab cannot override the approved text.
+          const fromDb = snap.docs.map(d => {
+            const row = { id: d.id, ...d.data() };
+            const base = BASE_TIERS.find(t => t.id === d.id);
+            if (base) { row.desc = base.desc; row.features = base.features; }
+            return row;
+          });
           // Valor Plot always shows, even before it's added to Firestore.
           // Once a 'valor' product exists in Firestore, that one wins.
           if (!fromDb.some(t => t.id === 'valor')) {
@@ -2108,64 +2114,11 @@ function PortalDashboard({ customer, onLogout }) {
   const [payTab, setPayTab] = useState('online');
 
   // Online PayMongo state
-  const [onlineType, setOnlineType] = useState('monthly'); // 'monthly' | 'full' | 'custom'
-  const [customOnlineAmt, setCustomOnlineAmt] = useState('');
-  const [onlineBusy, setOnlineBusy] = useState(false);
-  const [onlineErr, setOnlineErr] = useState('');
 
   // Manual submission state
   const [form, setForm] = useState({ method: 'gcash', referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
-
-  // Online amounts & fee calculation
-  const monthlyDue = Number(customer.plan?.monthlyAmount) || 0;
-  const rawTargetAmount = onlineType === 'monthly'
-    ? monthlyDue
-    : onlineType === 'full'
-    ? Math.max(0, bal.balance)
-    : Number(customOnlineAmt) || 0;
-
-  const convenienceFee = Math.round(rawTargetAmount * 0.025 * 100) / 100;
-  const totalToPay = rawTargetAmount + convenienceFee;
-
-  const handlePayMongoCheckout = async () => {
-    if (rawTargetAmount < 50) {
-      setOnlineErr('Please enter an amount of at least ₱50.');
-      return;
-    }
-    setOnlineBusy(true);
-    setOnlineErr('');
-    try {
-      const res = await fetch('/api/paymongo-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'portal_installment',
-          amount: rawTargetAmount,
-          description: `Plan Installment: ${customer.plan?.tierName || 'Memorial Plot'} (${customer.firstName || customer.fullName || 'Customer'})`,
-          customerId: customer._id,
-          customerEmail: customer.email || '',
-          customerName: customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim(),
-          customerPhone: customer.phone || ''
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else {
-        if (res.status === 405) {
-          setOnlineErr('The local preview server (Live Server) cannot process API payments. Please run via "vercel dev" or test on the deployed site.');
-        } else {
-          setOnlineErr(data.error || 'Failed to start PayMongo checkout (status ' + res.status + '). Please try again.');
-        }
-      }
-    } catch (ex) {
-      setOnlineErr('Connection error. Please check your internet connection.');
-    } finally {
-      setOnlineBusy(false);
-    }
-  };
 
   const submitReference = async (e) => {
     e.preventDefault();
@@ -2173,7 +2126,7 @@ function PortalDashboard({ customer, onLogout }) {
     if (!form.amount || Number(form.amount) <= 0) return;
     setBusy(true);
     try {
-      await window.db.collection('customers').doc(customer._id).update({
+      await window.paymentLegacyGuard.update('customers',customer._id, {
         paymentSubmissions: firebase.firestore.FieldValue.arrayUnion({
           referenceNumber: form.referenceNumber.trim(),
           amount: Number(form.amount),
@@ -2184,7 +2137,7 @@ function PortalDashboard({ customer, onLogout }) {
           status: 'pending',
           submittedAt: Date.now()
         })
-      });
+      }, {ownerSubmission:true});
       setForm({ method: form.method, referenceNumber: '', amount: '', date: new Date().toISOString().slice(0, 10), mobileNumber: '', note: '' });
       setToast('Submitted — our staff will confirm this against the transaction.');
       setTimeout(() => setToast(''), 6000);
@@ -2192,6 +2145,15 @@ function PortalDashboard({ customer, onLogout }) {
       setToast(ex.message || 'Could not submit — please try again.');
     } finally { setBusy(false); }
   };
+
+  if (Object.prototype.hasOwnProperty.call(customer,'canonicalBookingId') || Object.prototype.hasOwnProperty.call(customer,'paymentMigrationLock')) return (
+    <section className="gh-portal-empty" aria-label="Secure payment history">
+      <h3>Your secure payment history</h3>
+      <p>Open secure payment history to view your current balance, acknowledgements and payment options. Contact the office if access is still being prepared.</p>
+      <a className="gh-portal-btn-primary" style={{display:'block',boxSizing:'border-box',minHeight:44,textAlign:'center',textDecoration:'none'}} href="/my-payments?mode=account">Open secure payment history</a>
+      <button type="button" className="gh-portal-link-btn" onClick={onLogout}>Log out</button>
+    </section>
+  );
 
   return (
     <div>
@@ -2232,6 +2194,7 @@ function PortalDashboard({ customer, onLogout }) {
 
       {/* Payment Options Header / Tabs */}
       <div className="gh-portal-section">
+        <a href="/my-payments?mode=account" className="gh-portal-link-btn">Open secure payment history for your accounts</a>
         <h4>Make a payment</h4>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button
@@ -2262,101 +2225,8 @@ function PortalDashboard({ customer, onLogout }) {
 
         {payTab === 'online' ? (
           <div style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
-            <p className="gh-portal-help" style={{ marginBottom: 12 }}>
-              Pay directly using <b>GCash, Maya, Cards (Visa/Mastercard), GrabPay, or BillEase</b>. Your payment is verified automatically and credited to your balance instantly.
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 14 }}>
-              {monthlyDue > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => { setOnlineType('monthly'); setCustomOnlineAmt(''); }}
-                  style={{
-                    padding: '10px 12px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
-                    border: onlineType === 'monthly' ? '2px solid var(--accent)' : '1px solid var(--line)',
-                    background: onlineType === 'monthly' ? '#eaf2ec' : 'var(--card)',
-                    color: 'var(--ink)'
-                  }}>
-                  <div style={{ fontSize: 11, color: 'var(--ink-2)', fontWeight: 600 }}>MONTHLY DUE</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{fmt(monthlyDue)}</div>
-                </button>
-              ) : null}
-
-              {bal.balance > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => { setOnlineType('full'); setCustomOnlineAmt(''); }}
-                  style={{
-                    padding: '10px 12px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
-                    border: onlineType === 'full' ? '2px solid var(--accent)' : '1px solid var(--line)',
-                    background: onlineType === 'full' ? '#eaf2ec' : 'var(--card)',
-                    color: 'var(--ink)'
-                  }}>
-                  <div style={{ fontSize: 11, color: 'var(--ink-2)', fontWeight: 600 }}>FULL BALANCE</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{fmt(bal.balance)}</div>
-                </button>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={() => setOnlineType('custom')}
-                style={{
-                  padding: '10px 12px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
-                  border: onlineType === 'custom' ? '2px solid var(--accent)' : '1px solid var(--line)',
-                  background: onlineType === 'custom' ? '#eaf2ec' : 'var(--card)',
-                  color: 'var(--ink)'
-                }}>
-                <div style={{ fontSize: 11, color: 'var(--ink-2)', fontWeight: 600 }}>OTHER AMOUNT</div>
-                <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>Custom ₱</div>
-              </button>
-            </div>
-
-            {onlineType === 'custom' ? (
-              <div style={{ marginBottom: 14 }}>
-                <label htmlFor="gh-custom-online-amt" style={{ display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 5 }}>Enter amount to pay (₱)</label>
-                <input
-                  id="gh-custom-online-amt"
-                  type="number"
-                  min="50"
-                  max={bal.balance || 1000000}
-                  placeholder="e.g. 2500"
-                  value={customOnlineAmt}
-                  onChange={(e) => setCustomOnlineAmt(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14, boxSizing: 'border-box' }}
-                />
-              </div>
-            ) : null}
-
-            {rawTargetAmount > 0 ? (
-              <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 12.5 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ color: 'var(--ink-2)' }}>Credited toward plan:</span>
-                  <span style={{ fontWeight: 600 }}>{fmt(rawTargetAmount)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ color: 'var(--ink-2)' }}>Processing fee (2.5%):</span>
-                  <span style={{ color: 'var(--ink-2)' }}>{fmt(convenienceFee)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--line)', paddingTop: 6, fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
-                  <span>Total at checkout:</span>
-                  <span style={{ color: 'var(--accent)' }}>{fmt(totalToPay)}</span>
-                </div>
-              </div>
-            ) : null}
-
-            <button
-              type="button"
-              disabled={onlineBusy || rawTargetAmount < 50}
-              onClick={handlePayMongoCheckout}
-              className="gh-portal-btn-primary"
-              style={{ marginTop: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              {onlineBusy ? 'Connecting to PayMongo…' : `Pay ${rawTargetAmount > 0 ? fmt(totalToPay) : ''} Online →`}
-            </button>
-
-            {onlineErr ? <div className="gh-portal-err">{onlineErr}</div> : null}
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 12, opacity: 0.8, fontSize: 11, color: 'var(--ink-2)' }}>
-              <span>📱 GCash</span> &bull; <span>💚 Maya</span> &bull; <span>💳 Visa/Mastercard</span> &bull; <span>⚡ BillEase</span>
-            </div>
+            <p className="gh-portal-help">Open secure payment access to review office-approved amounts, the 2.5% buyer fee and your saved PayMongo checkout status.</p>
+            <a className="gh-portal-btn-primary" href="/my-payments.html?mode=account">Open secure online payments</a>
           </div>
         ) : (
           <div>

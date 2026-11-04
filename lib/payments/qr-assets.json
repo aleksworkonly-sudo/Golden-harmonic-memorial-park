@@ -1,0 +1,12 @@
+{
+  "gcash": {
+    "channel": "gcash",
+    "accountName": "JU**L B.",
+    "imagePath": "/payment-qr/gcash-v1.jpg",
+    "verified": true,
+    "receivingAccountId": "gcash-qr-v1",
+    "receivingAccountVersion": 1,
+    "accountNumber": "",
+    "imageSha256": "54b99fbe7c1f81b84900e3e741ed2adaebb6003ee3a8c4ec6d3af447d585fc52"
+  }
+}

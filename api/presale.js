@@ -18,6 +18,10 @@
 // Required env var: FIREBASE_SERVICE_ACCOUNT_B64 (already used by send-reminders)
 
 const admin = require('firebase-admin');
+const { createPresalePaymentService } = require('../lib/payments/presale-payment');
+const { configuration, isCustomerPaymentOrigin, requesterIdentity, sessionCookie } = require('../lib/payments/access-http');
+const { createAccessService } = require('../lib/payments/access');
+const { PaymentError, requireCondition } = require('../lib/payments/errors');
 
 function getDb() {
   if (!admin.apps.length) {
@@ -48,7 +52,7 @@ const DEFAULT_PRICES = { regular: 30000, premium: 42500, 'corner-premium': 47500
 const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
 const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
 const SURCHARGE = { 1: 0.10, 2: 0.15, 3: 0.20, 5: 0.30 };
-const METHODS = ['cash', 'gcash', 'bank', 'cheque', 'paymongo'];
+const METHODS = ['cash', 'gcash', 'maya', 'bank', 'cheque', 'paymongo'];
 
 // Layer rule: outer 3 rings Corner Premium, next 5 rings Premium, rest Regular.
 function typeOfLot(lot) {
@@ -136,6 +140,12 @@ async function sendConfirmationEmail({ ref, name, email, plots, plan, years, tot
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+
+  if (req.method === 'GET' && req.query?.paymentOptions === '1') {
+    try { return res.status(200).json(await createPresalePaymentService({db:getDb(),env:process.env}).availability()); }
+    catch (_) { return res.status(200).json({gcash:false,maya:false}); }
+  }
 
   let db;
   try {
@@ -155,7 +165,13 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
-  const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  let b;
+  try {
+    const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
+    if (Buffer.byteLength(raw) > 32768) return res.status(413).json({error:'Reservation details are too large.'});
+    b = JSON.parse(raw);
+    if (!b || typeof b !== 'object' || Array.isArray(b)) throw new Error('body');
+  } catch (_) { return res.status(400).json({error:'Send valid reservation details.'}); }
   if (b.website) return res.status(200).json({ ok: true }); // honeypot: bots fill this in
 
   // New form sends lots: [{block, lot}]. The old single block + lot is still accepted.
@@ -200,12 +216,36 @@ module.exports = async function handler(req, res) {
   const monthly = plan === 'installment' ? Math.round(total / (years * 12)) : 0;
 
   // Optional: the buyer may promise to pay MORE than the monthly, never less.
-  if (plan === 'installment' && customMonthly > 0 && (customMonthly < monthly || customMonthly > total)) {
+  const manualQr = ['gcash','maya'].includes(method);
+  if (!manualQr && plan === 'installment' && customMonthly > 0 && (customMonthly < monthly || customMonthly > total)) {
     return res.status(400).json({ error: 'Your own monthly amount cannot be less than the monthly installment.' });
   }
-  const intended = plan === 'installment' && customMonthly >= monthly ? customMonthly : 0;
+  const intended = plan === 'installment' && (manualQr || customMonthly >= monthly) ? customMonthly : 0;
 
   const mobileKey = mobile.replace(/\D/g, '').slice(-10);
+  if (['gcash','maya'].includes(method)) {
+    try {
+      const config = configuration(process.env);
+      requireCondition(isCustomerPaymentOrigin(req, process.env), 'INVALID_ORIGIN',
+        config.origin ? `This website address cannot submit reservations. Open ${config.origin}/presale and send your details there. No reservation was created.` :
+          'The reservation website address is not configured. Please contact the office. No reservation was created.',403);
+      requireCondition(/^application\/json(?:;|$)/i.test(req.headers['content-type'] || ''),'INVALID_CONTENT_TYPE','Send JSON reservation details.',415);
+      const access = createAccessService({db,auth:admin.auth(),rateSecret:process.env.PAYMENT_ACCESS_RATE_SECRET});
+      await access.checkTraffic(requesterIdentity(req,process.env));
+      const result = await createPresalePaymentService({db,env:process.env}).reserve({requestId:b.requestId,
+        plots:plots.map((p)=>({...p,contractBase:p.price-discOf(p.typeId,plan==='cash'?'cash':'installment')})),
+        total,monthly,spot,listPrice:plots.reduce((n,p)=>n+p.price,0),
+        name,address,mobile,mobileKey,email,plan,years,method,customMonthly:intended},requesterIdentity(req,process.env));
+      const {secret,maxAge,...response} = result;
+      res.setHeader('Set-Cookie',sessionCookie(secret,maxAge));
+      // Verification email is requested through the rate-limited access endpoint.
+      // Creation does not establish verified email ownership or send a paid receipt.
+      return res.status(200).json(response);
+    } catch (err) {
+      if (err instanceof PaymentError) return res.status(err.status).json({code:err.code,error:err.message});
+      return res.status(503).json({code:'RESERVATION_UNCERTAIN',error:'Could not confirm the reservation. Retry the same saved request; do not pay or start another reservation.'});
+    }
+  }
   const plotRefs = plots.map((x) => db.collection('plots').doc(`${x.blockId}_${x.lotNo}`));
   const counterRef = db.collection('counters').doc('presale');
 
@@ -224,8 +264,9 @@ module.exports = async function handler(req, res) {
       if (dupSnap.docs.some((d) => d.data().status !== 'cancelled')) {
         const e = new Error('dup'); e.code = 'DUP'; throw e;
       }
-      const n = (counterSnap.exists ? counterSnap.data().n : 0) + 1;
-      const ref = `PS-${String(n).padStart(4, '0')}`;
+      const reserved = await require('../lib/payments/presale-reference').reserveReference(tx,db,counterSnap);
+      const n = reserved.number;
+      const ref = reserved.id;
       const now = Date.now();
       const first = plots[0];
 
@@ -243,7 +284,7 @@ module.exports = async function handler(req, res) {
           createdBy: 'presale-web'
         });
       });
-      tx.set(db.collection('presaleApplications').doc(ref), {
+      tx.create(reserved.reference, {
         ref, status: 'new', // new -> verified -> paid (or cancelled)
         // first plot kept in the old single-plot fields so older screens still work
         blockId: first.blockId, lotNo: first.lotNo, plotCode: first.plotCode, typeId: first.typeId,
@@ -266,6 +307,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({ ok: true, ref: result.ref, plotCode: result.plotCode, typeId: result.typeId, plots: plots.map((x) => ({ plotCode: x.plotCode, typeId: x.typeId, price: x.price - discOf(x.typeId, plan === 'installment' ? 'installment' : 'cash') })), plan, years, method, total, monthly, spot });
   } catch (err) {
+    if (err.code === 'REFERENCE_REVIEW') return res.status(409).json({ error: 'Reservation numbering needs office review. Please contact the office before trying again.' });
     if (err.code === 'TAKEN') return res.status(409).json({ error: 'taken', block: err.plot.blockId, lot: err.plot.lotNo });
     if (err.code === 'DUP') return res.status(409).json({ error: 'dup' });
     console.error('[presale] failed', err);

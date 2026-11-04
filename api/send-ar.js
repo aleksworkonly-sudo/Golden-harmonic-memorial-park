@@ -50,6 +50,7 @@ module.exports = async function handler(req, res) {
     const snap = await db.collection('presaleApplications').doc(ref).get();
     if (!snap.exists) return res.status(404).json({ error: 'Reservation not found.' });
     const a = snap.data();
+    if (Object.hasOwn(a,'canonicalBookingId') || Object.hasOwn(a,'paymentMigrationLock')) return res.status(409).json({ error: 'Use Payment operations for this contract acknowledgement.' });
     const payments = Array.isArray(a.payments) ? a.payments : [];
     const p = payments[index];
     if (!p) return res.status(404).json({ error: 'Payment not found.' });
