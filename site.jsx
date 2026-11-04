@@ -82,7 +82,7 @@ const BASE_TIERS = [
 },
 {
   id: 'corner-premium', name: 'Corner Premium Plot', category: 'Regular Plots', price: 47500,
-  desc: 'A corner plot in our most requested standard section. Priced per crypt/share.',
+  desc: 'A corner plot in a standard section. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Corner placement'],
   label: 'corner premium plot', image: '/corner_premium_plot.jpg'
 },
@@ -100,7 +100,7 @@ const BASE_TIERS = [
 },
 {
   id: 'garden-corner', name: 'Corner Prime Garden Plot', category: 'Garden Plots', price: 57500,
-  desc: 'A corner plot in our most requested garden section. Priced per crypt/share.',
+  desc: 'A corner plot in a garden section. Priced per crypt/share.',
   features: ['1 interment space', 'Perpetual care included', 'Prime corner placement'],
   label: 'corner prime garden plot'
 },
@@ -119,10 +119,10 @@ const BASE_TIERS = [
 }];const PLOT_MESSAGES = {
   'regular': 'A peaceful, standard resting place in our open-lawn section — a simple and dignified choice for your loved one.',
   'premium': 'A preferred-section resting place offering a quieter, more intimate setting within the park.',
-  'corner-premium': 'A corner placement in our most requested section — extra space and a distinguished location.',
+  'corner-premium': 'A corner placement in a standard section.',
   'garden-regular': 'A resting place surrounded by landscaped gardens, offering a serene and naturally beautiful setting.',
-  'garden-premium': 'An upgraded garden placement in one of our most sought-after sections, combining beauty and tranquility.',
-  'garden-corner': 'Our most exclusive garden placement — a prime corner spot in the most requested section of the park.',
+  'garden-premium': 'An upgraded placement in a preferred area of the garden sections.',
+  'garden-corner': 'A corner placement in the garden sections.',
   'family-vault': 'A shared resting place for up to three loved ones in one apartment-style vault — ideal for keeping family together.',
   'valor': 'A dignified resting place honoring those who served — a fitting tribute to a veteran or service member.'
 }
