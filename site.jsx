@@ -70,61 +70,61 @@ const PLAN_TERMS = [
 const BASE_TIERS = [
 {
   id: 'regular', name: 'Regular Plot', category: 'Regular Plots', price: 30000,
-  desc: 'A standard single-interment lot in our open-lawn sections. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Open-lawn setting'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Open-lawn setting'],
   label: 'regular plot — open lawn', image: '/regular_plot.jpg'
 },
 {
   id: 'premium', name: 'Premium Plot', category: 'Regular Plots', price: 42500,
-  desc: 'An upgraded standard plot in one of the park\'s preferred sections. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Preferred section placement'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Preferred section placement'],
   label: 'premium plot — preferred section', image: '/premium_plot.jpg'
 },
 {
   id: 'corner-premium', name: 'Corner Premium Plot', category: 'Regular Plots', price: 47500,
-  desc: 'A corner plot in our most requested standard section. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Corner placement'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Corner placement'],
   label: 'corner premium plot', image: '/corner_premium_plot.jpg'
 },
 {
   id: 'garden-regular', name: 'Regular Garden Plot', category: 'Garden Plots', price: 37500,
-  desc: 'A single-interment lot within our landscaped garden sections. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Garden setting'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Garden setting'],
   label: 'regular garden plot'
 },
 {
   id: 'garden-premium', name: 'Premium Garden Plot', category: 'Garden Plots', price: 47500,
-  desc: 'An upgraded garden plot in a preferred section of the garden. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Preferred garden section'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Preferred garden section'],
   label: 'premium garden plot'
 },
 {
   id: 'garden-corner', name: 'Corner Prime Garden Plot', category: 'Garden Plots', price: 57500,
-  desc: 'A corner plot in our most requested garden section. Priced per crypt/share.',
-  features: ['1 interment space', 'Perpetual care included', 'Prime corner placement'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Prime corner placement'],
   label: 'corner prime garden plot'
 },
 {
   id: 'family-vault', name: 'Family Vault Package', category: 'Family Vault', price: 105000,
-  desc: 'An apartment-style below-ground vault holding 3 coffins in one plot.',
-  features: ['3 coffins in one plot', 'Apartment-style below-ground vault', 'Payment plans available (surcharge applies)'],
+  desc: 'Contains five (5) crypt spaces. Purchase includes one (1) crypt only; the remaining four may be separately owned.',
+  features: ['1 crypt included (vault has 5 crypt spaces)', 'Payment plans available (surcharge applies)'],
   label: 'family vault — apartment-style'
 },
 {
   // Live price comes from Firestore 'products' (id: 'valor'); this is the fallback
   id: 'valor', name: 'Valor Plot', category: 'Family Vault', price: 40000,
-  desc: 'A dignified resting place honoring those who served — veterans and service members.',
-  features: ['2 interment spaces', 'Perpetual care included', 'Memorial marker with laurel emblem'],
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem'],
   label: 'valor plot — memorial marker', image: '/valor_plot.png'
 }];const PLOT_MESSAGES = {
-  'regular': 'A peaceful, standard resting place in our open-lawn section — a simple and dignified choice for your loved one.',
-  'premium': 'A preferred-section resting place offering a quieter, more intimate setting within the park.',
-  'corner-premium': 'A corner placement in our most requested section — extra space and a distinguished location.',
-  'garden-regular': 'A resting place surrounded by landscaped gardens, offering a serene and naturally beautiful setting.',
-  'garden-premium': 'An upgraded garden placement in one of our most sought-after sections, combining beauty and tranquility.',
-  'garden-corner': 'Our most exclusive garden placement — a prime corner spot in the most requested section of the park.',
-  'family-vault': 'A shared resting place for up to three loved ones in one apartment-style vault — ideal for keeping family together.',
-  'valor': 'A dignified resting place honoring those who served — a fitting tribute to a veteran or service member.'
+  'regular': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'corner-premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'garden-regular': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'garden-premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'garden-corner': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'valor': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'family-vault': 'Contains five (5) crypt spaces. Purchase includes one (1) crypt only; the remaining four may be separately owned.'
 }
 
 
