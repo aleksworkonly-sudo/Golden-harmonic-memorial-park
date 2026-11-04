@@ -577,7 +577,15 @@ function App() {
     window.db.collection('products').orderBy('sortOrder').get()
       .then(snap => {
         if (!snap.empty) {
-          const fromDb = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          // Price, name and order come from the database; the wording that describes
+          // what a buyer receives (desc + features) comes from this file, so an old
+          // description saved in the Products tab cannot override the approved text.
+          const fromDb = snap.docs.map(d => {
+            const row = { id: d.id, ...d.data() };
+            const base = BASE_TIERS.find(t => t.id === d.id);
+            if (base) { row.desc = base.desc; row.features = base.features; }
+            return row;
+          });
           // Valor Plot always shows, even before it's added to Firestore.
           // Once a 'valor' product exists in Firestore, that one wins.
           if (!fromDb.some(t => t.id === 'valor')) {
