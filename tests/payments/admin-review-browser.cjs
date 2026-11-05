@@ -18,9 +18,16 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
 
 (async()=>{
   const f=reviewFixture();await f.submit();let posts=0;
-  const publicFiles=new Set(['admin-app.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','favicon-32.png','admin-favicon-32.png']);
+  const publicFiles=new Set(['admin-app.js','cash-receipts.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','favicon-32.png','admin-favicon-32.png']);
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://localhost'),file=url.pathname.slice(1);
+    if(url.pathname==='/api/cash-receipt'){
+      const parts=[];for await(const part of req)parts.push(part);
+      const body=JSON.parse(Buffer.concat(parts));
+      assert.ok(['list','clients'].includes(body.action));
+      res.setHeader('Content-Type','application/json');
+      return res.end(JSON.stringify({receipts:[],clients:[]}));
+    }
     if(url.pathname==='/api/payment-review'){
       res.setHeader('Content-Type','application/json');
       if(req.method==='GET')return res.end(JSON.stringify({enabled:true}));
@@ -62,6 +69,12 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
     page.on('pageerror',e=>errors.push(e.message));
     const base=`http://127.0.0.1:${server.address().port}`;
     await page.goto(base+'/admin.html');
+    assert.doesNotMatch(await page.locator('body').innerText(),/<<<<<<<|>>>>>>>/);
+    await page.locator('.sidebar-nav').getByRole('button',{name:/Cash Payments/}).click();
+    await page.getByText('No payments waiting for verification.',{exact:true}).waitFor();
+    for(const href of ['/payment-cash.html','/payment-gateway-admin.html','/payment-lifecycle-admin.html','/payment-operations-admin.html']){
+      assert.equal(await page.locator(`.sidebar-nav a[href="${href}"]`).count(),1);
+    }
     const nav=page.locator('.sidebar-nav').getByRole('button',{name:'Online payments to check'});
     await nav.click();
     await page.getByRole('heading',{name:'Oldest first'}).waitFor();

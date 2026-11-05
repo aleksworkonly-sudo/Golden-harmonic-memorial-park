@@ -5431,7 +5431,6 @@ function AgentsTab({
   }, "✕"))))))));
 }
 
-<<<<<<< HEAD
 function OnlinePayments({currentUser}) {
   const [showEarlier,setShowEarlier]=useState(false);
   return React.createElement(React.Fragment,null,
@@ -5443,7 +5442,6 @@ function OnlinePayments({currentUser}) {
       showEarlier && React.createElement(PendingPayments,{currentUser})));
 }
 
-=======
 const TAB_HELP = {
   pipeline: 'Your sales board. Drag each interested person to the next column as you talk to them.',
   inquiries: 'Messages from the website contact form. Reply to each one, then mark it as contacted.',
@@ -5457,7 +5455,6 @@ const TAB_HELP = {
   trash: 'Deleted items. Restore a mistake, or remove it for good.',
   security: 'Login protection settings.'
 };
->>>>>>> e1fefa0985b925c59d1d1b5327f837daf43b4ef9
 const TABS = [{
   id: 'pipeline',
   label: 'Pipeline',
@@ -5475,11 +5472,7 @@ const TABS = [{
   badge: 2
 }, {
   id: 'pending',
-<<<<<<< HEAD
   label: 'Online payments to check',
-=======
-  label: 'Online Payments to Check',
->>>>>>> e1fefa0985b925c59d1d1b5327f837daf43b4ef9
   ico: '⏳',
   badge: 4
 }, {
@@ -5625,11 +5618,7 @@ function Dashboard({
     className: "sidebar-section"
   }, "Management"), /*#__PURE__*/React.createElement("nav", {
     className: "sidebar-nav"
-<<<<<<< HEAD
-  }, isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html"},"Cash receipts"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html"},"Provider reconciliation"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html"},"Reservation review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html"},"Payment communications and reports"), visibleTabs.map(t => /*#__PURE__*/React.createElement("button", {
-=======
-  }, visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
->>>>>>> e1fefa0985b925c59d1d1b5327f837daf43b4ef9
+  }, visibleTabs.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.id,
     type: 'button',
     'aria-current': tab === t.id ? 'page' : undefined,
@@ -5646,7 +5635,7 @@ function Dashboard({
       padding: '2px 7px',
       borderRadius: 10
     }
-  }, counts[t.id]))), isAdminOrHigher && React.createElement("div", {className:"sidebar-section"}, "Payments (admins only)"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-review.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📨"), React.createElement("span",null,"Online payments to check")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🔗"), React.createElement("span",null,"Unmatched online payments")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📌"), React.createElement("span",null,"Held reservations")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"✉️"), React.createElement("span",null,"Payment emails and reports"))), /*#__PURE__*/React.createElement("div", {
+  }, counts[t.id]))), isAdminOrHigher && React.createElement("div", {className:"sidebar-section"}, "Payments (admins only)"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🧾"), React.createElement("span",null,"Cash receipts")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🔗"), React.createElement("span",null,"Unmatched online payments")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📌"), React.createElement("span",null,"Held reservations")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"✉️"), React.createElement("span",null,"Payment emails and reports"))), /*#__PURE__*/React.createElement("div", {
     className: "sidebar-footer"
   }, /*#__PURE__*/React.createElement("button", {
     className: "logout-btn",
