@@ -90,7 +90,11 @@
     },
     {
       "source": "/my-payments",
-      "destination": "/my-payments.html"
+      "destination": "/my-plan.html"
+    },
+    {
+      "source": "/my-plan",
+      "destination": "/my-plan.html"
     },
     {
       "source": "/receipt",
