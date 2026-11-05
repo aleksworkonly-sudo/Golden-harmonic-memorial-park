@@ -2,6 +2,7 @@
 
 // Read-only query/index probes. No reservations, sessions, evidence, or money writes.
 // Usage: node scripts/payments/check-readiness.cjs --describe
+//        node scripts/payments/check-readiness.cjs --indexes
 //        node scripts/payments/check-readiness.cjs
 // Live mode requires FIREBASE_SERVICE_ACCOUNT_B64 in the current environment.
 const { getFirebaseServices } = require('../../lib/payments/firebase');
@@ -52,8 +53,23 @@ async function checkQueries(db) {
   return results;
 }
 
+// Required additions only: merge these with the project's existing inventory.
+// Never replace deployed indexes or field exemptions with this partial list.
+function requiredIndexes() {
+  return {indexes:queryChecks().map(check=>{
+    const ordered=new Map(check.order);
+    const fields=[];
+    for(const [field,operator] of check.filters){
+      if(operator==='==' && !ordered.has(field)) fields.push({fieldPath:field,order:'ASCENDING'});
+    }
+    for(const [field,direction] of check.order) fields.push({fieldPath:field,order:direction==='desc'?'DESCENDING':'ASCENDING'});
+    return {collectionGroup:check.collection,queryScope:'COLLECTION',fields};
+  })};
+}
+
 if(require.main===module){
-  if(process.argv.includes('--describe')) console.log(JSON.stringify(queryChecks(),null,2));
+  if(process.argv.includes('--indexes')) console.log(JSON.stringify(requiredIndexes(),null,2));
+  else if(process.argv.includes('--describe')) console.log(JSON.stringify(queryChecks(),null,2));
   else if(!process.env.FIREBASE_SERVICE_ACCOUNT_B64){
     console.error('Cannot check live indexes: FIREBASE_SERVICE_ACCOUNT_B64 is missing. Use --describe to list required queries.');
     process.exitCode=1;
@@ -64,4 +80,4 @@ if(require.main===module){
     }).catch(()=>{console.error('Could not initialize the read-only payment query check. Verify the server Firebase configuration.');process.exitCode=1;});
   }
 }
-module.exports={queryChecks,checkQueries};
+module.exports={queryChecks,checkQueries,requiredIndexes};

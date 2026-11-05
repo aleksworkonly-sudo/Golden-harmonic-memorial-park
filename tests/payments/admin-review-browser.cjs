@@ -3,6 +3,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http'),os=require('node:os');
 const {chromium}=require(process.env.PAYMENT_PLAYWRIGHT_MODULE || 'playwright');
 const {reviewFixture}=require('./review-fixture');
+const {adminRecord}=require('../../lib/payments/admin-records');
 const root=path.resolve(__dirname,'../..');
 const modules=process.env.PAYMENT_BROWSER_MODULES || path.join(root,'node_modules/.review-qa/node_modules');
 const mock=`
@@ -11,14 +12,19 @@ const user={uid:'admin',email:'admin@example.test',getIdToken:async()=>'admin'};
 window.auth={currentUser:user,onAuthStateChanged(cb){let live=true;queueMicrotask(()=>{if(live)cb(this.currentUser)});return()=>{live=false}},
   signInWithEmailAndPassword(){throw Error('Embedded review must reuse the existing sign-in')},signOut:async()=>{}};
 window.db={collection(name){const query={orderBy(){return query},where(){return query},
-  onSnapshot(cb){queueMicrotask(()=>cb({docs:[],size:0}));return()=>{}},
+  onSnapshot(cb){const rows=name==='presaleApplications'?(window.__presales || []):[];queueMicrotask(()=>cb({docs:rows.map(r=>({id:r.ref,data:()=>r})),size:rows.length}));return()=>{}},
   doc(){return {onSnapshot(cb){const notify=()=>cb({exists:true,data:()=>({role:window.__role})});window.__roleListeners.push(notify);queueMicrotask(notify);return()=>{window.__roleListeners=window.__roleListeners.filter(x=>x!==notify)}}}}};return query}};
 window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb())};
 `;
 
 (async()=>{
   const f=reviewFixture();await f.submit();let posts=0;
-  const publicFiles=new Set(['admin-app.js','cash-receipts.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','favicon-32.png','admin-favicon-32.png']);
+  const source={...f.db.read('presaleApplications/PS-0001'),ref:'PS-0001',name:'Verified GCash Buyer',plan:'cash',
+    method:'gcash',totalPrice:25000,createdAt:f.time,plotCode:'A-0001',typeId:'regular',blockId:'A',lotNo:1};
+  f.db.put('presaleApplications/PS-0001',source);
+  const paid=await f.core.submit(f.guest,await f.command({requestId:'presale-browser-001',reference:'GCASH-REPORT'}));
+  await f.review.decide('admin',f.decision(paid,{verifiedReference:'GCASH-REPORT',receivedCentavos:300000,allocations:[{itemId:'item1',centavos:300000}]}));
+  const publicFiles=new Set(['admin-app.js','admin-payment-records.js','cash-receipts.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','favicon-32.png','admin-favicon-32.png']);
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://localhost'),file=url.pathname.slice(1);
     if(url.pathname==='/api/cash-receipt'){
@@ -39,11 +45,12 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
         else if(b.action==='detail')result=await f.review.detail('admin',b.paymentId);
         else if(b.action==='proof')result=await f.review.proof('admin',b.paymentId,b.revisionId);
         else if(b.action==='decide')result=await f.review.decide('admin',b.command);
+        else if(b.action==='record')result=await adminRecord({db:f.db,auth:f.auth,token:'admin',kind:b.kind,id:b.id,now:f.time});
         else throw Error('Unexpected action');
         return res.end(JSON.stringify(result));
       }catch(error){res.statusCode=error.status || 500;return res.end(JSON.stringify({code:error.code,error:error.message}));}
     }
-    if(file==='firebase-config.js'){res.setHeader('Content-Type','application/javascript');return res.end(mock);}
+    if(file==='firebase-config.js'){res.setHeader('Content-Type','application/javascript');return res.end(mock+'\nwindow.__presales='+JSON.stringify([source])+';');}
     if(file==='__react.js' || file==='__react-dom.js'){
       res.setHeader('Content-Type','application/javascript');
       const pkg=file==='__react.js'?'react':'react-dom';
@@ -102,9 +109,41 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
     await page.getByRole('button',{name:'Confirm decision'}).click();
     await page.getByRole('status').filter({hasText:'Saved: resubmit requested'}).waitFor();
     assert.equal((await f.core.list(f.account)).cases[0].status,'resubmit_requested');
-    assert.equal(f.db.count('receipts'),0);
+    assert.equal(f.db.count('receipts'),1);
     await page.getByText('Earlier customer payment references',{exact:true}).click();
     await page.getByText(/No pending payment submissions right now/).waitFor();
+    await page.setViewportSize({width:1440,height:1000});
+    await page.locator('.sidebar-nav').getByRole('button',{name:/Presale Reservations/}).click();
+    await page.getByText('Verified GCash Buyer',{exact:true}).click();
+    await page.locator('.modal').getByText(/Paid ₱3,000 of ₱25,000 · balance ₱22,000/).waitFor();
+    await page.locator('.modal').getByText(/GCASH-REPORT/).waitFor();
+    await page.screenshot({path:path.join(os.tmpdir(),'gh-admin-verified-balance.png'),fullPage:true});
+    assert.deepEqual(await page.evaluate(async()=>{const rows=await window.AdminPaymentRecords.hydrate(window.__presales.map(r=>({...r,_id:r.ref})),'presale');const sheet=presaleSheetData(rows[0]);return sheet.payments.map(p=>({amount:p.amount,ref:p.ref}));}),[{amount:3000,ref:'GCASH-REPORT'}]);
+    await page.locator('.modal').getByRole('button',{name:'Close',exact:true}).click();
+    const exports=[];
+    for(const label of ['Sales','Tax (VAT)','Allocation']){
+      await page.getByRole('button',{name:label,exact:true}).click();
+      const downloaded=page.waitForEvent('download');
+      await page.getByRole('button',{name:/Download.*Excel/}).click();
+      const download=await downloaded;const csv=fs.readFileSync(await download.path(),'utf8');
+      assert.match(csv,/Verified GCash Buyer/);
+      if(label==='Sales'){assert.match(csv,/Verified paid/);assert.match(csv,/3000.00/);assert.match(csv,/22000.00/);}
+      else {assert.match(csv,/GCASH-REPORT/);assert.match(csv,/3000/);}
+      exports.push(label);
+    }
+    const failRecord=async route=>{
+      if(route.request().method()==='POST' && route.request().postDataJSON()?.action==='record')
+        return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Synthetic ledger outage'})});
+      return route.continue();
+    };
+    await page.route('**/api/payment-review',failRecord);
+    await page.evaluate(()=>window.dispatchEvent(new Event('payment-records-changed')));
+    await page.getByRole('alert').filter({hasText:'Reports are paused'}).waitFor();
+    assert.equal(await page.getByRole('button',{name:/Download.*Excel/}).count(),0);
+    await page.unroute('**/api/payment-review',failRecord);
+    await page.getByRole('button',{name:'Retry records',exact:true}).click();
+    await page.getByText('Verified GCash Buyer',{exact:true}).first().waitFor();
+    await nav.click();
     await page.evaluate(()=>window.__setRole('staff'));
     await page.locator('.admin-payment-review').waitFor({state:'detached'});
     assert.equal(await nav.count(),0);
@@ -114,6 +153,6 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
     await page.getByRole('button',{name:'Use my current sign-in'}).click();
     await page.getByRole('heading',{name:'Oldest first'}).waitFor();
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({passed:true,checks:'regular admin embedded sign-in, single navigation entry, private proof, correction, role revocation, earlier references, standalone review, 320/390/768/1440 widths',desktop,mobile}));
+    console.log(JSON.stringify({passed:true,checks:'regular admin embedded sign-in, single navigation entry, private proof, correction, role revocation, earlier references, verified reservation balance and sales/VAT/allocation CSV exports, standalone review, 320/390/768/1440 widths',desktop,mobile}));
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -22,7 +22,7 @@ async function call(handler,overrides={}){
 test('presale endpoint issues scoped HttpOnly cookie, preserves API URLs and never exposes session secret',async()=>{
   const f=presaleFixture(),handler=presaleEndpoint(f),r=await call(handler);
   assert.equal(r.code,200);assert.equal(r.body.paymentFlow,'manual_qr');assert.equal(r.body.secret,undefined);
-  assert.equal(r.body.depositCentavos,500000);assert.equal(r.body.total,54625);
+  assert.equal(r.body.depositCentavos,300000);assert.equal(r.body.total,54625);
   assert.match(r.headers['Set-Cookie'],/^__Host-gh_payment_session=/);
   for(const flag of ['HttpOnly','Secure','SameSite=Strict','Path=/','Max-Age=1800'])assert.ok(r.headers['Set-Cookie'].includes(flag));
   const again=await call(handler);assert.equal(again.body.ref,r.body.ref);assert.equal(f.db.count('plots'),1);

@@ -98,7 +98,7 @@ const BASE_TIERS = [{
   features: ['2 interment spaces', 'Perpetual care included', 'Memorial marker with laurel emblem'],
   label: 'valor plot — memorial marker'
 }];
-const fmt = n => '₱' + Math.round(n).toLocaleString('en-PH');
+const fmt = n => '₱' + Number(n).toLocaleString('en-PH',{maximumFractionDigits:2});
 const initials = name => name ? name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2) : '??';
 const fmtDate = ts => {
   if (!ts) return '—';
@@ -479,6 +479,7 @@ function Inquiries({
 
 // ── Customers panel ────────────────────────────────────────────────────────
 function planBalance(c) {
+  if(c.verifiedLedger){const v=c.verifiedLedger;return {price:v.total,paid:v.paid,balance:v.balance,pct:v.total?Math.min(100,v.paid/v.total*100):0};}
   if (!c.plan) return null;
   const paid = (c.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   const price = Number(c.plan.price) || 0;
@@ -490,6 +491,7 @@ function planBalance(c) {
   };
 }
 function totalPaid(c) {
+  if(c.verifiedLedger)return c.verifiedLedger.paid;
   return (c.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
 }
 
@@ -1032,7 +1034,8 @@ function PlotDetailModal({
 function Customers({
   currentUser
 }) {
-  const [rows, setRows] = useState(null);
+  const [rawRows, setRows] = useState(null);
+  const {rows,error:recordsError,retry:retryRecords}=window.AdminPaymentRecords.useRows(rawRows,'customer');
   const [showAdd, setShowAdd] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [toast, setToast] = useState('');
@@ -1072,6 +1075,7 @@ function Customers({
   const deleteCustomer = async (id, name) => {
     setToast('Customer deletion requires a reviewed backup/recovery process. No record was deleted.');
   };
+  if (recordsError) return React.createElement(window.AdminPaymentRecords.ErrorNotice,{error:recordsError,retry:retryRecords});
   if (!rows) return /*#__PURE__*/React.createElement("div", {
     className: "loading"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1673,7 +1677,8 @@ function PipelineDonutChart({
 function Pipeline({
   currentUser
 }) {
-  const [rows, setRows] = useState(null);
+  const [rawRows, setRows] = useState(null);
+  const {rows,error:recordsError,retry:retryRecords}=window.AdminPaymentRecords.useRows(rawRows,'customer');
   const [inquiries, setInquiries] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [toast, setToast] = useState('');
@@ -1696,6 +1701,7 @@ function Pipeline({
       return () => clearTimeout(t);
     }
   }, [toast]);
+  if (recordsError) return React.createElement(window.AdminPaymentRecords.ErrorNotice,{error:recordsError,retry:retryRecords});
   if (!rows) return /*#__PURE__*/React.createElement("div", {
     className: "loading"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1892,7 +1898,9 @@ function CustomerDetailModal({
   const [tab, setTab] = useState('payments');
   const [editingPlan, setEditingPlan] = useState(false);
   // Sales (presale applications) bought by this customer, matched by mobile number, fill in the printed sheet.
-  const [sales, setSales] = useState([]);
+  const [rawSales, setSales] = useState(null);
+  const {rows:loadedSales,error:salesError,retry:retrySales}=window.AdminPaymentRecords.useRows(rawSales,'presale');
+  const sales=loadedSales || [];
   const [sheetQueue, setSheetQueue] = useState([]);
   useEffect(() => {
     const key = String(customer.phone || '').replace(/\D/g, '').slice(-10);
@@ -2091,6 +2099,9 @@ function CustomerDetailModal({
       setBusy(false);
     }
   };
+  if(salesError || !loadedSales) return React.createElement('div',{className:'modal-bg'},React.createElement('div',{className:'modal'},
+    salesError?React.createElement(window.AdminPaymentRecords.ErrorNotice,{error:salesError,retry:retrySales}):'Loading verified records…',
+    React.createElement('button',{onClick:onClose},'Close')));
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-bg",
     onClick: e => e.target === e.currentTarget && onClose()
@@ -2266,7 +2277,12 @@ function CustomerDetailModal({
     onClick: () => setTab('activity')
   }, "Activity", customer.followUpAt && isOverdue(customer.followUpAt) ? ' 🔴' : '')), /*#__PURE__*/React.createElement("div", {
     className: "modal-scroll"
-  }, tab === 'payments' && /*#__PURE__*/React.createElement(React.Fragment, null, customer.plan ? /*#__PURE__*/React.createElement("form", {
+  }, tab === 'payments' && /*#__PURE__*/React.createElement(React.Fragment, null,
+    sales.filter(sale=>sale.verifiedLedger).map(sale=>React.createElement('section',{key:sale._id,className:'pv-card'},
+      React.createElement('h4',null,'Reservation '+sale.ref),
+      React.createElement('p',null,'Verified paid '+fmt2(sale.verifiedLedger.paid)+' · balance '+fmt2(sale.verifiedLedger.balance)),
+      sale.payments.map((p,i)=>React.createElement('p',{key:p.receiptId || i},fmtDate(p.date)+' · '+fmt2(p.amount)+' · '+p.ref)))),
+    customer.plan ? /*#__PURE__*/React.createElement("form", {
     onSubmit: logPayment,
     style: {
       display: 'grid',
@@ -2667,7 +2683,7 @@ function CustomerSheetButton({ customer, plot, label, onToast }) {
       let sales = [];
       if (key.length >= 10) {
         const snap = await window.db.collection('presaleApplications').where('mobileKey', '==', key).get();
-        sales = snap.docs.map(d => ({ _id: d.id, ...d.data() })).filter(x => x.status !== 'cancelled');
+        sales = await window.AdminPaymentRecords.hydrate(snap.docs.map(d => ({ _id: d.id, ...d.data() })).filter(x => x.status !== 'cancelled'),'presale');
       }
       const base = customerSheetData({
         ...customer,
@@ -3623,7 +3639,7 @@ function presalePlots(a) {
   }];
 }
 function presalePlanText(a) {
-  return a.plan === 'cash' ? 'Spot cash' : `${a.years} years · ${fmt(a.monthly)}/mo`;
+  return a.plan === 'cash' ? 'Spot cash' : `${a.years} years · ${fmt2(presaleLedger(a).monthly)}/mo`;
 }
 // Payment ledger: every payment staff receive is added to a.payments. Extra money
 // automatically covers the next months, so the months left go down on their own.
@@ -3703,25 +3719,40 @@ function presaleMonthLabel(k) {
 }
 function presaleLedger(a) {
   const total = a.totalPrice || 0;
-  const monthly = a.plan === 'cash' ? total : a.monthly || 0;
+  let monthly = a.plan === 'cash' ? total : a.monthly || 0;
   let list = Array.isArray(a.payments) ? a.payments : [];
-  if (!list.length && a.status === 'paid') list = [{
+  if (!a.verifiedLedger && !list.length && a.status === 'paid') list = [{
     amount: a.plan === 'cash' ? total : monthly,
     date: a.paymentConfirmedAt,
     ref: a.paymentReference
   }];
-  const paid = list.reduce((n, x) => n + (Number(x.amount) || 0), 0);
-  const balance = Math.max(0, total - paid);
-  const monthsPaid = monthly > 0 ? Math.min(a.years * 12 || 1, Math.floor((paid + 0.5) / monthly)) : 0;
+  const paid = a.verifiedLedger ? a.verifiedLedger.paid : list.reduce((n, x) => n + (Number(x.amount) || 0), 0);
+  const balance = a.verifiedLedger ? a.verifiedLedger.balance : Math.max(0, total - paid);
+  const newInstallments=a.plan==='installment' && a.installmentCalculation==='remaining_after_deposit_v1';
+  const requiredDeposit=a.depositPerPlotCentavos?presalePlots(a).length*a.depositPerPlotCentavos/100:0;
+  const depositPaid=Math.min(paid,requiredDeposit);
+  let initialFunding=depositPaid;
+  if(newInstallments && a.verifiedLedger?.installmentPrincipal!=null) initialFunding=total-a.verifiedLedger.installmentPrincipal;
+  if(newInstallments && !a.verifiedLedger){
+    let initialCredit=0;for(const entry of list){initialCredit+=Number(entry.amount)||0;if(initialCredit>=requiredDeposit)break;}
+    initialFunding=initialCredit;
+    monthly=Math.floor(Math.max(0,total-Math.max(requiredDeposit,initialCredit))*100/(a.years*12))/100;
+  }
+  const monthsPaid = monthly > 0 ? Math.min(a.years * 12 || 1, Math.floor((Math.max(0,paid-initialFunding) + 0.005) / monthly)) : 0;
   const monthsLeft = balance <= 0 ? 0 : monthly > 0 ? Math.ceil((balance - 0.5) / monthly) : 0;
   const first = list.length ? list[0].date : null;
   let nextDue = null;
   if (a.plan === 'installment' && first && balance > 0) {
     nextDue = new Date(first);
-    nextDue.setMonth(nextDue.getMonth() + monthsPaid);
+    nextDue.setMonth(nextDue.getMonth() + monthsPaid + (newInstallments?1:0));
+    if(newInstallments && paid<requiredDeposit)nextDue=null;
+    if(newInstallments && a.verifiedLedger?.firstInstallmentDate){
+      nextDue=new Date(a.verifiedLedger.firstInstallmentDate+'T00:00:00+08:00');
+      nextDue.setMonth(nextDue.getMonth()+monthsPaid);
+    }
   }
   return {
-    list, paid, balance, monthly, monthsPaid, monthsLeft, nextDue, full: total > 0 && balance <= 0
+    list, paid, balance, monthly, depositPaid, requiredDeposit, monthsPaid, monthsLeft, nextDue, full: total > 0 && balance <= 0
   };
 }
 // Rows of money received on one day (YYYY-MM-DD), with the SOP split of each payment.
@@ -3735,7 +3766,7 @@ function presalePaymentsOn(live, dk) {
   live.forEach(r => {
     const A0 = presaleAlloc(r);
     presaleLedger(r).list.forEach((x, i) => {
-      if (key(x.date) !== dk) return;
+      if (x.reportable === false || key(x.date) !== dk) return;
       const amt = Number(x.amount) || 0;
       const al = A0[i] || { agent: 0, broker: 0, company: amt };
       out.push({ date: x.date, receipt: x.ref || '', ref: r.ref, name: r.name, plots: presalePlots(r).map(p => p.plotCode).join(' '), agentName: r.agentName || '', brokerName: r.brokerName || '', method: PRESALE_METHOD_LABEL[x.method || r.method] || x.method || r.method || '', amount: amt, agent: al.agent, broker: al.broker, company: al.company, remarks: x.remarks || '' });
@@ -3845,7 +3876,8 @@ function PresaleApplications({
   currentUser,
   canEditRules
 }) {
-  const [rows, setRows] = useState(null);
+  const [rawRows, setRows] = useState(null);
+  const {rows,error:recordsError,retry:retryRecords}=window.AdminPaymentRecords.useRows(rawRows,'presale');
   const [filter, setFilter] = useState('all');
   const [open, setOpen] = useState(null);
   const [refText, setRefText] = useState('');
@@ -3943,6 +3975,7 @@ function PresaleApplications({
       return () => clearTimeout(t);
     }
   }, [toast]);
+  if (recordsError) return React.createElement(window.AdminPaymentRecords.ErrorNotice,{error:recordsError,retry:retryRecords});
   if (!rows) return plotEl("div", {
     className: "loading"
   }, plotEl("div", {
@@ -3974,7 +4007,7 @@ function PresaleApplications({
     const L = presaleLedger(a);
     // A custom amount can never be less than the chosen monthly installment.
     // (Only the last, smaller balance may be paid as it is.)
-    const minPay = Math.min(L.monthly, L.balance);
+    const minPay = Math.min(L.requiredDeposit>L.depositPaid?L.requiredDeposit-L.depositPaid:L.monthly, L.balance);
     if (amount < minPay - 0.5) {
       setToast(`The amount cannot be less than ${fmt(minPay)}${a.plan === 'cash' ? '' : ' (the monthly installment)'}.`);
       return;
@@ -4118,10 +4151,11 @@ function PresaleApplications({
   }, label)));
   const allPaid = live.reduce((n, r) => n + presaleLedger(r).paid, 0);
   const allVat = presaleVat(allPaid);
-  const shown = rows.filter(r => filter === 'all' ? true : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : r.status === filter);
+  const paymentStatus=r=>r.status==='cancelled'?'cancelled':r.verifiedLedger?.paid>0?'paid':r.status;
+  const shown = rows.filter(r => filter === 'all' ? true : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : paymentStatus(r) === filter);
   const statusBadge = (s, r) => plotEl("span", {
     className: s === 'paid' ? 'badge badge-converted' : s === 'cancelled' ? 'badge' : s === 'verified' ? 'badge badge-contacted' : 'badge badge-new'
-  }, s === 'new' ? 'New' : s === 'verified' ? 'Verified' : s === 'paid' ? r && r.plan === 'installment' && !presaleLedger(r).full ? `Paying · ${presaleLedger(r).monthsLeft} mo left` : 'Paid in full' : 'Cancelled');
+  }, s === 'new' ? 'New' : s === 'verified' ? 'Verified' : s === 'paid' ? r && !presaleLedger(r).full ? r.plan==='installment'?`Paying · ${presaleLedger(r).monthsLeft} mo left`:'Deposit verified' : 'Paid in full' : 'Cancelled');
   return plotEl("div", null, toast && plotEl(Toast, {
     msg: toast,
     onDone: () => setToast('')
@@ -4133,7 +4167,7 @@ function PresaleApplications({
       gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))',
       marginBottom: 16
     }
-  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => r.status === 'paid').length, 'Payment confirmed'), stat(fmt2(allVat.net), 'Sales (without tax)'), stat(fmt2(allVat.vat), 'Tax (VAT 12%) collected')), (() => {
+  }, stat(live.length, 'Reserved plots'), stat(live.filter(r => r.plan === 'cash').length, 'Spot cash'), stat(live.filter(r => r.plan === 'installment').length, 'Monthly'), stat(live.filter(r => paymentStatus(r) === 'paid').length, 'Payment confirmed'), stat(fmt2(allVat.net), 'Sales (without tax)'), stat(fmt2(allVat.vat), 'Tax (VAT 12%) collected')), (() => {
     // Booked sales are counted in the month the reservation was made; collections in the month each payment was received.
     const monthSet = new Set();
     rows.forEach(r => {
@@ -4162,7 +4196,7 @@ function PresaleApplications({
       const sp = presaleSplit(r);
       const allList = presaleLedger(r).list;
       const allAlloc = presaleAlloc(r);
-      allList.filter(x => inPeriod(x.date)).forEach(x => {
+      allList.filter(x => x.reportable !== false && inPeriod(x.date)).forEach(x => {
         const al = allAlloc[allList.indexOf(x)] || { agent: 0, broker: 0, company: Number(x.amount) || 0 };
         const amt = Number(x.amount) || 0;
         coll.surcharge += amt * sp.ratio;
@@ -4204,7 +4238,7 @@ function PresaleApplications({
         surcharge: sp.surcharge,
         total: sp.total,
         net: v.net,
-        vat: v.vat
+        vat: v.vat, paid:presaleLedger(r).paid, balance:presaleLedger(r).balance
       };
     });
     const line = (label, v) => {
@@ -4287,11 +4321,11 @@ function PresaleApplications({
         const L0 = presaleLedger(r);
         const A0 = presaleAlloc(r);
         L0.list.forEach((x, i) => {
-          if (dk(x.date) !== day0) return;
+          if (x.reportable === false || dk(x.date) !== day0) return;
           const amt = Number(x.amount) || 0;
           const v = presaleVat(amt);
           const al = A0[i] || { agent: 0, broker: 0, company: amt };
-          pays.push({ ref: r.ref, name: r.name, receipt: x.ref || '', method: PRESALE_METHOD_LABEL[r.method] || r.method || '', amount: amt, net: v.net, vat: v.vat, agent: al.agent, broker: al.broker, company: al.company });
+          pays.push({ ref: r.ref, name: r.name, receipt: x.ref || '', method: PRESALE_METHOD_LABEL[x.method || r.method] || x.method || r.method || '', amount: amt, net: v.net, vat: v.vat, agent: al.agent, broker: al.broker, company: al.company });
         });
       });
       const w = window.open('', '_blank');
@@ -4335,7 +4369,7 @@ function PresaleApplications({
       } else if (salesView === 'vat') {
         download(`presale-tax-vat-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Receipt/Reference', 'Amount received', 'Sales without VAT', 'VAT'], payRows.map(x => [day(x.date), x.ref, x.name, x.receipt, x.amount.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]));
       } else {
-        download(`presale-sales-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Plots', 'Plot price', 'Installment surcharge', 'Total with VAT', 'Sales without VAT', 'VAT'], saleRows.map(x => [day(x.date), x.ref, x.name, x.plots, x.base.toFixed(2), x.surcharge.toFixed(2), x.total.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2)]));
+        download(`presale-sales-${periodName}.csv`, ['Date', 'Ref', 'Buyer', 'Plots', 'Plot price', 'Installment surcharge', 'Total with VAT', 'Sales without VAT', 'VAT', 'Verified paid', 'Balance'], saleRows.map(x => [day(x.date), x.ref, x.name, x.plots, x.base.toFixed(2), x.surcharge.toFixed(2), x.total.toFixed(2), x.net.toFixed(2), x.vat.toFixed(2), x.paid.toFixed(2), x.balance.toFixed(2)]));
       }
     };
     const th = (h, r) => plotEl("th", {
@@ -4667,7 +4701,7 @@ function PresaleApplications({
       fontSize: 12,
       color: '#777'
     }
-  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(r.status, r)), plotEl("td", {
+  }, presalePlots(r).length > 1 ? `${presalePlots(r).length} plots` : PRESALE_TYPE_LABEL[r.typeId])), plotEl("td", null, presalePlanText(r)), plotEl("td", null, PRESALE_METHOD_LABEL[r.method] || r.method), plotEl("td", null, statusBadge(paymentStatus(r), r)), plotEl("td", {
     style: { textAlign: 'right' }
   }, plotEl("button", {
     className: "btn btn-outline btn-sm",
@@ -4691,14 +4725,14 @@ function PresaleApplications({
     }
   }, presalePlots(sel).map(x => plotEl("div", {
     key: x.plotCode
-  }, plotEl("b", null, x.plotCode), " · ", PRESALE_TYPE_LABEL[x.typeId], x.price ? ` · ${fmt(x.price)}` : ''))), statusBadge(sel.status, sel), plotEl("div", {
+  }, plotEl("b", null, x.plotCode), " · ", PRESALE_TYPE_LABEL[x.typeId], x.price ? ` · ${fmt(x.price)}` : ''))), statusBadge(paymentStatus(sel), sel), plotEl("div", {
     style: {
       margin: '12px 0',
       padding: 12,
       borderRadius: 8,
       background: sel.plan === 'cash' ? '#e8f5e9' : '#fff3e0'
     }
-  }, plotEl("b", null, sel.plan === 'cash' ? 'SPOT CASH' : 'MONTHLY INSTALLMENT'), plotEl("div", null, sel.plan === 'cash' ? `Pays ${fmt(sel.totalPrice)} in full` : `${sel.years} years · ${fmt(sel.monthly)} a month · total ${fmt(sel.totalPrice)}` + (sel.customMonthly > 0 ? ` · buyer plans to pay ${fmt(sel.customMonthly)} a month` : '')), plotEl("div", null, "Pays by: ", plotEl("b", null, PRESALE_METHOD_LABEL[sel.method] || sel.method))), plotEl("div", {
+  }, plotEl("b", null, sel.plan === 'cash' ? 'SPOT CASH' : 'MONTHLY INSTALLMENT'), plotEl("div", null, sel.plan === 'cash' ? `Pays ${fmt(sel.totalPrice)} in full` : `${sel.years} years · ${fmt2(presaleLedger(sel).monthly)} a month · total ${fmt(sel.totalPrice)}` + (sel.customMonthly > 0 ? ` · buyer plans to pay ${fmt(sel.customMonthly)} a month` : '')), plotEl("div", null, "Pays by: ", plotEl("b", null, PRESALE_METHOD_LABEL[sel.method] || sel.method))), plotEl("div", {
     style: {
       lineHeight: 1.7
     }
@@ -4833,7 +4867,7 @@ function PresaleApplications({
       background: '#f6f1e8',
       fontSize: 13
     }
-  }, "Identity check: call the buyer, or meet at the office, and confirm the name and address above."), sel.status !== 'cancelled' && !presaleLedger(sel).full && plotEl("div", {
+  }, "Identity check: call the buyer, or meet at the office, and confirm the name and address above."), !sel.canonicalBookingId && sel.status !== 'cancelled' && !presaleLedger(sel).full && plotEl("div", {
     style: {
       marginTop: 12
     }

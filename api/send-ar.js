@@ -72,6 +72,8 @@ module.exports = async function handler(req, res) {
       d.setMonth(d.getMonth() + monthsPaid);
       nextDue = d.getTime();
     }
+    const current=require('../lib/payments/new-installment').newInstallment(a,payments.slice(0,index+1));
+    if(current)nextDue=current.nextDue;
     const arNo = `AR-${ref}-${index + 1}`;
     // What the buyer bought: "Regular Plot - Block A, plot A-0352 (₱22,000.00)"
     const items = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode, typeId: a.typeId, blockId: a.blockId }])
@@ -79,7 +81,7 @@ module.exports = async function handler(req, res) {
     const firstType = ((Array.isArray(a.plots) && a.plots[0] && a.plots[0].typeId) || a.typeId || 'regular');
     const photoType = TYPE_LABEL[firstType] ? firstType : 'regular'; // picture of the plot type they chose
     const planText = a.plan === 'installment'
-      ? `Monthly installment, ${a.years} ${a.years === 1 ? 'year' : 'years'} (${peso(a.monthly)} a month)`
+      ? `Monthly installment, ${a.years} ${a.years === 1 ? 'year' : 'years'} (${peso(current ? current.monthly : a.monthly)} a month)`
       : 'Spot cash';
     const host = req.headers['x-forwarded-host'] || req.headers.host || '';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${host}`;

@@ -35,6 +35,18 @@ test('unknown backend errors return no private implementation detail',async()=>{
   assert.doesNotMatch(result.body.error,/result is uncertain/);
 });
 
+test('admin record endpoint returns verified ledger balances and rejects staff and extra fields',async()=>{
+  const f=reviewFixture(),saved=await f.submit();
+  await f.review.decide('admin',f.decision(saved));
+  const handler=createReviewHandler({env,services:()=>f});
+  const body={action:'record',kind:'customer',id:'c1'};
+  const result=await call(handler,body);
+  assert.equal(result.code,200);assert.equal(result.headers['Cache-Control'],'no-store');
+  assert.equal(result.body.paid,5000);assert.equal(result.body.balance,20000);
+  assert.equal((await call(handler,body,{headers:{authorization:'Bearer staff'}})).code,403);
+  assert.equal((await call(handler,{...body,paid:100000})).code,400);
+});
+
 test('missing default admin queue index reports a setup error without modifying payment records',async()=>{
   const f=reviewFixture(),saved=await f.submit(),logs=[];
   const before=f.db.read(`payments/${saved.paymentId}`),transaction=f.db.runTransaction.bind(f.db);

@@ -38,7 +38,7 @@ test('documented GCash configuration enables only GCash and returns the replacem
   const context = await submissions.context({ mode: 'reservation', secret: saved.secret, reservationRef: saved.ref });
   assert.equal(context.offers[0].qrImagePath, '/payment-qr/gcash-v1.jpg');
   assert.equal(context.offers[0].accountName, 'JU**L B.');
-  assert.equal(context.offers[0].expectedAmountCentavos, 500000);
+  assert.equal(context.offers[0].expectedAmountCentavos, 300000);
   assert.equal(f.db.count('receipts'), 0);
   f.db.put('paymentReceivingAccounts/gcash-qr-v1', { ...account, enabled: false });
   assert.deepEqual(await core.availability(), { gcash: false, maya: false });

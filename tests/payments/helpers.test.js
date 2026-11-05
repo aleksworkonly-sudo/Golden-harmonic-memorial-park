@@ -11,7 +11,7 @@ test('money preserves centavos and credits a deposit per plot without float roun
   assert.equal(pesosToCentavos('0.29'), 29);
   assert.equal(pesosToCentavos('5000'), 500000);
   assert.equal(pesosToCentavos(12.34), 1234);
-  assert.equal(depositForPlots(3), 1500000);
+  assert.equal(depositForPlots(3), 900000);
   assert.equal(addCentavos(29, 71), 100);
   assert.equal(pesosToCentavos('90071992547409.91'), Number.MAX_SAFE_INTEGER);
 });

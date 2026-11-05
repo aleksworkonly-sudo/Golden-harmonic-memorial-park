@@ -88,7 +88,7 @@
   function rowOf(lot) { return Math.floor((lot - 1) / COLS); }
   function lotAt(col, row) { return row * COLS + col + 1; }
   function code(block, lot) { return block + '-' + String(lot).padStart(4, '0'); }
-  function peso(n) { return '₱' + Math.round(n).toLocaleString('en-PH'); }
+  function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{maximumFractionDigits:2}); }
   /* Mall-style price: red price, old price crossed out, red "-27%" tag. */
   const RED = '#d0342c';
   function offPct(was, now) { return was > now && was > 0 ? Math.round(((was - now) / was) * 100) : 0; }
@@ -528,10 +528,11 @@
     const term = TERMS.find((t) => t.years === years) || TERMS[2];
     const totalFor = (t) => Math.round(instBase * (1 + t.surcharge));
     const listTotalFor = (t) => Math.round(listSum * (1 + t.surcharge));
-    const monthlyFor = (t) => Math.round(totalFor(t) / (t.years * 12));
+    const deposit = allLots.length * 3000;
+    const monthlyFor = (t) => Math.floor(Math.max(0,totalFor(t)-deposit)*100 / (t.years * 12))/100;
     const total = plan === 'cash' ? spot : totalFor(term);
     const customNum = Math.round(Number(String(custom).replace(/[^0-9.]/g, '')) || 0);
-    const customMonths = customNum > 0 ? Math.ceil(total / customNum) : 0;
+    const customMonths = customNum > 0 ? Math.ceil(Math.max(0,total-deposit) / customNum) : 0;
     const monthly = plan === 'cash' ? 0 : monthlyFor(term);
     const methodInfo = METHODS.find((m) => m.id === method);
 
@@ -770,9 +771,9 @@
                 <span><b>{m.label}</b><br /><span style={{ fontSize: 15, color: '#4a564f' }}>{['gcash','maya'].includes(m.id) && !wallets[m.id] ? 'Unavailable — awaiting a verified receiving QR. Do not send money.' : m.hint}</span></span>
               </label>))}
             <div style={{ ...S.note, marginTop: 8 }}>
-              {['gcash','maya'].includes(method) && <p><b>Reservation deposit:</b> {peso(allLots.length*5000)}, credited toward your plan. Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.</p>}
+              {['gcash','maya'].includes(method) && <p><b>Reservation deposit:</b> {peso(deposit)}, credited toward your plan. Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.</p>}
               {plan === 'cash' ? <div><b>You pay:</b> {peso(total)} by {methodInfo.label}</div> :
-                <div><b>You pay:</b> {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}.</div>}
+                <div><b>You pay:</b> {peso(deposit)} deposit, then approximately {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}. The deposit is part of this total. Monthly payments start after the deposit is verified; the final payment adjusts for cents.</div>}
               <div style={{ marginTop: 4, fontSize: 15 }}>Our staff will tell you exactly how and where to pay when they call you.</div>
             </div>
           </div>

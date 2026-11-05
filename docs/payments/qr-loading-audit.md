@@ -68,3 +68,15 @@ The default pending-review queue needs a separate **structured composite index**
 4. `paymentId` — Ascending
 
 The customer submission-history index does not cover this query. Verify that this review index is Enabled, then choose **Use my current sign-in** to reload the queue. If the index is already enabled in the server's Firebase project, inspect the `payment-review` runtime diagnostic rather than assuming a password problem. Filtered queues and ledger detail still need their own indexes as listed above and in the readiness checker. No live admin index was inspected or created during this follow-up.
+
+### Embedded Admin Panel recovery
+
+The missing default queue index was confirmed again after embedding review in the Admin Panel. In Firebase Console, choose **Create structured index**, collection **payments**, query scope **Collection**, with the four fields listed above, all Ascending. Keep the existing submissionScope index. Wait until the new index is **Enabled**, then click **Reload payment review** inside the Admin Panel. No Vercel redeploy is needed for this database-only fix. Use the Firebase project belonging to the deployed server credential.
+
+To export all index definitions covered by the read-only readiness checker, including all eight admin filter combinations:
+
+```sh
+node scripts/payments/check-readiness.cjs --indexes
+```
+
+This requires no credentials and makes no cloud changes. The output is a **partial inventory of required additions**, not a replacement for the existing project's indexes or field exemptions. Export the actual inventory with Firebase CLI (`firebase firestore:indexes --project YOUR_PROJECT_ID`), merge the required additions, and deploy the merged configuration using `firebase deploy --only firestore:indexes --project YOUR_PROJECT_ID`. Do not delete existing indexes or reset field overrides. Verify readiness after the indexes finish building.

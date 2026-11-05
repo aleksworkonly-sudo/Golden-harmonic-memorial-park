@@ -8,9 +8,12 @@ const {scopeKey}=require('../../lib/payments/submission');
 
 test('new manual reservation atomically holds plots and provisions zero-credit canonical records',async()=>{
   const f=presaleFixture(),r=await f.core.reserve(f.input);
-  assert.equal(r.ref,'PS-0001');assert.equal(r.depositCentavos,500000);assert.equal(r.deadlineDate,'2027-02-02');
+  assert.equal(r.ref,'PS-0001');assert.equal(r.depositCentavos,300000);assert.equal(r.deadlineDate,'2027-02-02');
+  assert.equal(r.monthly,2250); // (57,000 - 3,000) / 24 months
   const b=f.db.read('bookings/PRESALE-PS-0001');assert.equal(b.balanceCentavos,5700000);assert.equal(b.netCreditCentavos,0);
   assert.equal(b.monthlyCentavos,null);assert.equal(b.notificationContact.enabled,false);
+  assert.equal(b.lifecycleTerms.depositPerPlotCentavos,300000);
+  assert.equal(b.lifecycleTerms.installmentCalculation,'remaining_after_deposit_v1');
   assert.equal(f.db.read('plots/A_1').hold,true);assert.equal(f.db.read('plots/A_1').paymentBookingId,'PRESALE-PS-0001');
   assert.equal(f.db.read('presaleApplications/PS-0001').accessVersion,1);assert.equal(f.db.count('receipts'),0);
   assert.equal(f.db.count('ledgerEntries'),1);assert.equal(f.db.count('payments'),0);

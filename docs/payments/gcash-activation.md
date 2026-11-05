@@ -92,7 +92,7 @@ If GCash is false, check the variable environment, service account, exact receiv
 
 The other configuration checks are `/api/payment-access`, `/api/payment-submission`, and `/api/payment-review`; each should return `{"enabled":true}`. Those flags alone do not prove database access, email delivery or indexes work.
 
-Check the deployed image at `/payment-qr/gcash-v1.jpg`. In an authorized staging reservation, confirm holds occur before the QR, the displayed recipient is `JU**L B.`, the deposit is ₱5,000 per plot, and proof submission reaches the admin queue without crediting money. Confirm correction retains holds/deadline and admin approval requires actual statement verification. Do not approve synthetic proof as real received money.
+Check the deployed image at `/payment-qr/gcash-v1.jpg`. In an authorized staging reservation, confirm holds occur before the QR, the displayed recipient is `JU**L B.`, the deposit for new reservations is ₱3,000 per plot, and proof submission reaches the admin queue without crediting money. Confirm correction retains holds/deadline and admin approval requires actual statement verification. Do not approve synthetic proof as real received money.
 
 The application never marks a payment verified merely because a QR was scanned or a screenshot uploaded. Manual admin verification remains required.
 

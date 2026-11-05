@@ -1,6 +1,21 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {queryChecks,checkQueries}=require('../../scripts/payments/check-readiness.cjs');
+const {queryChecks,checkQueries,requiredIndexes}=require('../../scripts/payments/check-readiness.cjs');
+
+test('index export covers the default queue, filter combinations and customer history separately',()=>{
+  const {indexes}=requiredIndexes();
+  const fields=index=>index.fields.map(field=>`${field.fieldPath}:${field.order}`).join(',');
+  const payments=indexes.filter(index=>index.collectionGroup==='payments');
+  assert.ok(payments.some(index=>fields(index)==='schemaVersion:ASCENDING,status:ASCENDING,submittedAt:ASCENDING,paymentId:ASCENDING'));
+  assert.ok(payments.some(index=>fields(index)==='submissionScope:ASCENDING,submittedAt:DESCENDING,paymentId:DESCENDING'));
+  assert.equal(payments.filter(index=>index.fields[0].fieldPath==='schemaVersion').length,8);
+  assert.equal(indexes.length,queryChecks().length);
+  for(const index of indexes){
+    assert.equal(index.queryScope,'COLLECTION');
+    assert.equal(new Set(index.fields.map(field=>field.fieldPath)).size,index.fields.length);
+  }
+  assert.equal(Object.hasOwn(requiredIndexes(),'fieldOverrides'),false);
+});
 
 test('readiness probes are bounded reads, continue after missing indexes, and never expose returned documents',async()=>{
   const queried=[];

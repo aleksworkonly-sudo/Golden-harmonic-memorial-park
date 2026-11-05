@@ -86,6 +86,7 @@
     };
     const save=()=>run(async()=>{try{return await api('decide',{command});}catch(ex){if(ex.uncertain)setUncertain(true);throw ex;}},(result)=>{
       setMessage(`Saved: ${result.status.replaceAll('_',' ')}${result.receiptId?` · Acknowledgement ${result.receiptId}`:''}.`);setCommand(null);setDetail(null);setProof(null);
+      window.dispatchEvent(new Event('payment-records-changed'));
       const ticket=generation.current;api('queue',{filters:applied}).then((next)=>{if(ticket===generation.current){setRows(next.cases);setCursor(next.nextCursor);}}).catch(()=>{});
     });
     return h(embedded?'section':'main',{id:'review-main',className:`pv-wrap pr-wrap${embedded?' admin-payment-review':''}`},h('p',{className:'pv-eyebrow'},'Office · Manual payment verification'),h(embedded?'h2':'h1',null,embedded?'Online payments to check':'Review the evidence. Record the result.'),

@@ -20,9 +20,12 @@
       model.fulfilledAfterDeadline && h('p', { className:'pv-notice' }, 'The required payment was completed after the original deadline. The office can review its timing.'),
       model.plan === 'spot_cash' ? h('p', null, 'A deposit does not move this deadline. Monthly installments do not apply to spot cash.') :
         h(React.Fragment, null, h('p', null, `First installment date: ${date(model.firstInstallmentDate)}.`),
-          h('p', { className:'pv-notice' }, 'Monthly amounts and late-penalty calculations await accountant confirmation. The dates below are a timing calendar, not a bill or a settlement quote. Existing accepted obligations still apply.'),
+          h('p', { className:'pv-notice' }, model.monthlyCentavos!=null ?
+            `Monthly payment after your verified deposit: ${peso(model.monthlyCentavos)}. The final installment includes any remaining cents. Further verified payments reduce your outstanding balance.` :
+            model.scheduleStatus==='awaiting_deposit' ? 'Your monthly schedule will be calculated from the balance after your deposit is verified.' :
+            'Monthly amounts and late-penalty calculations await accountant confirmation. The dates below are a timing calendar, not a bill or a settlement quote. Existing accepted obligations still apply.'),
           model.calendar.length > 0 && h('details', null, h('summary', null, 'View installment timing calendar'),
-            h('ol', null, model.calendar.map((row) => h('li', { key:row.sequence }, `${date(row.dueDate)} — amount awaiting confirmation`))))),
+            h('ol', null, model.calendar.map((row) => h('li', { key:row.sequence }, `${date(row.dueDate)} — ${row.amountCentavos!=null?peso(row.amountCentavos):'amount awaiting confirmation'}`))))),
       model.state === 'principal_settled' && h('p', { className:'pv-notice' }, 'Principal is fully credited. Final clearance of any other agreed obligations requires office review.'),
       h('p', { className:'pv-muted' }, model.holdMessage));
   }
