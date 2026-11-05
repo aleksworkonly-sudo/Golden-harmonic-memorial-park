@@ -13,7 +13,7 @@
 // A verified payment is never edited or deleted. A void adds a NEGATIVE "reversal" entry to the account.
 
 const crypto = require('crypto');
-const { ledger } = require('./_presale-reminders');
+const { ledger } = require('../lib/presale-reminders');
 
 const TZ = 'Asia/Manila';
 const ST = { PENDING: 'pending_verification', PAID: 'paid_verified', VOID: 'voided' };
