@@ -2573,6 +2573,9 @@ function CustomerSheetEditor({ data, onClose, onToast, canSave, actor }) {
     const used = rows.filter(r => r.date || r.ref || num(r.amount) || r.note);
     if (used.some(r => !num(r.amount))) { onToast && onToast('Every payment row needs an amount.'); return; }
     const origPays = app.payments || [];
+    // Payments that came from an approved cash receipt are locked: corrections go through "Void" on the Cash Payments tab.
+    const lockedBroken = origPays.findIndex((o, i) => o.cashReceipt && !used.some(r => r.orig === i && num(r.amount) === o.amount && String(r.ref || '') === String(o.ref || '')));
+    if (lockedBroken >= 0) { onToast && onToast('Payment ' + origPays[lockedBroken].cashReceipt + ' came from a cash receipt and cannot be changed or removed here. Use Void in the Cash Payments tab.'); return; }
     if (!used.length && origPays.length && !window.confirm('This removes ALL recorded payments of ' + app.ref + '. Continue?')) return;
     if (!window.confirm('Save these changes to ' + app.ref + '? This changes the buyer\'s record, the balance and the reports.')) return;
     setBusy(true);
@@ -3538,7 +3541,7 @@ function PendingPayments({
     onDone: () => setToast('')
   }), /*#__PURE__*/React.createElement("div", {
     className: "section-hd"
-  }, /*#__PURE__*/React.createElement("h2", null, "Pending Payments ", /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("h2", null, "Online Payments to Check ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: 'var(--ink-3)',
       fontWeight: 400,
@@ -5428,6 +5431,7 @@ function AgentsTab({
   }, "✕"))))))));
 }
 
+<<<<<<< HEAD
 function OnlinePayments({currentUser}) {
   const [showEarlier,setShowEarlier]=useState(false);
   return React.createElement(React.Fragment,null,
@@ -5439,6 +5443,21 @@ function OnlinePayments({currentUser}) {
       showEarlier && React.createElement(PendingPayments,{currentUser})));
 }
 
+=======
+const TAB_HELP = {
+  pipeline: 'Your sales board. Drag each interested person to the next column as you talk to them.',
+  inquiries: 'Messages from the website contact form. Reply to each one, then mark it as contacted.',
+  customers: 'Everyone who bought a plot. Open one to see their plan, payments and portal login.',
+  pending: 'Online payments (GCash, bank) that customers sent in. Check the reference number, then confirm or reject. For cash received in person, use Cash Payments.',
+  cashier: 'For money handed to you in person. Four steps: 1) Save the payment  2) Print the receipt  3) Photo of the printed copy  4) Confirm & Approve. The balance changes only at step 4.',
+  presale: 'Presale reservations (PS-0001 …). Check each one, record payments, and print the envelope sheet with the Print sheet button.',
+  agents: 'Your sales agents and the commission owed to each.',
+  products: 'The plots and packages you sell, with their prices. Admins only.',
+  users: 'Who can log in to this admin and what they are allowed to do. Admins only.',
+  trash: 'Deleted items. Restore a mistake, or remove it for good.',
+  security: 'Login protection settings.'
+};
+>>>>>>> e1fefa0985b925c59d1d1b5327f837daf43b4ef9
 const TABS = [{
   id: 'pipeline',
   label: 'Pipeline',
@@ -5446,7 +5465,7 @@ const TABS = [{
   badge: 1
 }, {
   id: 'inquiries',
-  label: 'Inquiries',
+  label: 'Inquiries (messages)',
   ico: '📥',
   badge: 5
 }, {
@@ -5456,12 +5475,21 @@ const TABS = [{
   badge: 2
 }, {
   id: 'pending',
+<<<<<<< HEAD
   label: 'Online payments to check',
+=======
+  label: 'Online Payments to Check',
+>>>>>>> e1fefa0985b925c59d1d1b5327f837daf43b4ef9
   ico: '⏳',
   badge: 4
 }, {
+  id: 'cashier',
+  label: 'Cash Payments',
+  ico: '🧾',
+  badge: 2
+}, {
   id: 'presale',
-  label: 'Presale',
+  label: 'Presale Reservations',
   ico: '📋',
   badge: 2
 }, {
@@ -5597,7 +5625,11 @@ function Dashboard({
     className: "sidebar-section"
   }, "Management"), /*#__PURE__*/React.createElement("nav", {
     className: "sidebar-nav"
+<<<<<<< HEAD
   }, isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html"},"Cash receipts"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html"},"Provider reconciliation"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html"},"Reservation review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html"},"Payment communications and reports"), visibleTabs.map(t => /*#__PURE__*/React.createElement("button", {
+=======
+  }, visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
+>>>>>>> e1fefa0985b925c59d1d1b5327f837daf43b4ef9
     key: t.id,
     type: 'button',
     'aria-current': tab === t.id ? 'page' : undefined,
@@ -5614,7 +5646,7 @@ function Dashboard({
       padding: '2px 7px',
       borderRadius: 10
     }
-  }, counts[t.id])))), /*#__PURE__*/React.createElement("div", {
+  }, counts[t.id]))), isAdminOrHigher && React.createElement("div", {className:"sidebar-section"}, "Payments (admins only)"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-review.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📨"), React.createElement("span",null,"Online payments to check")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🔗"), React.createElement("span",null,"Unmatched online payments")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📌"), React.createElement("span",null,"Held reservations")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"✉️"), React.createElement("span",null,"Payment emails and reports"))), /*#__PURE__*/React.createElement("div", {
     className: "sidebar-footer"
   }, /*#__PURE__*/React.createElement("button", {
     className: "logout-btn",
@@ -5648,7 +5680,7 @@ function Dashboard({
     className: "content"
   }, tab !== 'pending' && /*#__PURE__*/React.createElement("div", {
     className: "stats-row"
-  }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash' && t.id !== 'security').map(t => /*#__PURE__*/React.createElement("div", {
+  }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash' && t.id !== 'security' && t.id !== 'cashier').map(t => /*#__PURE__*/React.createElement("div", {
     key: t.id,
     className: "stat-card",
     style: {
@@ -5665,7 +5697,9 @@ function Dashboard({
     className: "stat-num"
   }, t.id === 'pending' ? 'Review' : counts[t.id]), /*#__PURE__*/React.createElement("div", {
     className: "stat-lbl"
-  }, t.label))))), tab === 'pipeline' && /*#__PURE__*/React.createElement(Pipeline, {
+  }, t.label))))), TAB_HELP[tab] && /*#__PURE__*/React.createElement("div", {
+    className: "tab-help"
+  }, "ℹ️ ", TAB_HELP[tab]), tab === 'pipeline' && /*#__PURE__*/React.createElement(Pipeline, {
     currentUser: user
   }), tab === 'inquiries' && /*#__PURE__*/React.createElement(Inquiries, {
     currentUser: user
@@ -5673,6 +5707,9 @@ function Dashboard({
     currentUser: user
   }), tab === 'pending' && isAdminOrHigher && /*#__PURE__*/React.createElement(OnlinePayments, {
     currentUser: user
+  }), tab === 'cashier' && window.CashReceipts && /*#__PURE__*/React.createElement(window.CashReceipts, {
+    currentUser: user,
+    isAdmin: isAdminOrHigher
   }), tab === 'presale' && /*#__PURE__*/React.createElement(PresaleApplications, {
     currentUser: user,
     canEditRules: isAdminOrHigher
