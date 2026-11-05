@@ -1,0 +1,49 @@
+/* Payment review shares the admin sign-in and fits inside its content column. */
+button.nav-item { width:100%; border:0; background:transparent; text-align:left; font-family:inherit; }
+.admin-payment-review {
+  --pv-ink:#1f2a26; --pv-muted:#52635b; --pv-green:#2f5d4c;
+  --pv-paper:#fffdf8; --pv-line:#d8d3c5;
+  container:payment-review / inline-size;
+  width:100%; max-width:none; margin:0; padding:0;
+  color:var(--pv-ink); font-size:16px; line-height:1.55; overflow-wrap:anywhere;
+}
+.admin-payment-review h2 { font-size:clamp(22px,3vw,28px); line-height:1.25; margin:0 0 14px; }
+.admin-payment-review h3 { font-size:20px; line-height:1.3; margin:0 0 12px; }
+.admin-payment-review p { margin:0 0 16px; }
+.admin-payment-review button,.admin-payment-review input,.admin-payment-review select,.admin-payment-review textarea { font:inherit; }
+.admin-payment-review :focus-visible,.earlier-payment-references summary:focus-visible { outline:3px solid #95651b; outline-offset:3px; }
+.admin-payment-review .pv-eyebrow { color:var(--pv-green); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.admin-payment-review .pv-muted { color:var(--pv-muted); }
+.admin-payment-review .pv-card { min-width:0; background:var(--pv-paper); border:1px solid var(--pv-line); border-radius:12px; padding:clamp(16px,3vw,24px); margin-bottom:20px; }
+.admin-payment-review .pv-field { min-width:0; margin-bottom:16px; }
+.admin-payment-review .pv-field label { display:block; font-weight:600; font-size:15px; margin-bottom:6px; }
+.admin-payment-review .pv-field input,.admin-payment-review .pv-field select,.admin-payment-review .pv-field textarea {
+  width:100%; min-width:0; min-height:48px; padding:10px 12px; border:1px solid #aaa99d; border-radius:8px; color:var(--pv-ink); background:#fff;
+}
+.admin-payment-review .pv-primary,.admin-payment-review .pv-secondary {
+  display:inline-flex; justify-content:center; align-items:center; min-height:48px; max-width:100%; padding:10px 16px;
+  border:1px solid var(--pv-line); border-radius:8px; font-weight:600; cursor:pointer; white-space:normal;
+}
+.admin-payment-review .pv-primary { background:var(--pv-green); border-color:var(--pv-green); color:#fff; }
+.admin-payment-review .pv-secondary { background:transparent; color:var(--pv-green); }
+.admin-payment-review button:disabled { opacity:.6; cursor:default; }
+.admin-payment-review .pv-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:16px 0; }
+.admin-payment-review .pv-notice { padding:16px; margin-bottom:20px; border-left:4px solid var(--pv-green); background:#eef4ee; border-radius:5px; }
+.admin-payment-review .pv-error { background:#fcecea; border-left-color:#993d30; color:#792b22; }
+.admin-payment-review .pv-status { font-weight:600; color:var(--pv-green); }
+.admin-payment-review .ps-review { display:grid; gap:14px; margin:16px 0; }
+.admin-payment-review dt { color:var(--pv-muted); font-size:14px; }
+.admin-payment-review dd { margin:4px 0 12px; font-weight:600; }
+.admin-payment-review .ps-proof { margin:20px 0; }
+.admin-payment-review .ps-proof summary { cursor:pointer; min-height:44px; padding:12px 0; color:var(--pv-green); }
+.admin-payment-review .ps-zoom { max-height:600px; overflow:auto; border:1px solid var(--pv-line); }
+.admin-payment-review .ps-zoom img { display:block; max-width:none; }
+.admin-payment-review .pr-grid { grid-template-columns:minmax(0,1fr); }
+.admin-payment-review .pr-queue button { display:block; text-align:left; }
+.earlier-payment-references { margin-top:24px; padding:16px; border:1px solid var(--border); border-radius:10px; background:var(--card); }
+.earlier-payment-references > summary { cursor:pointer; min-height:44px; padding:10px 0; font-weight:600; }
+.earlier-payment-references > p { margin:12px 0 20px; color:var(--ink-2); }
+@container payment-review (min-width:900px) {
+  .admin-payment-review .pr-grid { grid-template-columns:minmax(260px,.7fr) minmax(0,1.3fr); }
+  .admin-payment-review .ps-review { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

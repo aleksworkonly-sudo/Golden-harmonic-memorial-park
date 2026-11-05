@@ -55,3 +55,16 @@ node scripts/payments/check-readiness.cjs --describe
 To check the deployed Firebase project's query prerequisites, run the same script without `--describe` in an environment already configured with that project's server credential (`FIREBASE_SERVICE_ACCOUNT_B64`). Do not paste credentials into chat or commit them. Output reports `ready`, `index_required`, or `failed` per query. `ready` verifies only that the query executed; it does not certify security rules, data integrity, email delivery, payment reconciliation or all runtime behavior.
 
 No Firebase server credential or authenticated Vercel session was available in this workspace. No live indexes, rules, customer reservations or payments were modified. The index's absence was confirmed by the user, and the corresponding failure was reproduced with a test double. Existing local tests do not emulate Firestore's index requirements; passing those tests never meant live indexes were deployed.
+
+## Admin sign-in follow-up — November 5, 2026
+
+An error immediately after admin sign-in is a queue load failure, not a decision submission. The review endpoint previously returned its uncertain-decision message for all unexpected failures, including read-only queue queries. It now distinguishes missing indexes and read failures, logs bounded action/stage diagnostics, and reserves uncertain-result recovery instructions for decision requests. The browser likewise treats a network failure as an uncertain write only for `decide`.
+
+The default pending-review queue needs a separate **structured composite index**, collection `payments`, query scope **Collection**:
+
+1. `schemaVersion` — Ascending
+2. `status` — Ascending
+3. `submittedAt` — Ascending
+4. `paymentId` — Ascending
+
+The customer submission-history index does not cover this query. Verify that this review index is Enabled, then choose **Use my current sign-in** to reload the queue. If the index is already enabled in the server's Firebase project, inspect the `payment-review` runtime diagnostic rather than assuming a password problem. Filtered queues and ledger detail still need their own indexes as listed above and in the readiness checker. No live admin index was inspected or created during this follow-up.

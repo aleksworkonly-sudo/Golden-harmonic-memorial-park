@@ -29,6 +29,43 @@ test('HTTP review-to-approval response and retry use the same durable receipt; d
   const retry=await call(handler,{action:'decide',command});assert.equal(retry.body.receiptId,first.body.receiptId);assert.equal(retry.body.duplicate,true);
 });
 test('unknown backend errors return no private implementation detail',async()=>{
-  const handler=createReviewHandler({env,services:()=>{throw Error('secret Firebase credential');}});
+  const handler=createReviewHandler({env,services:()=>{throw Error('secret Firebase credential');},logger:{error(){}}});
   const result=await call(handler,{action:'queue'});assert.equal(result.code,503);assert.equal(JSON.stringify(result.body).includes('secret'),false);
+  assert.equal(result.body.code,'REVIEW_READ_UNAVAILABLE');
+  assert.doesNotMatch(result.body.error,/result is uncertain/);
+});
+
+test('missing default admin queue index reports a setup error without modifying payment records',async()=>{
+  const f=reviewFixture(),saved=await f.submit(),logs=[];
+  const before=f.db.read(`payments/${saved.paymentId}`),transaction=f.db.runTransaction.bind(f.db);
+  f.db.runTransaction=work=>transaction(tx=>{
+    const get=tx.get.bind(tx);
+    tx.get=ref=>{
+      if(ref.collection==='payments' && ref.options.order){
+        assert.deepEqual(ref.options.filters,[['schemaVersion','==',3],['status','==','pending_verification']]);
+        assert.deepEqual(ref.options.order,[['submittedAt','asc'],['paymentId','asc']]);
+        throw Object.assign(new Error('The query requires an index. PRIVATE_PROJECT_URL'),{code:9});
+      }
+      return get(ref);
+    };
+    return work(tx);
+  });
+  const handler=createReviewHandler({env,services:()=>f,logger:{error:(...args)=>logs.push(args)}});
+  const result=await call(handler,{action:'queue',filters:{status:'pending_verification'}});
+  assert.equal(result.code,503);
+  assert.equal(result.body.code,'REVIEW_INDEX_REQUIRED');
+  assert.doesNotMatch(result.body.error,/result is uncertain/);
+  assert.deepEqual(logs[0],['[payment-review]',{action:'queue',stage:'queue',reason:'missing_index',grpcCode:9}]);
+  assert.equal(JSON.stringify({logs,body:result.body}).includes('PRIVATE_PROJECT_URL'),false);
+  assert.deepEqual(f.db.read(`payments/${saved.paymentId}`),before);
+  assert.equal(f.db.count('receipts'),0);
+});
+
+test('uncertain decision writes retain the same-command recovery instruction',async()=>{
+  const handler=createReviewHandler({env,services:()=>{throw Error('PRIVATE_FAILURE');},logger:{error(){}}});
+  const result=await call(handler,{action:'decide',command:{}});
+  assert.equal(result.code,503);
+  assert.equal(result.body.code,'REVIEW_UNAVAILABLE');
+  assert.match(result.body.error,/Retry the same reviewed decision/);
+  assert.equal(JSON.stringify(result.body).includes('PRIVATE_FAILURE'),false);
 });

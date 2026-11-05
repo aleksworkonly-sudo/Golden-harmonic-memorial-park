@@ -11,7 +11,7 @@
   };
   const open=(p)=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(p.status);
   const fresh=()=>({action:'request_correction',reason:'',buyerNote:'',amount:'',receivedAt:'',reference:'',funds:false,noFunds:false,gatewayReviewed:false,allocations:{}});
-  function App() {
+  function App({embedded=false}={}) {
     const [enabled,setEnabled]=useState(null),[signed,setSigned]=useState(false),[email,setEmail]=useState(''),[password,setPassword]=useState('');
     const [rows,setRows]=useState([]),[cursor,setCursor]=useState(null),[filters,setFilters]=useState({status:'pending_verification',channel:'',sourceId:'',from:'',to:'',ageDays:0});
     const [applied,setApplied]=useState(filters),[detail,setDetail]=useState(null),[proof,setProof]=useState(null),[revision,setRevision]=useState('');
@@ -23,10 +23,11 @@
       if(!window.auth?.currentUser) {clear();throw Error('Please sign in again.');}
       const token=await window.auth.currentUser.getIdToken();let response;
       try {response=await fetch('/api/payment-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({action,...fields})});}
-      catch(_){throw Object.assign(Error('Connection interrupted. Retry the same decision or reload the case before starting another.'),{uncertain:true});}
+      catch(_){throw Object.assign(Error(action==='decide' ? 'Connection interrupted. Retry the same decision to recover its saved result.' :
+        'Connection interrupted while loading payment review data. Retry loading the queue or case.'),{uncertain:action==='decide'});}
       const data=await response.json().catch(()=>({}));
       if(['FORBIDDEN','UNAUTHENTICATED'].includes(data.code)) {clear();setError(data.error || 'Admin access is required.');}
-      if(!response.ok) throw Object.assign(Error(data.error || 'Review unavailable.'),{uncertain:response.status>=500});
+      if(!response.ok) throw Object.assign(Error(data.error || 'Review unavailable.'),{uncertain:action==='decide' && response.status>=500});
       return data;
     }
     async function run(work,apply) {
@@ -45,6 +46,12 @@
       const restore=(event)=>{if(event.persisted)clear();};window.addEventListener('pageshow',restore);
       return()=>{live=false;generation.current++;if(unsubscribe)unsubscribe();window.removeEventListener('pageshow',restore);};
     },[]);
+    useEffect(()=>{
+      if(embedded && enabled && window.auth?.currentUser){
+        uid.current=window.auth.currentUser.uid;
+        loadQueue(false,filters);
+      }
+    },[embedded,enabled]);
     useEffect(()=>{if(error)alert.current?.focus();},[error]);
     useEffect(()=>{if(detail)heading.current?.focus();},[detail,command]);
     useEffect(()=>{if(!signed)return;const timer=setTimeout(()=>{clear();setMessage('Private review closed after 15 minutes. Sign in or open the queue again.');},900000);return()=>clearTimeout(timer);},[signed,detail]);
@@ -81,16 +88,18 @@
       setMessage(`Saved: ${result.status.replaceAll('_',' ')}${result.receiptId?` · Acknowledgement ${result.receiptId}`:''}.`);setCommand(null);setDetail(null);setProof(null);
       const ticket=generation.current;api('queue',{filters:applied}).then((next)=>{if(ticket===generation.current){setRows(next.cases);setCursor(next.nextCursor);}}).catch(()=>{});
     });
-    return h('main',{id:'review-main',className:'pv-wrap pr-wrap'},h('p',{className:'pv-eyebrow'},'Office · Manual payment verification'),h('h1',null,'Review the evidence. Record the result.'),
+    return h(embedded?'section':'main',{id:'review-main',className:`pv-wrap pr-wrap${embedded?' admin-payment-review':''}`},h('p',{className:'pv-eyebrow'},'Office · Manual payment verification'),h(embedded?'h2':'h1',null,embedded?'Online payments to check':'Review the evidence. Record the result.'),
       h('p',{className:'pv-muted'},'Compare every claim with the receiving bank or GCash statement. Only verified funds can become account credit.'),
       error&&h('div',{className:'pv-notice pv-error',role:'alert',tabIndex:-1,ref:alert},error),message&&h('p',{role:'status',className:'pv-notice'},message),
       busy&&h('p',{role:'status'},'Please wait…'),enabled===null?h('p',null,'Checking availability…'):!enabled?h('p',{className:'pv-notice'},'Payment review is not enabled yet.'):
+      !signed && embedded?h('section',{className:'pv-card'},h('p',null,'Using your Admin Panel sign-in. Admins can review receipts and record verified payments here.'),
+        h('button',{className:'pv-secondary',disabled:busy,onClick:()=>{uid.current=window.auth?.currentUser?.uid;loadQueue(false,filters);}},'Reload payment review')):
       !signed?h('section',{className:'pv-card'},h('h2',null,'Admin sign-in'),h('form',{onSubmit:login},
         h('div',{className:'pv-field'},h('label',{htmlFor:'review-email'},'Admin email'),h('input',{id:'review-email',type:'email',value:email,required:true,autoComplete:'email',onChange:(e)=>setEmail(e.target.value)})),
         h('div',{className:'pv-field'},h('label',{htmlFor:'review-password'},'Password'),h('input',{id:'review-password',type:'password',value:password,required:true,autoComplete:'current-password',onChange:(e)=>setPassword(e.target.value)})),
         h('button',{className:'pv-primary',disabled:busy},'Sign in to review')),
         h('button',{className:'pv-secondary pv-block',disabled:busy,onClick:()=>{uid.current=window.auth?.currentUser?.uid;loadQueue(false,filters);}},'Use my current sign-in')):
-      h(React.Fragment,null,h('div',{className:'pv-actions'},h('button',{className:'pv-secondary',onClick:()=>{clear();window.auth?.signOut();}},'Sign out'),
+      h(React.Fragment,null,h('div',{className:'pv-actions'},!embedded&&h('button',{className:'pv-secondary',onClick:()=>{clear();window.auth?.signOut();}},'Sign out'),
         h('button',{className:'pv-secondary',disabled:busy || !!command,onClick:()=>loadQueue()},'Refresh queue')),
         h('section',{className:'pv-card'},h('h2',null,'Find a submission'),h('form',{className:'pr-filters',onSubmit:(e)=>{e.preventDefault();loadQueue(false,filters);}},
           ...[['status','Status',['pending_verification','resubmit_requested','needs_reconciliation','verified','rejected']],['channel','Channel',['bank','gcash','maya']]].map(([key,label,values])=>h('div',{key,className:'pv-field'},h('label',{htmlFor:`filter-${key}`},label),h('select',{id:`filter-${key}`,value:filters[key],disabled:!!command,onChange:(e)=>setFilters({...filters,[key]:e.target.value})},h('option',{value:''},'All'),values.map((value)=>h('option',{key:value,value},value.replaceAll('_',' ')))))),
@@ -142,5 +151,7 @@
                 h('div',{className:'pv-field'},h('label',{htmlFor:'review-note'},'Message to the customer'),h('textarea',{id:'review-note',value:form.buyerNote,required:['reject','request_correction'].includes(form.action),maxLength:500,onChange:(e)=>update('buyerNote',e.target.value)})),
                 h('button',{className:'pv-primary',disabled:busy},'Review decision')):h('p',{className:'pv-notice'},p.receiptId?`Acknowledgement ${p.receiptId}. This case is closed; corrections require a separate audited workflow.`:'This rejected case is closed.'))))));
   }
-  ReactDOM.createRoot(document.getElementById('review-root')).render(h(App));
+  window.PaymentReview=App;
+  const root=document.getElementById('review-root');
+  if(root) ReactDOM.createRoot(root).render(h(App));
 })();

@@ -16,4 +16,4 @@
 .pr-history { padding-left:20px; }
 .pr-history li { margin:10px 0; overflow-wrap:anywhere; }
 @media(min-width:1000px) { .pr-grid { grid-template-columns:minmax(280px,0.7fr) minmax(0,1.3fr); align-items:start; } }
-@media print { .pv-header,.pr-queue,.pr-filters,button { display:none!important; } }
+@media print { .pv-header,.pr-queue,.pr-filters,.pr-wrap button { display:none!important; } }

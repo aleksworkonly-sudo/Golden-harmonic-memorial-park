@@ -5428,6 +5428,17 @@ function AgentsTab({
   }, "✕"))))))));
 }
 
+function OnlinePayments({currentUser}) {
+  const [showEarlier,setShowEarlier]=useState(false);
+  return React.createElement(React.Fragment,null,
+    window.PaymentReview ? React.createElement(window.PaymentReview,{embedded:true,key:currentUser.uid}) :
+      React.createElement('p',{role:'alert'},'Payment review could not load. Reload the Admin Panel to try again.'),
+    React.createElement('details',{className:'earlier-payment-references',onToggle:event=>setShowEarlier(event.currentTarget.open)},
+      React.createElement('summary',null,'Earlier customer payment references'),
+      React.createElement('p',null,'References submitted through the earlier customer portal. New reservation receipts appear in Online payments to check above.'),
+      showEarlier && React.createElement(PendingPayments,{currentUser})));
+}
+
 const TABS = [{
   id: 'pipeline',
   label: 'Pipeline',
@@ -5445,7 +5456,7 @@ const TABS = [{
   badge: 2
 }, {
   id: 'pending',
-  label: 'Pending Payments',
+  label: 'Online payments to check',
   ico: '⏳',
   badge: 4
 }, {
@@ -5514,8 +5525,11 @@ function Dashboard({
   }, [user.uid]);
   const myRole = myDoc ? myDoc.unlinked ? 'unlinked' : myDoc.role || 'staff' : null;
   const isSuperAdmin = myRole === 'superadmin';
-  const isAdminOrHigher = myRole === 'admin' || myRole === 'superadmin';
-  const visibleTabs = TABS.filter(t => (t.id !== 'users' || isAdminOrHigher) && (t.id !== 'products' || isAdminOrHigher));
+  const isAdminOrHigher = myDoc?.disabled !== true && (myRole === 'admin' || myRole === 'superadmin');
+  const visibleTabs = TABS.filter(t => (!['users','products','pending'].includes(t.id) || isAdminOrHigher));
+  useEffect(() => {
+    if (myRole !== null && !isAdminOrHigher && ['users','products','pending'].includes(tab)) selectTab('pipeline');
+  }, [myRole,isAdminOrHigher,tab]);
   useEffect(() => {
     const unsubs = ['inquiries', 'customers', 'products', 'users', 'trash'].map(col => window.db.collection(col).onSnapshot(s => setCounts(c => ({
       ...c,
@@ -5583,13 +5597,15 @@ function Dashboard({
     className: "sidebar-section"
   }, "Management"), /*#__PURE__*/React.createElement("nav", {
     className: "sidebar-nav"
-  }, isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-review.html"},"Manual payment review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html"},"Cash receipts"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html"},"Provider reconciliation"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html"},"Reservation review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html"},"Payment communications and reports"), visibleTabs.map(t => /*#__PURE__*/React.createElement("div", {
+  }, isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html"},"Cash receipts"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html"},"Provider reconciliation"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html"},"Reservation review"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html"},"Payment communications and reports"), visibleTabs.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.id,
+    type: 'button',
+    'aria-current': tab === t.id ? 'page' : undefined,
     className: `nav-item ${tab === t.id ? 'active' : ''}`,
     onClick: () => selectTab(t.id)
   }, /*#__PURE__*/React.createElement("span", {
     className: "ico"
-  }, t.ico), /*#__PURE__*/React.createElement("span", null, t.label), counts[t.id] > 0 && /*#__PURE__*/React.createElement("span", {
+  }, t.ico), /*#__PURE__*/React.createElement("span", null, t.label), t.id !== 'pending' && counts[t.id] > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       marginLeft: 'auto',
       background: 'rgba(255,255,255,.2)',
@@ -5630,7 +5646,7 @@ function Dashboard({
     className: "user-badge"
   }, "Signed in as ", /*#__PURE__*/React.createElement("strong", null, user.email), myRole && myRole !== 'unlinked' ? ` · ${myRole}` : ''))), /*#__PURE__*/React.createElement("div", {
     className: "content"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, tab !== 'pending' && /*#__PURE__*/React.createElement("div", {
     className: "stats-row"
   }, visibleTabs.filter(t => t.id !== 'pipeline' && t.id !== 'trash' && t.id !== 'security').map(t => /*#__PURE__*/React.createElement("div", {
     key: t.id,
@@ -5647,7 +5663,7 @@ function Dashboard({
     }
   }, t.ico), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "stat-num"
-  }, counts[t.id]), /*#__PURE__*/React.createElement("div", {
+  }, t.id === 'pending' ? 'Review' : counts[t.id]), /*#__PURE__*/React.createElement("div", {
     className: "stat-lbl"
   }, t.label))))), tab === 'pipeline' && /*#__PURE__*/React.createElement(Pipeline, {
     currentUser: user
@@ -5655,7 +5671,7 @@ function Dashboard({
     currentUser: user
   }), tab === 'customers' && /*#__PURE__*/React.createElement(Customers, {
     currentUser: user
-  }), tab === 'pending' && /*#__PURE__*/React.createElement(PendingPayments, {
+  }), tab === 'pending' && isAdminOrHigher && /*#__PURE__*/React.createElement(OnlinePayments, {
     currentUser: user
   }), tab === 'presale' && /*#__PURE__*/React.createElement(PresaleApplications, {
     currentUser: user,
