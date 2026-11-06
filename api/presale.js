@@ -48,8 +48,8 @@ const MAX_PLOTS = 100;     // safety ceiling only (one Firestore transaction mus
 
 // Fallbacks only. The live prices come from the Firestore 'products' docs.
 const DEFAULT_PRICES = { regular: 30000, premium: 42500, 'corner-premium': 47500 };
-// Presale discount on every Regular plot (more off for spot cash).
-const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
+// Presale discount on every Regular, Premium and Corner Premium plot (more off for spot cash).
+const DISCOUNT = { regular: { cash: 8000, installment: 5000 }, premium: { cash: 8000, installment: 5000 }, 'corner-premium': { cash: 8000, installment: 5000 } };
 const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
 const SURCHARGE = { 1: 0.10, 2: 0.15, 3: 0.20, 5: 0.30 };
 const METHODS = ['cash', 'gcash', 'maya', 'bank', 'cheque', 'paymongo'];
