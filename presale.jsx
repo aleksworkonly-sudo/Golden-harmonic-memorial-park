@@ -54,10 +54,12 @@
   const ROWS = 50;
   const TOTAL = COLS * ROWS;
 
+  /* Same description on every plot type. Set here on purpose, so the presale page shows this exact wording whatever the admin panel has stored. */
+  const DESC_TWO_CRYPT = 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.';
   const TYPES = {
-    'regular': { name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', tint: '#9ae6b0', ink: '#14502c' },
-    'premium': { name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', tint: '#9cc9ff', ink: '#103c78' },
-    'corner-premium': { name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', tint: '#d6b8ff', ink: '#3d1a78' }
+    'regular': { name: 'Regular Plot', short: 'Regular', desc: DESC_TWO_CRYPT, fallback: 30000, photo: '/regular_plot.jpg', tint: '#9ae6b0', ink: '#14502c' },
+    'premium': { name: 'Premium Plot', short: 'Premium', desc: DESC_TWO_CRYPT, fallback: 42500, photo: '/premium_plot.jpg', tint: '#9cc9ff', ink: '#103c78' },
+    'corner-premium': { name: 'Corner Premium Plot', short: 'Corner Premium', desc: DESC_TWO_CRYPT, fallback: 47500, photo: '/corner_premium_plot.jpg', tint: '#d6b8ff', ink: '#3d1a78' }
   };
   const TYPE_IDS = ['regular', 'premium', 'corner-premium'];
 
@@ -234,7 +236,7 @@
                 {TYPE_IDS.map((id) => (
                   <div key={id} style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, padding: 16, borderRadius: 14, border: isBlock ? '2px solid #0f2a21' : '2px solid #c9c2ae', background: isBlock ? '#fbf9f3' : '#fff' }}>
                     <img src={TYPES[id].photo} alt={'Photo of a ' + TYPES[id].short + ' plot'} style={{ width: '100%', aspectRatio: '2 / 1', objectFit: 'cover', borderRadius: 8 }} />
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].name}</div>
                     <div style={{ fontSize: 16, lineHeight: 1.4, color: '#2f3f38', minHeight: '2.8em' }}>{descOf(id)}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
@@ -426,11 +428,7 @@
       return t && t.price > 0 ? Math.round(t.price) : TYPES[id].fallback;
     };
 
-    const descOf = (id) => {
-      const t = (tiers || []).find((x) => x.id === id);
-      const raw = t && t.desc ? t.desc : '';
-      return raw.replace(/\s*Priced per crypt\/share\.?\s*$/i, '') || TYPES[id].short + ' plot';
-    };
+    const descOf = (id) => TYPES[id].desc;
 
     const [step, setStep] = useState(1); // 1 = site plan (block and type), 3 = details
     const [block, setBlock] = useState('');
