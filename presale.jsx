@@ -34,8 +34,8 @@
   };
   const TAGPOS = { A: 'left:77.3%;top:21.7%', B: 'left:78.5%;top:29.3%', C: 'left:80.5%;top:38.8%', D: 'left:81.4%;top:52.6%' };
   const ZOOM = { A: { cx: 77.3, cy: 21.7, s: 3.2 }, B: { cx: 78.5, cy: 29.3, s: 2.6 }, C: { cx: 80.5, cy: 38.8, s: 2.4 }, D: { cx: 81.4, cy: 52.6, s: 2.1 } };
-  /* Presale discount on every Regular plot: more off when paying spot cash. */
-  const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
+  /* Presale discount on every Regular, Premium and Corner Premium plot: more off when paying spot cash. */
+  const DISCOUNT = { regular: { cash: 8000, installment: 5000 }, premium: { cash: 8000, installment: 5000 }, 'corner-premium': { cash: 8000, installment: 5000 } };
   const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
   const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   function cssObj(str) {
