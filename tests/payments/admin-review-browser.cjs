@@ -13,7 +13,7 @@ window.auth={currentUser:user,onAuthStateChanged(cb){let live=true;queueMicrotas
   signInWithEmailAndPassword(){throw Error('Embedded review must reuse the existing sign-in')},signOut:async()=>{}};
 window.db={collection(name){const query={orderBy(){return query},where(){return query},
   onSnapshot(cb){const rows=name==='presaleApplications'?(window.__presales || []):[];queueMicrotask(()=>cb({docs:rows.map(r=>({id:r.ref,data:()=>r})),size:rows.length}));return()=>{}},
-  doc(){return {onSnapshot(cb){const notify=()=>cb({exists:true,data:()=>({role:window.__role})});window.__roleListeners.push(notify);queueMicrotask(notify);return()=>{window.__roleListeners=window.__roleListeners.filter(x=>x!==notify)}}}}};return query}};
+  doc(id){return {async get(options){if(options?.source!=='server')throw Error('Sheet must load fresh server data');const row=(window.__presales || []).find(r=>r.ref===id);return {id,exists:!!row,data:()=>row}},onSnapshot(cb){const notify=()=>cb({exists:true,data:()=>({role:window.__role})});window.__roleListeners.push(notify);queueMicrotask(notify);return()=>{window.__roleListeners=window.__roleListeners.filter(x=>x!==notify)}}}}};return query}};
 window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb())};
 `;
 
@@ -22,9 +22,12 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
   const source={...f.db.read('presaleApplications/PS-0001'),ref:'PS-0001',name:'Verified GCash Buyer',plan:'cash',
     method:'gcash',totalPrice:25000,createdAt:f.time,plotCode:'A-0001',typeId:'regular',blockId:'A',lotNo:1};
   f.db.put('presaleApplications/PS-0001',source);
+  f.db.put('paymentReceivingAccounts/demo-gcash',{...f.db.read('paymentReceivingAccounts/demo-bank'),channel:'gcash'});
+  const initialScope=f.db.read('paymentSubmissionScopes/'+f.guestKey);
+  f.db.put('paymentSubmissionScopes/'+f.guestKey,{...initialScope,offers:initialScope.offers.map(o=>({...o,receivingAccountId:'demo-gcash'}))});
   const paid=await f.core.submit(f.guest,await f.command({requestId:'presale-browser-001',reference:'GCASH-REPORT'}));
   await f.review.decide('admin',f.decision(paid,{verifiedReference:'GCASH-REPORT',receivedCentavos:300000,allocations:[{itemId:'item1',centavos:300000}]}));
-  const publicFiles=new Set(['admin-app.js','admin-payment-notifications.js','admin-payment-records.js','cash-receipts.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','favicon-32.png','admin-favicon-32.png']);
+  const publicFiles=new Set(['admin-app.js','admin-payment-notifications.js','admin-payment-records.js','cash-receipts.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','logo-192.png','favicon-32.png','admin-favicon-32.png']);
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://localhost'),file=url.pathname.slice(1);
     if(url.pathname==='/api/cash-receipt'){
@@ -149,7 +152,58 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
     await page.locator('.modal').getByText(/GCASH-REPORT/).waitFor();
     await page.screenshot({path:path.join(os.tmpdir(),'gh-admin-verified-balance.png'),fullPage:true});
     assert.deepEqual(await page.evaluate(async()=>{const rows=await window.AdminPaymentRecords.hydrate(window.__presales.map(r=>({...r,_id:r.ref})),'presale');const sheet=presaleSheetData(rows[0]);return sheet.payments.map(p=>({amount:p.amount,ref:p.ref}));}),[{amount:3000,ref:'GCASH-REPORT'}]);
+    await page.getByRole('button',{name:'📝 Customer sheet (edit, then Word)',exact:true}).click();
+    const sheet=page.locator('.modal').filter({has:page.getByRole('heading',{name:'Customer monitoring sheet',exact:true})});
+    await sheet.getByLabel('Payment 1 ref',{exact:true}).waitFor();
+    assert.equal(await sheet.getByLabel('Payment 1 ref',{exact:true}).inputValue(),'GCASH-REPORT');
+    assert.equal(await sheet.getByLabel('Payment 1 amount',{exact:true}).inputValue(),'3000');
+    assert.equal(await sheet.getByLabel('Payment 1 amount',{exact:true}).getAttribute('readonly'),'');
+    assert.match(await sheet.innerText(),/Verified paid ₱3,000.00 · Remaining balance ₱22,000.00/);
+    assert.equal(await sheet.getByRole('button',{name:/Save to record/}).count(),0);
+    await page.screenshot({path:path.join(os.tmpdir(),'gh-admin-monitoring-sheet.png'),fullPage:true});
+    // Exercise the form's download payload, including the payment channel and reference.
+    await page.evaluate(()=>{window.__downloadSheet=downloadCustomerSheet;downloadCustomerSheet=async data=>{window.__sheetDownload=data};});
+    await sheet.getByRole('button',{name:/Download Word sheet/}).click();
+    const downloadedSheet=await page.evaluate(()=>window.__sheetDownload);
+    assert.equal(downloadedSheet.amountValue,3000);
+    assert.equal(downloadedSheet.payments[0].ref,'GCASH-REPORT');
+    assert.equal(downloadedSheet.payments[0].amount,3000);
+    assert.match(downloadedSheet.payments[0].note,/GCash/);
+    await page.evaluate(()=>{downloadCustomerSheet=window.__downloadSheet});
+    const failSheet=async route=>{
+      if(route.request().method()==='POST' && route.request().postDataJSON()?.action==='record')
+        return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Synthetic sheet outage'})});
+      return route.continue();
+    };
+    await page.route('**/api/payment-review',failSheet);
+    await page.getByRole('button',{name:'📝 Customer sheet (edit, then Word)',exact:true}).click();
+    await sheet.getByRole('alert').filter({hasText:'The sheet could not load current payments'}).waitFor();
+    assert.equal(await sheet.getByRole('button',{name:/Download Word sheet/}).count(),0);
+    await page.unroute('**/api/payment-review',failSheet);
+    await sheet.getByRole('button',{name:'Retry sheet',exact:true}).click();
+    await sheet.getByLabel('Payment 1 ref',{exact:true}).waitFor();
+    assert.equal(await sheet.getByLabel('Payment 1 ref',{exact:true}).inputValue(),'GCASH-REPORT');
+    await sheet.getByRole('button',{name:'Cancel',exact:true}).click();
     await page.locator('.modal').getByRole('button',{name:'Close',exact:true}).click();
+    await page.getByRole('button',{name:'🖨 Print sheet',exact:true}).click();
+    await sheet.getByLabel('Payment 1 ref',{exact:true}).waitFor();
+    assert.equal(await sheet.getByLabel('Payment 1 ref',{exact:true}).inputValue(),'GCASH-REPORT');
+    await sheet.getByRole('button',{name:'Cancel',exact:true}).click();
+    // The sheet can be opened with an old snapshot that predates canonical binding.
+    await page.evaluate(()=>{
+      const old={...window.__presales[0],_id:window.__presales[0].ref,payments:[]};delete old.canonicalBookingId;
+      window.__sheetHost=document.body.appendChild(document.createElement('div'));
+      window.__sheetRoot=ReactDOM.createRoot(window.__sheetHost);
+      window.__sheetRoot.render(React.createElement(CustomerSheetEditor,{data:presaleSheetData(old),canSave:true,onClose:()=>{}}));
+    });
+    await sheet.getByLabel('Payment 1 ref',{exact:true}).waitFor();
+    assert.equal(await sheet.getByLabel('Payment 1 ref',{exact:true}).inputValue(),'GCASH-REPORT');
+    page.once('dialog',dialog=>dialog.accept());
+    await sheet.getByRole('button',{name:'Reload sheet',exact:true}).click();
+    await sheet.getByLabel('Payment 1 ref',{exact:true}).waitFor();
+    assert.equal(await sheet.getByLabel('Payment 1 ref',{exact:true}).inputValue(),'GCASH-REPORT');
+    assert.equal(await sheet.getByLabel('Payment 2 amount',{exact:true}).inputValue(),'');
+    await page.evaluate(()=>{window.__sheetRoot.unmount();window.__sheetHost.remove();});
     const exports=[];
     for(const label of ['Sales','Tax (VAT)','Allocation']){
       await page.getByRole('button',{name:label,exact:true}).click();
@@ -183,6 +237,6 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
     await page.getByRole('button',{name:'Use my current sign-in'}).click();
     await page.getByRole('heading',{name:'Oldest first'}).waitFor();
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({passed:true,checks:'regular admin embedded sign-in, single navigation entry, private proof, correction, role revocation, earlier references, verified reservation balance and sales/VAT/allocation CSV exports, standalone review, 320/390/768/1440 widths',desktop,mobile}));
+    console.log(JSON.stringify({passed:true,checks:'regular admin embedded sign-in, single navigation entry, private proof, correction, role revocation, earlier references, verified reservation balance and sales/VAT/allocation CSV exports, monitoring sheet from both entry points and stale snapshots, protected payment rows and download data, sheet outage/retry/reload, standalone review, 320/390/768/1440 widths',desktop,mobile}));
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

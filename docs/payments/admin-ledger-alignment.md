@@ -20,6 +20,26 @@ paginated export; partial results are never presented as complete. Historical op
 credit is not reported as a new payment. Actual unapplied money remains separate from
 principal credit in the ledger response.
 
+## Monitoring sheet refresh
+
+Both the reservation's Customer sheet button and the list's Print sheet button open
+the same editor, outside the legacy-payment controls. Opening the editor reads the
+reservation from Firestore's server and resolves its verified ledger again. This also
+handles a list snapshot that predates canonical binding. A failed read shows Retry
+sheet and prevents a blank or stale download.
+
+Canonical sheets display verified paid and remaining balance, and include payment
+date, reference, credited amount and channel in the form and Word download data.
+Payment cells are read-only; the obsolete legacy Save to record action is hidden
+for these reservations. Approvals are already recorded and must not be copied into
+legacy payment arrays. Reload sheet re-fetches the data, with confirmation before
+discarding any unsaved sheet-only edits. The 60-row paper form refuses larger
+ledgers instead of silently truncating them.
+
+The synthetic browser regression covers both entry points, stale snapshots,
+download payloads, protected payment cells, read failures, retry and reload. It
+does not inspect or modify production reservation PS-0033.
+
 ## New reservation policy
 
 New reservations quote a ₱3,000 deposit per plot. It is part of the contract total.

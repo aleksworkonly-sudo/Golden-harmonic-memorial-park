@@ -2481,7 +2481,7 @@ function presaleSheetData(a) {
     ref: p.ref,
     amount: p.amount,
     method: p.method || a.method,
-    note: p.remarks || PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || ''
+    note: [PRESALE_METHOD_LABEL[p.method || a.method] || p.method || a.method || '', p.remarks].filter(Boolean).join(' · ')
   }));
   const first = [...pays].sort((x, y) => Number(x.date) - Number(y.date))[0];
   return {
@@ -2503,10 +2503,39 @@ function presaleSheetData(a) {
   };
 }
 // Edit screen: staff can correct anything on the sheet before the Word file is made.
-function CustomerSheetEditor({ data, onClose, onToast, canSave, actor }) {
+function CustomerSheetEditor(props) {
+  const {data,onClose}=props;
+  const [state,setState]=React.useState({data:null,error:''});
+  const [revision,setRevision]=React.useState(0);
+  React.useEffect(()=>{
+    let active=true;
+    setState({data:null,error:''});
+    const load=async()=>{
+      if(!data._app?._id)return data;
+      // A list snapshot can predate the booking or its latest receipt.
+      const snap=await window.db.collection('presaleApplications').doc(data._app._id).get({source:'server'});
+      if(!snap.exists)throw Error('This reservation no longer exists.');
+      const [current]=await window.AdminPaymentRecords.hydrate([{...snap.data(),_id:snap.id}],'presale');
+      if((current.payments || []).length>60)throw Error('This reservation has more than 60 payment entries. Use the full payment export instead of this limited paper form.');
+      return {...data,...presaleSheetData(current)};
+    };
+    load().then(fresh=>{if(active)setState({data:fresh,error:''});})
+      .catch(error=>{if(active)setState({data:null,error:error.message});});
+    return()=>{active=false;};
+  },[data,revision]);
+  if(!state.data)return React.createElement('div',{className:'modal-bg',style:{zIndex:200}},
+    React.createElement('div',{className:'modal'},
+      React.createElement('h3',null,'Customer monitoring sheet'),
+      React.createElement('p',{role:state.error?'alert':'status'},state.error ? 'The sheet could not load current payments. '+state.error : 'Loading the latest reservation and verified payments…'),
+      React.createElement('button',{className:'btn btn-outline',onClick:onClose},'Cancel'),
+      state.error && React.createElement('button',{className:'btn btn-primary',onClick:()=>setRevision(n=>n+1)},'Retry sheet')));
+  return React.createElement(CustomerSheetForm,{...props,data:state.data,onReload:()=>setRevision(n=>n+1)});
+}
+function CustomerSheetForm({ data, onClose, onToast, canSave, actor, onReload }) {
   const ce = React.createElement;
-  const app = canSave && data._app && data._app._id ? data._app : null; // admins can save the changes back to the reservation
-  const locked = app ? ['blockId', 'lotNo', 'typeName', 'contractPrice', 'yearText', 'date', 'amount'].concat(app.agentId ? ['agentName', 'agentCommission', 'commissionDate'] : []) : [];
+  const verified = !!data._app?.canonicalBookingId;
+  const app = canSave && !verified && data._app && data._app._id ? data._app : null;
+  const locked = app || verified ? ['blockId', 'lotNo', 'typeName', 'contractPrice', 'yearText', 'date', 'amount'].concat(data._app.agentId ? ['agentName', 'agentCommission', 'commissionDate'] : []) : [];
   const toMs = v => v && v.toDate ? v.toDate().getTime() : typeof v === 'number' ? v : (typeof v === 'string' && /^\d+$/.test(v)) ? Number(v) : v ? new Date(v).getTime() : null;
   const ymd = v => {
     const ms = toMs(v);
@@ -2648,13 +2677,14 @@ function CustomerSheetEditor({ data, onClose, onToast, canSave, actor }) {
     ce('thead', null, ce('tr', null, ['DATE', 'RECEIPT NO.', 'AMOUNT', 'REMARKS'].map(h => ce('th', { key: h, style: { background: '#c6e0b4', border: '1px solid #222', padding: '3px 4px', fontSize: 10 } }, h)))),
     ce('tbody', null, rows.slice(g * 20, g * 20 + 20).map((r, n) => {
       const i = g * 20 + n;
-      const c = (k, type, w) => ce('td', { style: { border: '1px solid #222', padding: 0, width: w } }, ce('input', { type: type || 'text', value: r[k], onChange: e => setRow(i, k, e.target.value), style: { ...cellIn, fontSize: 11, fontWeight: 400, padding: '2px 3px', color: k === 'date' && !r.date ? 'transparent' : 'inherit' } }));
+      const c = (k, type, w) => ce('td', { style: { border: '1px solid #222', padding: 0, width: w, background:verified?'#eee':undefined } }, ce('input', { type: type || 'text', value: r[k], readOnly:verified, 'aria-label':`Payment ${i+1} ${k}`, onChange: e => setRow(i, k, e.target.value), style: { ...cellIn, fontSize: 11, fontWeight: 400, padding: '2px 3px', color: k === 'date' && !r.date ? 'transparent' : 'inherit' } }));
       return ce('tr', { key: i }, c('date', 'date', '26%'), c('ref', 'text', '24%'), c('amount', 'number', '22%'), c('note', 'text', '28%'));
     })));
   return ce('div', { className: 'modal-bg', style: { zIndex: 200 } },
     ce('div', { className: 'modal wide', style: { width: 'min(1180px, 96vw)' } },
       ce('h3', { style: { marginTop: 0 } }, 'Customer monitoring sheet'),
-      ce('div', { style: { fontSize: 13, color: '#555', marginBottom: 8 } }, app ? 'Admin: click any white box to change it. "Save to record" keeps the changes in the system. "Download" only makes the Word file. Grey boxes are locked (they come from the reservation).' : 'Check the sheet below. Click any box to change it, then press Download.'),
+      ce('div', { style: { fontSize: 13, color: '#555', marginBottom: 8 } }, verified ? 'Payments are loaded from the verified record and cannot be edited here. Download includes these payments automatically; no separate save is needed. Changes to white boxes affect this download only.' : app ? 'Admin: click any white box to change it. "Save to record" keeps the changes in the system. "Download" only makes the Word file. Grey boxes are locked (they come from the reservation).' : 'Check the sheet below. Click any box to change it, then press Download.'),
+      verified && ce('p',{role:'status'},`${data._app.ref || data._app._id} · Verified paid ${fmt2(data._app.verifiedLedger.paid)} · Remaining balance ${fmt2(data._app.verifiedLedger.balance)}`),
       ce('div', { className: 'modal-scroll' },
         ce('div', { style: { background: '#fff', border: '1px solid #cfc8b6', borderRadius: 6, padding: 14, boxShadow: '0 1px 6px rgba(0,0,0,.08)' } },
           ce('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10 } },
@@ -2668,6 +2698,7 @@ function CustomerSheetEditor({ data, onClose, onToast, canSave, actor }) {
         ce('div', { style: { fontSize: 11, color: '#777', marginTop: 10 } }, app ? 'To change the plot, price or years, cancel this reservation and reserve again. Agent and commission are changed in the reservation window.' : 'Changes here only affect this sheet. They are not saved to the customer record.')),
       ce('div', { className: 'modal-actions' },
         ce('button', { type: 'button', className: 'btn btn-outline', onClick: onClose }, 'Cancel'),
+        verified && ce('button', { type: 'button', className: 'btn btn-outline', disabled:busy, onClick:()=>{if(window.confirm('Reload current payments? Unsaved changes to this sheet will be discarded.'))onReload();} }, 'Reload sheet'),
         ce('button', { type: 'button', className: app ? 'btn btn-outline' : 'btn btn-primary', disabled: busy, onClick: make }, busy ? 'Working…' : '⬇ Download Word sheet'),
         app && ce('button', { type: 'button', className: 'btn btn-primary', disabled: busy, onClick: save }, '💾 Save to record'))));
 }
@@ -4707,7 +4738,7 @@ function PresaleApplications({
     className: "btn btn-outline btn-sm",
     title: "Open the envelope sheet: check, edit, then download",
     onClick: ev => { ev.stopPropagation(); setSheetData(presaleSheetData(r)); }
-  }, "🖨 Print sheet"))))))), !sel && sheetData && plotEl(CustomerSheetEditor, {
+  }, "🖨 Print sheet"))))))), sheetData && plotEl(CustomerSheetEditor, {
     data: sheetData,
     onClose: () => setSheetData(null),
     onToast: setToast,
@@ -4961,13 +4992,7 @@ function PresaleApplications({
     type: "checkbox",
     checked: emailAR,
     onChange: e => toggleEmailAR(e.target.checked)
-  }), "Email the buyer an acknowledgement receipt after each payment"), sheetData && plotEl(CustomerSheetEditor, {
-    data: sheetData,
-    onClose: () => setSheetData(null),
-    onToast: setToast,
-    canSave: !!canEditRules,
-    actor
-  }), lastPay && lastPay.ref === sel.ref && plotEl("div", {
+  }), "Email the buyer an acknowledgement receipt after each payment"), lastPay && lastPay.ref === sel.ref && plotEl("div", {
     style: {
       marginTop: 12,
       padding: 12,
