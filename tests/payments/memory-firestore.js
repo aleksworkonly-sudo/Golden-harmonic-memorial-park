@@ -20,6 +20,7 @@ class Query {
   }
   startAfter(...cursor) { return new Query(this.db, this.collection, { ...this.options, cursor }); }
   limit(count) { return new Query(this.db, this.collection, { ...this.options, limit: count }); }
+  count() { return {aggregateQuery:this}; }
   doc(id = `auto-${++this.db.nextId}`) { return { id, path: `${this.collection}/${id}` }; }
 }
 
@@ -50,6 +51,7 @@ class MemoryFirestore {
       const tx = {
         get: async (reference) => {
           if (writes.length) throw new Error('Read after write in transaction');
+          if(reference.aggregateQuery){const result=await tx.get(reference.aggregateQuery);return {data:()=>({count:result.docs.length})};}
           if (!(reference instanceof Query)) return read(reference.path);
           const { filters = [], order = [], cursor, limit = Infinity } = reference.options;
           const compare = (a, b) => {

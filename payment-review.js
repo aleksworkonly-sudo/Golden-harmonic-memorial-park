@@ -30,15 +30,15 @@
       if(!response.ok) throw Object.assign(Error(data.error || 'Review unavailable.'),{uncertain:action==='decide' && response.status>=500});
       return data;
     }
-    async function run(work,apply) {
-      const ticket=++generation.current;setBusy(true);setError('');setMessage('');
+    async function run(work,apply,{quiet=false}={}) {
+      const ticket=++generation.current;setBusy(true);setError('');if(!quiet)setMessage('');
       try {const result=await work();if(ticket===generation.current) apply(result);}
       catch(ex){if(ticket===generation.current)setError(ex.message);}
       finally{if(ticket===generation.current)setBusy(false);}
     }
-    const loadQueue=(append=false,filter=applied)=>run(()=>api('queue',{filters:filter,cursor:append?cursor:null}),(result)=>{
+    const loadQueue=(append=false,filter=applied,quiet=false)=>run(()=>api('queue',{filters:filter,cursor:append?cursor:null}),(result)=>{
       setRows((old)=>append?[...old,...result.cases]:result.cases);setCursor(result.nextCursor);setApplied(filter);setSigned(true);
-    });
+    },{quiet});
     const select=(id)=>run(()=>api('detail',{paymentId:id}),(data)=>{setDetail(data);setProof(null);setRevision(data.payment.revisionId);setForm(fresh());setCommand(null);setUncertain(false);});
     useEffect(()=>{
       let live=true;fetch('/api/payment-review',{cache:'no-store'}).then((r)=>r.json()).then((r)=>{if(live)setEnabled(r.enabled===true);}).catch(()=>{if(live){setEnabled(false);setError('Could not check review availability. Reload this page.');}});
@@ -53,6 +53,13 @@
       }
     },[embedded,enabled]);
     useEffect(()=>{if(error)alert.current?.focus();},[error]);
+    useEffect(()=>{
+      if(!embedded || !signed || busy || detail || command || cursor)return;
+      // Poll notifications may refresh an idle queue, never an open decision or paged list.
+      const refresh=()=>loadQueue(false,applied,true);
+      window.addEventListener('payment-queue-count',refresh);
+      return()=>window.removeEventListener('payment-queue-count',refresh);
+    },[embedded,signed,busy,detail,command,cursor,applied]);
     useEffect(()=>{if(detail)heading.current?.focus();},[detail,command]);
     useEffect(()=>{if(!signed)return;const timer=setTimeout(()=>{clear();setMessage('Private review closed after 15 minutes. Sign in or open the queue again.');},900000);return()=>clearTimeout(timer);},[signed,detail]);
     const login=(event)=>{event.preventDefault();run(async()=>{
@@ -101,7 +108,7 @@
         h('button',{className:'pv-primary',disabled:busy},'Sign in to review')),
         h('button',{className:'pv-secondary pv-block',disabled:busy,onClick:()=>{uid.current=window.auth?.currentUser?.uid;loadQueue(false,filters);}},'Use my current sign-in')):
       h(React.Fragment,null,h('div',{className:'pv-actions'},!embedded&&h('button',{className:'pv-secondary',onClick:()=>{clear();window.auth?.signOut();}},'Sign out'),
-        h('button',{className:'pv-secondary',disabled:busy || !!command,onClick:()=>loadQueue()},'Refresh queue')),
+        h('button',{className:'pv-secondary',disabled:busy || !!command,onClick:()=>{loadQueue();window.dispatchEvent(new Event('payment-count-refresh'));}},'Refresh queue')),
         h('section',{className:'pv-card'},h('h2',null,'Find a submission'),h('form',{className:'pr-filters',onSubmit:(e)=>{e.preventDefault();loadQueue(false,filters);}},
           ...[['status','Status',['pending_verification','resubmit_requested','needs_reconciliation','verified','rejected']],['channel','Channel',['bank','gcash','maya']]].map(([key,label,values])=>h('div',{key,className:'pv-field'},h('label',{htmlFor:`filter-${key}`},label),h('select',{id:`filter-${key}`,value:filters[key],disabled:!!command,onChange:(e)=>setFilters({...filters,[key]:e.target.value})},h('option',{value:''},'All'),values.map((value)=>h('option',{key:value,value},value.replaceAll('_',' ')))))),
           ...[['sourceId','Account / reservation ID','text'],['from','Submitted from','date'],['to','Submitted through','date'],['ageDays','At least this many days old','number']].map(([key,label,type])=>h('div',{key,className:'pv-field'},h('label',{htmlFor:`filter-${key}`},label),h('input',{id:`filter-${key}`,type,value:filters[key],min:0,disabled:!!command,onChange:(e)=>setFilters({...filters,[key]:key==='ageDays'?Number(e.target.value):e.target.value})}))),

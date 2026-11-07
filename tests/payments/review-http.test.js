@@ -15,6 +15,20 @@ test('review gate stays off without opt-in; no service initialization',async()=>
   const handler=createReviewHandler({env:{...env,PAYMENT_REVIEW_ENABLED:'false'},services:()=>{throw Error('must not initialize');}});
   assert.deepEqual((await call(handler,null,{method:'GET'})).body,{enabled:false});assert.equal((await call(handler,{action:'queue'})).code,503);
 });
+
+test('payment count is authenticated and reports read failures without claiming zero pending submissions',async()=>{
+  const f=reviewFixture();await f.submit();
+  const handler=createReviewHandler({env,services:()=>f});
+  const result=await call(handler,{action:'count'});
+  assert.equal(result.code,200);assert.deepEqual(result.body,{pending:1});
+  assert.equal(result.headers['Cache-Control'],'no-store');
+  assert.equal((await call(handler,{action:'count'},{headers:{authorization:'Bearer staff'}})).code,403);
+  assert.equal((await call(handler,{action:'count',role:'admin'})).code,400);
+  const broken=createReviewHandler({env,services:()=>{throw Error('private database details');},logger:{error(){}}});
+  const failure=await call(broken,{action:'count'});
+  assert.equal(failure.code,503);assert.equal(failure.body.code,'REVIEW_READ_UNAVAILABLE');
+  assert.equal(Object.hasOwn(failure.body,'pending'),false);
+});
 test('admin HTTP authorization, origin/body limits and field allowlists apply to every operation',async()=>{
   const f=reviewFixture();const handler=createReviewHandler({env,services:()=>f});const body={action:'queue',filters:{}};
   for(const [options,status] of [[{headers:{authorization:''}},401],[{headers:{authorization:'Bearer staff'}},403],

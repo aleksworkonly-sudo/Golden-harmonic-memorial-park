@@ -24,7 +24,7 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
   f.db.put('presaleApplications/PS-0001',source);
   const paid=await f.core.submit(f.guest,await f.command({requestId:'presale-browser-001',reference:'GCASH-REPORT'}));
   await f.review.decide('admin',f.decision(paid,{verifiedReference:'GCASH-REPORT',receivedCentavos:300000,allocations:[{itemId:'item1',centavos:300000}]}));
-  const publicFiles=new Set(['admin-app.js','admin-payment-records.js','cash-receipts.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','favicon-32.png','admin-favicon-32.png']);
+  const publicFiles=new Set(['admin-app.js','admin-payment-notifications.js','admin-payment-records.js','cash-receipts.js','payment-review.js','payment-review.css','payment-review-admin.css','payment-view.css','payment-legacy-guard.js','logo-header.png','favicon-32.png','admin-favicon-32.png']);
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://localhost'),file=url.pathname.slice(1);
     if(url.pathname==='/api/cash-receipt'){
@@ -42,6 +42,7 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
         assert.equal(req.headers.authorization,'Bearer admin');
         const parts=[];for await(const part of req)parts.push(part);const b=JSON.parse(Buffer.concat(parts));let result;
         if(b.action==='queue')result=await f.review.queue('admin',b.filters,b.cursor);
+        else if(b.action==='count')result=await f.review.pendingCount('admin');
         else if(b.action==='detail')result=await f.review.detail('admin',b.paymentId);
         else if(b.action==='proof')result=await f.review.proof('admin',b.paymentId,b.revisionId);
         else if(b.action==='decide')result=await f.review.decide('admin',b.command);
@@ -85,6 +86,18 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
     const nav=page.locator('.sidebar-nav').getByRole('button',{name:'Online payments to check'});
     await nav.click();
     await page.getByRole('heading',{name:'Oldest first'}).waitFor();
+    const count=page.locator('.sidebar-nav .payment-count-badge');
+    await count.filter({hasText:/^1$/}).waitFor();
+    // A new Presale proof arrives while the administrator already has the page open.
+    f.db.put('paymentReceivingAccounts/demo-gcash',{...f.db.read('paymentReceivingAccounts/demo-bank'),channel:'gcash'});
+    const scope=f.db.read('paymentSubmissionScopes/'+f.guestKey);
+    f.db.put('paymentSubmissionScopes/'+f.guestKey,{...scope,offers:scope.offers.map(o=>({...o,receivingAccountId:'demo-gcash'}))});
+    const incoming=await f.core.submit(f.guest,await f.command({requestId:'incoming-presale-002',reference:'GCASH-NEW'}));
+    f.db.put('payments/'+incoming.paymentId,{...f.db.read('payments/'+incoming.paymentId),submittedAt:f.time+1});
+    await page.evaluate(()=>window.dispatchEvent(new Event('payment-count-refresh')));
+    await count.filter({hasText:/^2$/}).waitFor();
+    await page.locator('.pr-queue button').filter({hasText:'Verified GCash Buyer'}).waitFor();
+    assert.match(await page.locator('.pr-queue').innerText(),/gcash/);
     assert.equal(page.url(),base+'/admin.html');
     assert.equal(await nav.count(),1);
     assert.equal(await page.locator('a[href="/payment-review.html"]').count(),0);
@@ -104,14 +117,31 @@ window.__setRole=role=>{window.__role=role;window.__roleListeners.forEach(cb=>cb
     await page.evaluate(()=>window.scrollTo(0,0));
     const mobile=path.join(os.tmpdir(),'gh-admin-online-review-mobile.png');await page.screenshot({path:mobile,fullPage:true});
     await page.getByLabel('Internal review reason').fill('Synthetic correction check');
+    const countResponse=page.waitForResponse(r=>r.url().endsWith('/api/payment-review') && r.request().method()==='POST' && r.request().postDataJSON()?.action==='count');
+    await page.evaluate(()=>window.dispatchEvent(new Event('payment-count-refresh')));
+    await countResponse;
+    assert.equal(await page.getByLabel('Internal review reason').inputValue(),'Synthetic correction check');
     await page.getByLabel('Message to the customer').fill('Please upload a clearer image.');
     await page.getByRole('button',{name:'Review decision'}).click();
     await page.getByRole('button',{name:'Confirm decision'}).click();
     await page.getByRole('status').filter({hasText:'Saved: resubmit requested'}).waitFor();
+    await count.filter({hasText:/^1$/}).waitFor();
     assert.equal((await f.core.list(f.account)).cases[0].status,'resubmit_requested');
     assert.equal(f.db.count('receipts'),1);
+    const failCount=async route=>{
+      if(route.request().method()==='POST' && route.request().postDataJSON()?.action==='count')
+        return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Count temporarily unavailable'})});
+      return route.continue();
+    };
+    await page.route('**/api/payment-review',failCount);
+    await page.evaluate(()=>window.dispatchEvent(new Event('payment-count-refresh')));
+    await count.filter({hasText:'!'}).waitFor();
+    assert.equal(await count.getAttribute('aria-label'),'Payment count unavailable');
+    await page.unroute('**/api/payment-review',failCount);
+    await page.evaluate(()=>window.dispatchEvent(new Event('payment-count-refresh')));
+    await count.filter({hasText:/^1$/}).waitFor();
     await page.getByText('Earlier customer payment references',{exact:true}).click();
-    await page.getByText(/No pending payment submissions right now/).waitFor();
+    await page.getByText(/No earlier customer-portal references are pending/).waitFor();
     await page.setViewportSize({width:1440,height:1000});
     await page.locator('.sidebar-nav').getByRole('button',{name:/Presale Reservations/}).click();
     await page.getByText('Verified GCash Buyer',{exact:true}).click();

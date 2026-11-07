@@ -6,6 +6,32 @@ const {createAccessService}=require('../../lib/payments/access');
 const {createReviewService}=require('../../lib/payments/review');
 const {createPaymentService}=require('../../lib/payments/service');
 
+test('sidebar count includes all pending presale and customer proofs, beyond one page, and excludes resolved cases',async()=>{
+  const f=reviewFixture(),saved=await f.submit(),base=f.db.read(`payments/${saved.paymentId}`);
+  for(let i=0;i<25;i++)f.db.put(`payments/pending-${i}`,{...base,paymentId:`pending-${i}`,sourceKind:'presale',sourceId:'PS-0001'});
+  for(const status of ['verified','rejected','resubmit_requested','needs_reconciliation'])
+    f.db.put(`payments/${status}`,{...base,paymentId:status,status});
+  f.db.put('payments/cash',{...base,paymentId:'cash',schemaVersion:5});
+  f.db.put('payments/old',{...base,paymentId:'old',schemaVersion:1});
+  assert.deepEqual(await f.review.pendingCount('admin'),{pending:26});
+  assert.equal((await f.review.queue('admin',{status:'pending_verification'})).cases.length,20);
+  await f.review.decide('admin',f.decision(saved));
+  assert.deepEqual(await f.review.pendingCount('admin'),{pending:25});
+  for(const uid of ['staff','buyer','unknown'])await assert.rejects(f.review.pendingCount(uid),{code:'FORBIDDEN'});
+  f.db.put('users/admin',{role:'admin',disabled:true});
+  await assert.rejects(f.review.pendingCount('admin'),{code:'FORBIDDEN'});
+});
+
+test('a corrected proof returns to the notification count once, without counting its revisions separately',async()=>{
+  const f=reviewFixture(),saved=await f.submit();
+  assert.equal((await f.review.pendingCount('admin')).pending,1);
+  const correction=await f.review.decide('admin',f.note(saved));
+  assert.equal((await f.review.pendingCount('admin')).pending,0);
+  const command=await f.command({requestId:'count-corrected-001',paymentId:saved.paymentId,expectedVersion:correction.version});
+  await f.core.submit(f.account,command);await f.core.submit(f.account,command);
+  assert.equal((await f.review.pendingCount('admin')).pending,1);
+});
+
 test('only current admins may list, inspect, fetch proof or decide; roles from tokens are ignored',async()=>{
   const f=reviewFixture(),saved=await f.submit();
   for(const uid of ['buyer','staff','unknown','revoked']) {

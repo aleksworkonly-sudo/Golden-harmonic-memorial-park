@@ -3557,7 +3557,7 @@ function PendingPayments({
     onDone: () => setToast('')
   }), /*#__PURE__*/React.createElement("div", {
     className: "section-hd"
-  }, /*#__PURE__*/React.createElement("h2", null, "Online Payments to Check ", /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("h2", null, "Earlier customer-portal references ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: 'var(--ink-3)',
       fontWeight: 400,
@@ -3567,7 +3567,7 @@ function PendingPayments({
     className: "table-card"
   }, pending.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "empty"
-  }, "No pending payment submissions right now. New GCash references from the customer portal will show up here.") : /*#__PURE__*/React.createElement("table", {
+  }, "No earlier customer-portal references are pending. Presale payment proofs appear in the main review queue above.") : /*#__PURE__*/React.createElement("table", {
     className: "gh-table"
   }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Customer"), /*#__PURE__*/React.createElement("th", null, "Reference"), /*#__PURE__*/React.createElement("th", null, "Amount"), /*#__PURE__*/React.createElement("th", null, "Payment date"), /*#__PURE__*/React.createElement("th", null, "Submitted"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, pending.map(({
     customer,
@@ -5581,6 +5581,7 @@ function Dashboard({
   const myRole = myDoc ? myDoc.unlinked ? 'unlinked' : myDoc.role || 'staff' : null;
   const isSuperAdmin = myRole === 'superadmin';
   const isAdminOrHigher = myDoc?.disabled !== true && (myRole === 'admin' || myRole === 'superadmin');
+  const paymentNotifications=window.AdminPaymentNotifications.usePendingCount(user,isAdminOrHigher);
   const visibleTabs = TABS.filter(t => (!['users','products','pending'].includes(t.id) || isAdminOrHigher));
   useEffect(() => {
     if (myRole !== null && !isAdminOrHigher && ['users','products','pending'].includes(tab)) selectTab('pipeline');
@@ -5590,9 +5591,6 @@ function Dashboard({
       ...c,
       [col]: s.size
     }))));
-    // 'pending' isn't its own collection — it's a count of paymentSubmissions
-    // with status:'pending' nested inside every customer doc, so it needs
-    // its own listener that reduces across all customers.
     const presaleUnsub = window.db.collection('presaleApplications').onSnapshot(snap => setCounts(c => ({
       ...c,
       presale: snap.docs.filter(d => d.data().status === 'new').length
@@ -5605,26 +5603,13 @@ function Dashboard({
         return x.status !== 'paid' && Date.now() >= x.notifyDate;
       }).length
     })), () => {});
-    const pendingUnsub = window.db.collection('customers').onSnapshot(snap => {
-      let n = 0;
-      snap.docs.forEach(d => {
-        (d.data().paymentSubmissions || []).forEach(s => {
-          if ((s.status || 'pending') === 'pending') n++;
-        });
-      });
-      setCounts(c => ({
-        ...c,
-        pending: n
-      }));
-    });
     return () => {
       unsubs.forEach(u => u());
-      pendingUnsub();
       presaleUnsub();
       agentsUnsub();
     };
   }, []);
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, React.createElement('span',{className:'payment-count-live',role:'status','aria-live':'polite','aria-atomic':'true'},isAdminOrHigher?(paymentNotifications.error?'Payment notification count unavailable.':paymentNotifications.pending===null?'':paymentNotifications.pending+' online payments awaiting verification.'):''), /*#__PURE__*/React.createElement("div", {
     className: `sidebar-backdrop ${menuOpen ? 'open' : ''}`,
     onClick: () => setMenuOpen(false)
   }), /*#__PURE__*/React.createElement("div", {
@@ -5660,7 +5645,8 @@ function Dashboard({
     onClick: () => selectTab(t.id)
   }, /*#__PURE__*/React.createElement("span", {
     className: "ico"
-  }, t.ico), /*#__PURE__*/React.createElement("span", null, t.label), t.id !== 'pending' && counts[t.id] > 0 && /*#__PURE__*/React.createElement("span", {
+  }, t.ico), /*#__PURE__*/React.createElement("span", null, t.label), (t.id==='pending' || counts[t.id]>0) && /*#__PURE__*/React.createElement("span", {
+    ...(t.id==='pending'?{className:'payment-count-badge','aria-label':paymentNotifications.error?'Payment count unavailable':paymentNotifications.pending===null?'Loading payment count':paymentNotifications.pending+' payments awaiting verification',title:paymentNotifications.error || 'Payments awaiting verification'}:{}),
     style: {
       marginLeft: 'auto',
       background: 'rgba(255,255,255,.2)',
@@ -5669,7 +5655,7 @@ function Dashboard({
       padding: '2px 7px',
       borderRadius: 10
     }
-  }, counts[t.id]))), isAdminOrHigher && React.createElement("div", {className:"sidebar-section"}, "Payments (admins only)"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🧾"), React.createElement("span",null,"Cash receipts")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🔗"), React.createElement("span",null,"Unmatched online payments")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📌"), React.createElement("span",null,"Held reservations")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"✉️"), React.createElement("span",null,"Payment emails and reports"))), /*#__PURE__*/React.createElement("div", {
+  }, t.id==='pending'?paymentNotifications.error?'!':paymentNotifications.pending===null?'…':paymentNotifications.pending:counts[t.id]))), isAdminOrHigher && React.createElement("div", {className:"sidebar-section"}, "Payments (admins only)"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🧾"), React.createElement("span",null,"Cash receipts")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🔗"), React.createElement("span",null,"Unmatched online payments")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📌"), React.createElement("span",null,"Held reservations")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"✉️"), React.createElement("span",null,"Payment emails and reports"))), /*#__PURE__*/React.createElement("div", {
     className: "sidebar-footer"
   }, /*#__PURE__*/React.createElement("button", {
     className: "logout-btn",
@@ -5718,7 +5704,7 @@ function Dashboard({
     }
   }, t.ico), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "stat-num"
-  }, t.id === 'pending' ? 'Review' : counts[t.id]), /*#__PURE__*/React.createElement("div", {
+  }, t.id === 'pending' ? paymentNotifications.error?'Unavailable':paymentNotifications.pending===null?'…':paymentNotifications.pending : counts[t.id]), /*#__PURE__*/React.createElement("div", {
     className: "stat-lbl"
   }, t.label))))), TAB_HELP[tab] && /*#__PURE__*/React.createElement("div", {
     className: "tab-help"

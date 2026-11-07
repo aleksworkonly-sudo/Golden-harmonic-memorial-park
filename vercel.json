@@ -11,6 +11,10 @@
   ],
   "headers": [
     {
+      "source": "/admin(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" }]
+    },
+    {
       "source": "/payment-operations-admin.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" },
