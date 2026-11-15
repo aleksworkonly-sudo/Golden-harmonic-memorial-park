@@ -4094,7 +4094,7 @@ function PresaleApplications({
         balance: Math.max(0, (a.totalPrice || 0) - L.paid - amount),
         ...split
       });
-      setToast('Payment recorded');
+      setToast((a.payments && a.payments.length) ? 'Payment recorded' : 'Payment recorded. Now print the Payment terms for the buyer to sign (📄 button).');
       if (emailAR && a.email) sendAR(a.ref, payIndex);
       if (autoSheet) {
         // Opens the sheet for review, built from the sale as it is now, including the payment just recorded.
@@ -5059,6 +5059,12 @@ function PresaleApplications({
     disabled: busy,
     onClick: () => cancelApp(sel)
   }, sel.status === 'paid' ? "Cancel this paid reservation (admin only)" : "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => {
+      if (!(sel.payments && sel.payments.length)) { setToast('Record the first payment first.'); return; }
+      if (!window.printPaymentTerms(sel)) setToast('Please allow pop-ups to print.');
+    }
+  }, "📄 Payment terms (print)"), plotEl("button", {
     className: "btn btn-outline btn-sm",
     onClick: () => setSheetData(presaleSheetData(sel))
   }, "📝 Customer sheet (edit, then Word)"), plotEl("button", {
