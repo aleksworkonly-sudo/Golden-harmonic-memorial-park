@@ -5323,7 +5323,11 @@ function AgentsTab({
     style: {
       marginTop: 6
     }
-  }, c.agentName, " · ", fmt(c.commission), " · ", c.buyer || c.ref || 'sale', " · due ", fmtDate(c.dueDate), c.st === 'overdue' ? ' (now due)' : ` (in ${agentDaysLeft(c, now)} days)`))), plotEl("div", {
+  }, c.agentName, " · ", fmt(c.commission), " · ", c.buyer || c.ref || 'sale', " · due ", fmtDate(c.dueDate), c.st === 'overdue' ? ' (now due)' : ` (in ${agentDaysLeft(c, now)} days)`))), window.AgentReportPanel ? plotEl(window.AgentReportPanel, {
+    agents,
+    setToast,
+    currentUser
+  }) : null, plotEl("div", {
     className: "table-card",
     style: {
       padding: 16,

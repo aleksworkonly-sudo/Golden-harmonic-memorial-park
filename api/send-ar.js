@@ -34,6 +34,7 @@ module.exports = async function handler(req, res) {
   try {
     init();
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    if (body.kind === 'agentReport') return await require('../lib/agent-report-email').handle(req, res, body, admin);
     const idToken = String(body.idToken || '');
     const ref = String(body.ref || '').trim().toUpperCase();
     const index = parseInt(body.index, 10);
