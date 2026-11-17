@@ -3792,7 +3792,7 @@ function presaleLedger(a) {
   }];
   const paid = a.verifiedLedger ? a.verifiedLedger.paid : list.reduce((n, x) => n + (Number(x.amount) || 0), 0);
   const balance = a.verifiedLedger ? a.verifiedLedger.balance : Math.max(0, total - paid);
-  const newInstallments=a.plan==='installment' && a.installmentCalculation==='remaining_after_deposit_v1';
+  const newInstallments=a.plan==='installment' && (a.installmentCalculation==='remaining_after_deposit_v1' || a.installmentCalculation==='total_over_term_v2');
   const requiredDeposit=a.depositPerPlotCentavos?presalePlots(a).length*a.depositPerPlotCentavos/100:0;
   const depositPaid=Math.min(paid,requiredDeposit);
   let initialFunding=depositPaid;
@@ -3800,7 +3800,7 @@ function presaleLedger(a) {
   if(newInstallments && !a.verifiedLedger){
     let initialCredit=0;for(const entry of list){initialCredit+=Number(entry.amount)||0;if(initialCredit>=requiredDeposit)break;}
     initialFunding=initialCredit;
-    monthly=Math.floor(Math.max(0,total-Math.max(requiredDeposit,initialCredit))*100/(a.years*12))/100;
+    if(a.installmentCalculation==='remaining_after_deposit_v1') monthly=Math.floor(Math.max(0,total-Math.max(requiredDeposit,initialCredit))*100/(a.years*12))/100;
   }
   const monthsPaid = monthly > 0 ? Math.min(a.years * 12 || 1, Math.floor((Math.max(0,paid-initialFunding) + 0.005) / monthly)) : 0;
   const monthsLeft = balance <= 0 ? 0 : monthly > 0 ? Math.ceil((balance - 0.5) / monthly) : 0;

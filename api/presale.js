@@ -196,7 +196,7 @@ module.exports = async function handler(req, res) {
   const spot = plots.reduce((n, x) => n + x.price - discOf(x.typeId, 'cash'), 0);                    // spot cash price
   const instBase = plots.reduce((n, x) => n + x.price - discOf(x.typeId, 'installment'), 0);        // base for monthly plans
   const total = plan === 'installment' ? Math.round(instBase * (1 + SURCHARGE[years])) : spot;
-  const monthly = plan === 'installment' ? Math.floor(Math.max(0,total-plots.length*3000)*100 / (years * 12))/100 : 0;
+  const monthly = plan === 'installment' ? Math.round(total * 100 / (years * 12)) / 100 : 0; // total / months, as on the price list
 
   // Optional: the buyer may promise to pay MORE than the monthly, never less.
   const manualQr = ['gcash','maya'].includes(method);
@@ -273,7 +273,7 @@ module.exports = async function handler(req, res) {
         blockId: first.blockId, lotNo: first.lotNo, plotCode: first.plotCode, typeId: first.typeId,
         plots, plotCount: plots.length,
         plan, years, method,
-        spotPrice: spot, listPrice: plots.reduce((n, x) => n + x.price, 0), totalPrice: total, monthly, customMonthly: intended, depositPerPlotCentavos:300000, installmentCalculation:'remaining_after_deposit_v1',
+        spotPrice: spot, listPrice: plots.reduce((n, x) => n + x.price, 0), totalPrice: total, monthly, customMonthly: intended, depositPerPlotCentavos:300000, installmentCalculation:'total_over_term_v2',
         name, address, mobile, mobileKey, email,
         paymentReference: '', paymentConfirmedAt: null,
         createdAt: now
