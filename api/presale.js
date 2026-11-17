@@ -1,8 +1,8 @@
 // /api/presale.js
 //
-// Vercel serverless function for the Blocks A, B, C and D presale.
+// Vercel serverless function for the presale of the official site plan (3,696 plots, saved under block "P").
 //
-//   GET  /api/presale?block=B   -> { taken: [lot numbers already reserved/sold] }
+//   GET  /api/presale?block=P   -> { taken: [lot numbers already reserved/sold] }
 //   POST /api/presale           -> reserves ONE plot, first come first served
 //
 // Why a server function: the reservation must be atomic (two buyers must never
@@ -40,30 +40,15 @@ function getDb() {
   return admin.firestore();
 }
 
-const PRESALE_BLOCKS = ['A', 'B', 'C', 'D'];
-const COLS = 40;
-const ROWS = 50;
-const TOTAL = COLS * ROWS; // 2,000 plots per block
+const { PLAN_BLOCK, TOTAL, LEGACY_BLOCKS, DEFAULT_PRICES, TYPE_LABEL, typeOfPlot, plotCode } = require('../lib/presale-plan');
+const KNOWN_BLOCKS = [PLAN_BLOCK, ...LEGACY_BLOCKS]; // legacy A-D can still be READ (taken list); new reservations are plan plots only
 const MAX_PLOTS = 100;     // safety ceiling only (one Firestore transaction must stay small)
 
-// Fallbacks only. The live prices come from the Firestore 'products' docs.
-const DEFAULT_PRICES = { regular: 30000, premium: 42500, 'corner-premium': 47500 };
 // Presale discount on every Regular plot (more off for spot cash).
 const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
 const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
 const SURCHARGE = { 1: 0.10, 2: 0.15, 3: 0.20, 5: 0.30 };
 const METHODS = ['cash', 'gcash', 'maya', 'bank', 'cheque', 'paymongo'];
-
-// Layer rule: outer 3 rings Corner Premium, next 5 rings Premium, rest Regular.
-function typeOfLot(lot) {
-  const i = lot - 1;
-  const col = i % COLS;
-  const row = Math.floor(i / COLS);
-  const layer = Math.min(col, COLS - 1 - col, row, ROWS - 1 - row);
-  if (layer < 3) return 'corner-premium';
-  if (layer < 8) return 'premium';
-  return 'regular';
-}
 
 async function priceFor(typeId, db) {
   try {
@@ -80,7 +65,6 @@ function clean(v, max) {
 
 // ---- Confirmation email (Brevo). Best effort: a mail problem must never lose a reservation. ----
 const METHOD_LABEL = { cash: 'Cash at our office', gcash: 'GCash', bank: 'Bank transfer', cheque: 'Cheque', paymongo: 'Online (GCash, Maya, card)' };
-const TYPE_LABEL = { regular: 'Regular', premium: 'Premium', 'corner-premium': 'Corner Premium' };
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const peso = (n) => '\u20B1' + Number(n || 0).toLocaleString('en-PH',{maximumFractionDigits:2});
 
@@ -90,7 +74,7 @@ async function sendConfirmationEmail({ ref, name, email, plots, plan, years, tot
   const senderEmail = process.env.SENDER_EMAIL || 'noreply@goldenharmonic.com';
   const senderName = process.env.SENDER_NAME || 'Golden Harmonic Memorial Park';
   const trackUrl = `${baseUrl}/my-payments?ref=${encodeURIComponent(ref)}`;
-  const photoType = plots[0] && ['regular', 'premium', 'corner-premium'].includes(plots[0].typeId) ? plots[0].typeId : 'regular'; // picture of the plot type they chose
+  const photoType = plots[0] && ['regular', 'premium', 'corner-premium'].includes(plots[0].typeId) ? plots[0].typeId : 'regular'; // email picture exists for these three types
   const rows = plots.map((p) => `<li><b>${esc(p.plotCode)}</b> &middot; ${esc(TYPE_LABEL[p.typeId] || p.typeId)}</li>`).join('');
   const planLine = plan === 'installment'
     ? `${years} ${years === 1 ? 'year' : 'years'} &middot; ${peso(monthly)} a month &middot; total ${peso(total)}`
@@ -157,7 +141,7 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'GET') {
     const block = clean(req.query.block, 2).toUpperCase();
-    if (!PRESALE_BLOCKS.includes(block)) return res.status(400).json({ error: 'Unknown block.' });
+    if (!KNOWN_BLOCKS.includes(block)) return res.status(400).json({ error: 'Unknown block.' });
     const snap = await db.collection('plots').where('blockId', '==', block).get();
     const taken = snap.docs.map((d) => d.data().lotNo).filter((n) => Number.isInteger(n));
     return res.status(200).json({ block, taken });
@@ -188,7 +172,7 @@ module.exports = async function handler(req, res) {
 
   if (!wanted.length || wanted.length > MAX_PLOTS) return res.status(400).json({ error: `You may reserve 1 to ${MAX_PLOTS} plots.` });
   for (const w of wanted) {
-    if (!PRESALE_BLOCKS.includes(w.block)) return res.status(400).json({ error: 'Please choose Block A, B, C or D.' });
+    if (w.block !== PLAN_BLOCK) return res.status(400).json({ error: 'The plot map was updated. Please refresh this page and choose your plot again.' });
     if (!Number.isInteger(w.lot) || w.lot < 1 || w.lot > TOTAL) return res.status(400).json({ error: 'That plot number is not valid.' });
   }
   if (new Set(wanted.map((w) => `${w.block}_${w.lot}`)).size !== wanted.length) return res.status(400).json({ error: 'The same plot was chosen twice.' });
@@ -203,11 +187,12 @@ module.exports = async function handler(req, res) {
   const priceCache = {};
   const plots = [];
   for (const w of wanted) {
-    const typeId = typeOfLot(w.lot);
+    const typeId = typeOfPlot(w.lot);
     if (!(typeId in priceCache)) priceCache[typeId] = await priceFor(typeId, db);
+    if (!(priceCache[typeId] > 0)) return res.status(400).json({ error: `${TYPE_LABEL[typeId] || 'This'} plots are not open for online reservation yet. Please call our office.` });
     plots.push({
       blockId: w.block, lotNo: w.lot, typeId, price: priceCache[typeId],
-      plotCode: `${w.block}-${String(w.lot).padStart(4, '0')}`
+      plotCode: plotCode(w.lot)
     });
   }
   const spot = plots.reduce((n, x) => n + x.price - discOf(x.typeId, 'cash'), 0);                    // spot cash price

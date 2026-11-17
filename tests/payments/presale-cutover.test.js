@@ -16,7 +16,7 @@ function endpoint(file,db) {
     await context.module.exports({method:'POST',body,headers:{host:'localhost'}},res);return res;};
   return {call,sends:()=>sends};
 }
-const body={block:'A',lot:1,name:'Synthetic Buyer',address:'Synthetic address',mobile:'09123456789',email:'buyer@example.test',consent:true,method:'cash',plan:'cash'};
+const body={block:'P',lot:1000,name:'Synthetic Buyer',address:'Synthetic address',mobile:'09123456789',email:'buyer@example.test',consent:true,method:'cash',plan:'cash'};
 
 test('presale HTTP collision preserves existing source/counter/plots and sends no email',async()=>{
   for(const data of [{canonicalBookingId:'protected'},{status:'new'}]){
@@ -28,7 +28,7 @@ test('presale HTTP collision preserves existing source/counter/plots and sends n
 
 test('presale HTTP unused identity creates counter/source/plot together',async()=>{
   const db=new MemoryFirestore(),h=endpoint('presale.js',db),r=await h.call(body);
-  assert.equal(r.code,200);assert.equal(r.body.ref,'PS-0001');assert.equal(db.read('plots/A_1').presaleRef,'PS-0001');
+  assert.equal(r.code,200);assert.equal(r.body.ref,'PS-0001');assert.equal(db.read('plots/P_1000').presaleRef,'PS-0001');
   assert.equal(db.read('counters/presale').n,1);assert.equal(h.sends(),1);
 });
 

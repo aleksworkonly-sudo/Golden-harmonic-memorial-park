@@ -24,7 +24,7 @@ function init() {
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const peso = (n) => '₱' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const METHOD_LABEL = { cash: 'Cash', gcash: 'GCash', bank: 'Bank transfer', cheque: 'Cheque', paymongo: 'Online (PayMongo)' };
-const TYPE_LABEL = { regular: 'Regular', premium: 'Premium', 'corner-premium': 'Corner Premium' };
+const TYPE_LABEL = require('../lib/presale-plan').TYPE_LABEL;
 const fmtDate = (ms) => new Date(ms || Date.now()).toLocaleString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const fmtDay = (ms) => new Date(ms).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric' });
 

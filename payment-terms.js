@@ -10,7 +10,19 @@
   function build(a) {
     var cash = a.plan === 'cash';
     var plots = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ blockId: a.blockId, lotNo: a.lotNo, plotCode: a.plotCode, typeId: a.typeId }]);
-    var TYPE = { regular: 'Regular', premium: 'Premium', 'corner-premium': 'Corner Premium' };
+    var TYPE = {
+      regular: 'Regular',
+      premium: 'Premium',
+      'corner-premium': 'Corner Premium',
+      valor: 'Valor',
+      'garden-regular': 'Garden',
+      'garden-premium': 'Premium Garden',
+      'garden-corner': 'Corner Premium Garden',
+      'family-vault': 'Family Vault',
+      'premium-valor': 'Premium Valor',
+      'corner-premium-valor': 'Corner Premium Valor',
+      mausoleum: 'Mausoleum'
+    };
     var types = plots.map(function (p) { return TYPE[p.typeId] || p.typeId || ''; }).filter(function (v, i, r) { return v && r.indexOf(v) === i; }).join(', ');
     var lots = plots.map(function (p) { return p.plotCode || ((p.blockId ? 'Block ' + p.blockId + ' ' : '') + (p.lotNo ? 'Lot ' + p.lotNo : '')); }).filter(Boolean).join(', ');
     var pays = (Array.isArray(a.payments) ? a.payments : []).slice().sort(function (x, y) { return (toMs(x.date) || 0) - (toMs(y.date) || 0); });

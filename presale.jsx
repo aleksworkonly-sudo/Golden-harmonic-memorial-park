@@ -1,4 +1,4 @@
-/* Golden Harmonic Memorial Park — Blocks A, B, C, D presale flow.
+/* Golden Harmonic Memorial Park — presale flow (the real site plan, 3,696 plots).
    Loaded as its own babel script. Everything is wrapped in a function so it
    shares no top-level names with site.jsx; it exposes window.PresaleFlow and
    window.PresaleContext. Reservations go through /api/presale (a Firestore
@@ -18,48 +18,33 @@
   };
 
 
-  /* ---- Site plan: where the blocks sit on the aerial picture (percent of the picture) ---- */
-  const MAP_SRC = '/site_plan.jpg';
-  const DIM = [
-    'left:26.38%;top:30.22%;width:20.08%;height:10.60%;clip-path:polygon(4.5% 0%,100% 0%,97% 100%,0% 100%)',
-    'left:5.70%;top:28.63%;width:20.98%;height:10.07%;clip-path:polygon(0% 0%,100% 0%,82.9% 100%,1.4% 86.3%)',
-    'left:14.09%;top:21.21%;width:18.29%;height:6.57%;clip-path:polygon(0% 0%,100% 0%,82% 100%,0% 100%)',
-    'left:19.78%;top:16.12%;width:15.59%;height:4.56%;clip-path:polygon(5.8% 0%,100% 0%,88.5% 100%,0% 100%)'
-  ];
-  const GEO = {
-    A: 'left:70.74%;top:18.88%;width:13.19%;height:5.73%;clip-path:polygon(0% 0%,97.7% 0%,100% 100%,0% 100%)',
-    B: 'left:66.85%;top:25.66%;width:23.38%;height:7.21%;clip-path:polygon(0% 0%,85.9% 0%,100% 100%,2.6% 100%)',
-    C: 'left:68.94%;top:33.51%;width:23.08%;height:10.50%;clip-path:polygon(0% 0%,96.1% 0%,100% 100%,2.6% 100%)',
-    D: 'left:71.34%;top:44.75%;width:20.08%;height:15.69%;clip-path:polygon(0% 0%,100% 5.4%,92.5% 79.7%,62.7% 100%,17.9% 93.2%)'
-  };
-  const TAGPOS = { A: 'left:77.3%;top:21.7%', B: 'left:78.5%;top:29.3%', C: 'left:80.5%;top:38.8%', D: 'left:81.4%;top:52.6%' };
-  const ZOOM = { A: { cx: 77.3, cy: 21.7, s: 3.2 }, B: { cx: 78.5, cy: 29.3, s: 2.6 }, C: { cx: 80.5, cy: 38.8, s: 2.4 }, D: { cx: 81.4, cy: 52.6, s: 2.1 } };
+  /* ---- The official site plan: 3,696 plots (data in /presale-plan.json), all saved under block "P" ---- */
+  const BLOCK = 'P';
   /* Presale discount on every Regular plot: more off when paying spot cash. */
   const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
   const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
   const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-  function cssObj(str) {
-    const o = {};
-    str.split(';').forEach((p) => {
-      const i = p.indexOf(':');
-      if (i < 1) return;
-      const k = p.slice(0, i).trim().replace(/-([a-z])/g, (m, c) => c.toUpperCase());
-      o[k] = p.slice(i + 1).trim();
-    });
-    return o;
-  }
 
-  const BLOCKS = ['A', 'B', 'C', 'D'];
-  const COLS = 40;
-  const ROWS = 50;
-  const TOTAL = COLS * ROWS;
-
+  /* One letter per plot in presale-plan.json -> plot type. `fallback` is only used when the
+     website's product list has no price; types without one are "not open yet". */
   const TYPES = {
-    'regular': { name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', tint: '#9ae6b0', ink: '#14502c' },
-    'premium': { name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', tint: '#9cc9ff', ink: '#103c78' },
-    'corner-premium': { name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', tint: '#d6b8ff', ink: '#3d1a78' }
+    'regular': { letter: 'r', name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', color: '#4d7dc4' },
+    'valor': { letter: 'v', name: 'Valor Plot', short: 'Valor', fallback: 40000, photo: '/valor_plot.png', color: '#9670c4' },
+    'garden-regular': { letter: 'g', name: 'Garden Plot', short: 'Garden', fallback: 37500, photo: '/regular_garden_plot.jpg', color: '#43a670' },
+    'family-vault': { letter: 'f', name: 'Family Vault', short: 'Family Vault', fallback: 105000, photo: '/family_vault.png', color: '#3d9ca3' },
+    'premium': { letter: 'p', name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', color: '#e0b31f' },
+    'premium-valor': { letter: 'q', name: 'Premium Valor Plot', short: 'Premium Valor', fallback: 0, photo: '/valor_plot.png', color: '#e0b31f' },
+    'garden-premium': { letter: 'h', name: 'Premium Garden Plot', short: 'Premium Garden', fallback: 47500, photo: '/premium_garden_plot.jpg', color: '#e0b31f' },
+    'corner-premium': { letter: 'c', name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', color: '#d4591c' },
+    'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 0, photo: '/valor_plot.png', color: '#d4591c' },
+    'garden-corner': { letter: 'e', name: 'Corner Premium Garden Plot', short: 'Corner Premium Garden', fallback: 57500, photo: '/corner_prime_garden_plot.jpg', color: '#d4591c' },
+    'mausoleum': { letter: 'm', name: 'Mausoleum', short: 'Mausoleum', fallback: 0, photo: '/mausoleum_serenity.jpg', color: '#efe7d2' }
   };
-  const TYPE_IDS = ['regular', 'premium', 'corner-premium'];
+  const TYPE_IDS = ['regular', 'valor', 'garden-regular', 'family-vault', 'premium', 'premium-valor', 'garden-premium', 'corner-premium', 'corner-premium-valor', 'garden-corner', 'mausoleum'];
+  const BY_LETTER = {};
+  TYPE_IDS.forEach((id) => { BY_LETTER[TYPES[id].letter] = id; });
+  // The website's old "Reserve" buttons only cover these three; the map covers every type.
+  const SITE_TYPE_IDS = ['regular', 'premium', 'corner-premium'];
 
   const TERMS = [
     { years: 1, surcharge: 0.10 },
@@ -77,17 +62,9 @@
     { id: 'cheque', label: 'Cheque', hint: 'Bring or send a cheque to our office.' }
   ];
 
-  function typeOfLot(lot) {
-    const i = lot - 1;
-    const col = i % COLS;
-    const row = Math.floor(i / COLS);
-    const layer = Math.min(col, COLS - 1 - col, row, ROWS - 1 - row);
-    return layer < 3 ? 'corner-premium' : layer < 8 ? 'premium' : 'regular';
-  }
-  function colOf(lot) { return (lot - 1) % COLS; }
-  function rowOf(lot) { return Math.floor((lot - 1) / COLS); }
-  function lotAt(col, row) { return row * COLS + col + 1; }
-  function code(block, lot) { return block + '-' + String(lot).padStart(4, '0'); }
+  // "P-0123" is how the office sees a plot; buyers just see "Plot 123".
+  function code(block, lot) { return block === BLOCK ? 'Plot ' + lot : block + '-' + String(lot).padStart(4, '0'); }
+  function nicePlot(plotCode) { const m = /^P-0*(\d+)$/.exec(String(plotCode || '')); return m ? 'Plot ' + m[1] : plotCode; }
   function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{maximumFractionDigits:2}); }
   /* Mall-style price: red price, old price crossed out, red "-27%" tag. */
   const RED = '#d0342c';
@@ -98,26 +75,6 @@
     return <span style={{ display: 'inline-block', fontSize: size || 15, fontWeight: 800, color: RED, background: '#fde8e6', border: '1px solid #f3b9b3', borderRadius: 5, padding: '1px 7px', whiteSpace: 'nowrap' }}>-{p}%</span>;
   }
   function Was({ n, size }) { return <span style={{ fontSize: size || 17, color: '#8a8478', textDecoration: 'line-through' }}>{peso(n)}</span>; }
-
-  // Precomputed once: which type each lot is, and how many of each exist.
-  const LOT_TYPES = [];
-  for (let n = 1; n <= TOTAL; n++) LOT_TYPES[n] = typeOfLot(n);
-  const TYPE_TOTALS = { 'regular': 0, 'premium': 0, 'corner-premium': 0 };
-  for (let n = 1; n <= TOTAL; n++) TYPE_TOTALS[LOT_TYPES[n]]++;
-
-  const START_POINT = { 'regular': lotAt(20, 25), 'premium': lotAt(5, 25), 'corner-premium': lotAt(1, 25) };
-
-  function nearestFree(target, typeId, takenSet) {
-    const tc = colOf(target), tr = rowOf(target);
-    let best = 0, bestD = Infinity;
-    for (let n = 1; n <= TOTAL; n++) {
-      if (LOT_TYPES[n] !== typeId || takenSet.has(n)) continue;
-      const dc = colOf(n) - tc, dr = rowOf(n) - tr;
-      const d = dc * dc + dr * dr;
-      if (d < bestD) { bestD = d; best = n; }
-    }
-    return best;
-  }
 
   const S = {
     overlay: { position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(20,28,24,.55)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' },
@@ -134,11 +91,11 @@
   };
 
   function Steps({ step }) {
-    const names = ['Block', 'Plot type', 'Your details'];
+    const names = ['Choose your plot', 'Your details'];
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
         {names.map((n, i) => {
-          const k = i + 1, cur = k === step, done = k < step;
+          const k = i + 1, cur = k === (step === 3 ? 2 : 1), done = k < (step === 3 ? 2 : 1);
           return (
             <div key={n} style={{
               display: 'flex', alignItems: 'center', gap: 10, minHeight: 48, padding: '0 18px 0 8px', borderRadius: 24, fontSize: 19, fontWeight: 700,
@@ -172,29 +129,221 @@
     requestAnimationFrame(tick);
   }
 
-  function SitePlan({ block, setBlock, freeCounts, priceOf, descOf, onChooseType, phone, wrapStyle }) {
-    // After a block is chosen, slide down to the plot types so the buyer sees the next step.
-    const typesRef = React.useRef(null);
-    React.useEffect(() => {
-      if (!block || !typesRef.current) return;
-      const t = setTimeout(() => { try { slowScroll(typesRef.current, 80, 1400); } catch (e) {} }, 700);
-      return () => clearTimeout(t);
-    }, [block]);
-    const isBlock = !!block;
-    let sc = 1, tx = 0, ty = 0;
-    if (isBlock) {
-      const c = ZOOM[block];
-      sc = c.s;
-      tx = clampN(50 - sc * c.cx, 100 * (1 - sc), 0);
-      ty = clampN(50 - sc * c.cy, 100 * (1 - sc), 0);
-    }
-    const fc = isBlock ? freeCounts(block) : { 'regular': TYPE_TOTALS['regular'], 'premium': TYPE_TOTALS['premium'], 'corner-premium': TYPE_TOTALS['corner-premium'] };
+  /* ---------- the plan map: every plot of the real site plan, tap to choose ---------- */
+  function PlanMap({ plan, taken, selected, filter, openIds, onPick, onNotice, focusLot }) {
+    const wrapRef = useRef(null);
+    const cvRef = useRef(null);
+    const view = useRef({ s: 0.05, ox: 0, oy: 0, w: 600, h: 700 });
+    const [, force] = useState(0);
+    const raf = useRef(0);
+    const live = useRef({});
+    live.current = { taken, selected, filter, openIds, onPick, onNotice };
+
+    // Precompute bounding boxes, centres and a coarse grid so a tap finds its plot quickly.
+    const idx = useMemo(() => {
+      const n = plan.g.length, cx = new Float32Array(n), cy = new Float32Array(n), bw = new Float32Array(n), bh = new Float32Array(n);
+      const CELL = 200, grid = new Map();
+      for (let i = 0; i < n; i++) {
+        const g = plan.g[i];
+        let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        for (let k = 0; k < g.length; k += 2) { x0 = Math.min(x0, g[k]); x1 = Math.max(x1, g[k]); y0 = Math.min(y0, g[k + 1]); y1 = Math.max(y1, g[k + 1]); }
+        cx[i] = (x0 + x1) / 2; cy[i] = (y0 + y1) / 2; bw[i] = x1 - x0; bh[i] = y1 - y0;
+        for (let gx = Math.floor(x0 / CELL); gx <= Math.floor(x1 / CELL); gx++) for (let gy = Math.floor(y0 / CELL); gy <= Math.floor(y1 / CELL); gy++) {
+          const key = gx * 100000 + gy; if (!grid.has(key)) grid.set(key, []); grid.get(key).push(i);
+        }
+      }
+      return { cx, cy, bw, bh, grid, CELL };
+    }, [plan]);
+
+    const draw = useCallback(() => {
+      raf.current = 0;
+      const cv = cvRef.current; if (!cv) return;
+      const v = view.current, dpr = window.devicePixelRatio || 1;
+      const W = Math.round(v.w * dpr), H = Math.round(v.h * dpr);
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      const c = cv.getContext('2d');
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.fillStyle = '#f3efe4'; c.fillRect(0, 0, v.w, v.h);
+      c.setTransform(dpr * v.s, 0, 0, dpr * v.s, dpr * v.ox, dpr * v.oy);
+      const { taken: tk, selected: sel, filter: fl, openIds: open } = live.current;
+      const x0 = -v.ox / v.s, y0 = -v.oy / v.s, x1 = (v.w - v.ox) / v.s, y1 = (v.h - v.oy) / v.s;
+      const px = (u) => u * v.s;
+      const detail = px(60) > 5;           // plots are big enough to outline
+      c.lineJoin = 'round';
+      c.lineWidth = 1 / v.s * 0.8;
+      const t = plan.t;
+      const later = [];
+      for (let i = 0; i < t.length; i++) {
+        if (idx.cx[i] + idx.bw[i] < x0 || idx.cx[i] - idx.bw[i] > x1 || idx.cy[i] + idx.bh[i] < y0 || idx.cy[i] - idx.bh[i] > y1) continue;
+        const id = BY_LETTER[t[i]], lot = i + 1, g = plan.g[i], isTaken = tk.has(lot), isSel = lot === sel;
+        const match = !fl || fl === id;
+        let fill = TYPES[id].color, alpha = 1;
+        if (isTaken) { fill = '#e9a3a3'; alpha = match ? 1 : 0.35; }
+        else if (!open[id]) alpha = match ? 0.45 : 0.15;
+        else if (!match) alpha = 0.18;
+        c.beginPath();
+        c.moveTo(g[0], g[1]);
+        for (let k = 2; k < g.length; k += 2) c.lineTo(g[k], g[k + 1]);
+        c.closePath();
+        c.globalAlpha = alpha; c.fillStyle = isSel ? '#f5b800' : fill; c.fill();
+        if (detail || id === 'mausoleum') { c.globalAlpha = Math.min(1, alpha + 0.3); c.strokeStyle = id === 'mausoleum' ? '#a08a55' : 'rgba(40,40,40,.55)'; c.stroke(); }
+        c.globalAlpha = 1;
+        if (isSel) later.push(i);
+        if (isTaken && px(Math.min(idx.bw[i], idx.bh[i])) > 7) {
+          c.globalAlpha = match ? 1 : 0.35; c.strokeStyle = '#a32222'; c.lineWidth = 1.6 / v.s;
+          c.beginPath(); c.moveTo(g[0], g[1]);
+          const m = Math.floor(g.length / 4) * 2; c.lineTo(g[m], g[m + 1]);
+          c.moveTo(g[2], g[3]); c.lineTo(g[g.length - 2], g[g.length - 1]); c.stroke();
+          c.lineWidth = 1 / v.s * 0.8; c.globalAlpha = 1;
+        }
+      }
+      // numbers once plots are large enough to read
+      const small = Math.min(px(55), 60);
+      if (px(75) > 17) {
+        const fs = clampN(px(40), 11, 20) / v.s;
+        c.font = '700 ' + fs + 'px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        for (let i = 0; i < t.length; i++) {
+          if (idx.cx[i] < x0 || idx.cx[i] > x1 || idx.cy[i] < y0 || idx.cy[i] > y1) continue;
+          const id = BY_LETTER[t[i]]; if (fl && fl !== id) continue;
+          if (px(Math.min(idx.bw[i], idx.bh[i])) < 11) continue;
+          c.fillStyle = id === 'mausoleum' || id === 'premium' || id === 'premium-valor' || id === 'garden-premium' ? '#2b2200' : '#fff';
+          if (i + 1 === sel) c.fillStyle = '#2b1d00';
+          c.fillText(String(i + 1), idx.cx[i], idx.cy[i]);
+        }
+      }
+      for (const i of later) {                 // selected plot: bold outline on top
+        const g = plan.g[i];
+        c.beginPath(); c.moveTo(g[0], g[1]); for (let k = 2; k < g.length; k += 2) c.lineTo(g[k], g[k + 1]); c.closePath();
+        c.strokeStyle = '#3b2a00'; c.lineWidth = Math.max(2.5 / v.s, 10); c.stroke();
+        c.strokeStyle = '#f5b800'; c.lineWidth = Math.max(1 / v.s, 4); c.stroke();
+      }
+    }, [plan, idx]);
+    const redraw = useCallback(() => { if (!raf.current) raf.current = requestAnimationFrame(draw); }, [draw]);
+    useEffect(() => { redraw(); }, [taken, selected, filter, openIds, redraw]);
+
+    const fit = useCallback(() => {
+      const v = view.current;
+      v.s = Math.min(v.w / plan.w, v.h / plan.h) * 0.98;
+      v.ox = (v.w - plan.w * v.s) / 2; v.oy = (v.h - plan.h * v.s) / 2; redraw();
+    }, [plan, redraw]);
+    const MIN_S = 0.0, MAX_S = 1.6;
+    const zoomAt = useCallback((f, sx, sy) => {
+      const v = view.current; const ns = clampN(v.s * f, v.s0 || 0.01, MAX_S);
+      const wx = (sx - v.ox) / v.s, wy = (sy - v.oy) / v.s;
+      v.s = ns; v.ox = sx - wx * ns; v.oy = sy - wy * ns; redraw();
+    }, [redraw]);
+
+    useEffect(() => {
+      const el = wrapRef.current; if (!el) return;
+      const measure = () => {
+        const v = view.current, first = !v.ready;
+        v.w = el.clientWidth; v.h = el.clientHeight;
+        v.s0 = Math.min(v.w / plan.w, v.h / plan.h) * 0.9;
+        if (first) { v.ready = true; fit(); } else redraw();
+      };
+      measure();
+      const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+      if (ro) ro.observe(el); else window.addEventListener('resize', measure);
+      return () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', measure); };
+    }, [plan, fit, redraw]);
+
+    const hit = (sx, sy) => {
+      const v = view.current, wx = (sx - v.ox) / v.s, wy = (sy - v.oy) / v.s, C = idx.CELL;
+      const tol = 10 / v.s;                       // a fingertip, in plan units
+      let best = -1, bd = 1e18;
+      for (let gx = Math.floor((wx - tol) / C); gx <= Math.floor((wx + tol) / C); gx++) for (let gy = Math.floor((wy - tol) / C); gy <= Math.floor((wy + tol) / C); gy++) {
+        const list = idx.grid.get(gx * 100000 + gy); if (!list) continue;
+        for (const i of list) {
+          const dx = Math.max(Math.abs(wx - idx.cx[i]) - idx.bw[i] / 2, 0), dy = Math.max(Math.abs(wy - idx.cy[i]) - idx.bh[i] / 2, 0);
+          const d = dx * dx + dy * dy; if (d > tol * tol) continue;
+          const cd = (wx - idx.cx[i]) ** 2 + (wy - idx.cy[i]) ** 2;
+          const score = d * 1e6 + cd;
+          if (score < bd) { bd = score; best = i; }
+        }
+      }
+      return best + 1;
+    };
+
+    // pointer handling: drag to move, two fingers to zoom, a quick tap to choose
+    const ptrs = useRef(new Map());
+    const gest = useRef({ moved: 0, pinch: 0 });
+    const onDown = (e) => { e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY }); gest.current = { moved: 0, pinch: 0 }; };
+    const onMove = (e) => {
+      const p = ptrs.current.get(e.pointerId); if (!p) return;
+      const rect = cvRef.current.getBoundingClientRect(), v = view.current;
+      if (ptrs.current.size === 2) {
+        const [a, b] = [...ptrs.current.values()];
+        const d0 = Math.hypot(a.x - b.x, a.y - b.y);
+        p.x = e.clientX; p.y = e.clientY;
+        const [a2, b2] = [...ptrs.current.values()];
+        const d1 = Math.hypot(a2.x - b2.x, a2.y - b2.y);
+        if (d0 > 0) zoomAt(d1 / d0, (a2.x + b2.x) / 2 - rect.left, (a2.y + b2.y) / 2 - rect.top);
+        gest.current.moved = 99; return;
+      }
+      const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+      gest.current.moved += Math.abs(dx) + Math.abs(dy);
+      if (gest.current.moved > 8) { v.ox += dx; v.oy += dy; redraw(); }
+    };
+    const onUp = (e) => {
+      const wasTap = ptrs.current.size === 1 && gest.current.moved <= 8;
+      ptrs.current.delete(e.pointerId);
+      if (!wasTap) return;
+      const rect = cvRef.current.getBoundingClientRect(), sx = e.clientX - rect.left, sy = e.clientY - rect.top, v = view.current;
+      const lot = hit(sx, sy);
+      if (!lot) return;
+      const i = lot - 1;
+      if (Math.min(idx.bw[i], idx.bh[i]) * v.s < 9) { zoomAt(3.2, sx, sy); live.current.onNotice('Come a little closer, then touch your plot.'); return; } // too small to tap safely: zoom in first
+      live.current.onPick(lot);
+    };
+    const onWheel = (e) => { e.preventDefault(); const r = cvRef.current.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.25 : 0.8, e.clientX - r.left, e.clientY - r.top); };
+    useEffect(() => { const cv = cvRef.current; if (!cv) return; cv.addEventListener('wheel', onWheel, { passive: false }); return () => cv.removeEventListener('wheel', onWheel); }, [zoomAt]);
+
+    // Jump to a plot (typed number or chosen plot): centre it and zoom in.
+    useEffect(() => {
+      if (!focusLot || !focusLot.lot) return;
+      const v = view.current, i = focusLot.lot - 1; if (!idx.cx[i]) return;
+      v.s = Math.max(v.s, 0.55); v.ox = v.w / 2 - idx.cx[i] * v.s; v.oy = v.h / 2 - idx.cy[i] * v.s; redraw();
+    }, [focusLot, idx, redraw]);
+
+    const btn = { width: 56, height: 56, borderRadius: 12, border: '2px solid #0f2a21', background: '#fff', color: '#0f2a21', fontSize: 30, fontWeight: 800, cursor: 'pointer', lineHeight: 1, boxShadow: '0 2px 6px rgba(0,0,0,.2)' };
     return (
-      <div style={{ ...(wrapStyle || S.wrap), display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: 'min(78vh, 820px)', minHeight: 420, borderRadius: 14, overflow: 'hidden', border: '2px solid #c9c2ae', background: '#f3efe4' }}>
+        <canvas ref={cvRef} role="img" aria-label="Plan of Golden Harmonic Memorial Park. Touch a plot to choose it. Use the plus and minus buttons to zoom."
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={(e) => ptrs.current.delete(e.pointerId)}
+          style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none', cursor: 'grab' }} />
+        <div style={{ position: 'absolute', right: 12, top: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button type="button" aria-label="Zoom in" style={btn} onClick={() => zoomAt(1.7, view.current.w / 2, view.current.h / 2)}>+</button>
+          <button type="button" aria-label="Zoom out" style={btn} onClick={() => zoomAt(1 / 1.7, view.current.w / 2, view.current.h / 2)}>−</button>
+        </div>
+        <button type="button" onClick={fit} style={{ position: 'absolute', left: 12, top: 12, minHeight: 48, padding: '0 16px', borderRadius: 12, border: '2px solid #0f2a21', background: '#fff', color: '#0f2a21', fontSize: 17, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,.2)' }}>Show the whole park</button>
+      </div>);
+  }
+
+  function SitePlan({ plan, planErr, taken, lot, setLot, filter, setFilter, priceOf, descOf, openIds, counts, onContinue, phone, wrapStyle }) {
+    const [notice, setNotice] = useState('');
+    const [find, setFind] = useState('');
+    const [focus, setFocus] = useState(null);
+    const sel = lot || 0;
+    const selId = sel && plan ? BY_LETTER[plan.t[sel - 1]] : '';
+    const pick = (n) => {
+      const id = BY_LETTER[plan.t[n - 1]];
+      if (taken.has(n)) { setNotice('Plot ' + n + ' is already taken. Please touch another plot.'); return; }
+      if (!openIds[id]) { setNotice(TYPES[id].short + ' plots are not open for online reservation yet. Please call our office' + (phone ? ' at ' + phone : '') + '.'); return; }
+      setNotice(''); setLot(n);
+    };
+    const goFind = (e) => {
+      e.preventDefault();
+      const n = parseInt(find, 10);
+      if (!plan || !Number.isInteger(n) || n < 1 || n > plan.t.length) { setNotice('Please type a plot number from 1 to ' + (plan ? plan.t.length : 3696) + '.'); return; }
+      pick(n); setFocus({ lot: n, k: Date.now() });
+    };
+    const disc = selId ? discOf(selId, 'cash') : 0;
+    return (
+      <div style={{ ...(wrapStyle || S.wrap), display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 44, lineHeight: 1.1, fontWeight: 800, color: '#0f2a21' }}>Choose your plot</h1>
-            <div style={{ fontSize: 20, lineHeight: 1.5, color: '#2f3f38', maxWidth: 640, marginTop: 8 }}>Blocks A, B, C and D are now open for sale. We will guide you step by step.</div>
+            <div style={{ fontSize: 20, lineHeight: 1.5, color: '#2f3f38', maxWidth: 680, marginTop: 8 }}>This is the real plan of the park. Every square is one plot. We will guide you step by step.</div>
           </div>
           {phone ? (
             <a href={'tel:' + phone.replace(/[^0-9+]/g, '')} style={{ display: 'flex', flexDirection: 'column', minHeight: 64, padding: '10px 22px', border: '2px solid #0f2a21', borderRadius: 12, background: '#fff', textDecoration: 'none', color: '#0f2a21' }}>
@@ -203,217 +352,72 @@
             </a>) : null}
         </div>
 
-        <Steps step={isBlock ? 2 : 1} />
+        <Steps step={1} />
 
         <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.35, background: '#fff3c9', border: '2px solid #d9a62e', borderRadius: 12, padding: '16px 20px', color: '#3b2a05' }}>
-          {isBlock ? 'Step 2 of 3: Choose the type of plot you want, below the map.' : 'Step 1 of 3: Touch a green block on the map, or a button on the right.'}
+          Step 1 of 2: Touch your plot on the map. Use the big <b>+</b> button to come closer. Red crossed plots are already taken.
         </div>
+        {notice ? <div role="alert" style={{ ...S.note, fontSize: 18 }}>{notice}</div> : null}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
-          <div style={{ flex: '999 1 560px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#0f2a21' }}>
-              <div style={{ position: 'relative', transformOrigin: '0 0', transform: 'translate(' + tx.toFixed(2) + '%,' + ty.toFixed(2) + '%) scale(' + sc + ')', transition: 'transform 0.7s ease' }}>
-                <img src={MAP_SRC} alt="Aerial site development plan of Golden Harmonic Memorial Park" style={{ display: 'block', width: '100%', height: 'auto' }} />
-                {DIM.map((d, i) => <div key={i} style={{ position: 'absolute', background: 'rgba(110,170,255,0.35)', ...cssObj(d) }}></div>)}
-                {BLOCKS.map((id) => (
-                  <button key={id} type="button" aria-label={'Block ' + id + ', open for sale'} aria-pressed={id === block} onClick={() => setBlock(id)}
-                    style={{ position: 'absolute', border: 0, padding: 0, margin: 0, cursor: 'pointer', background: 'rgba(90,215,130,' + (id === block ? '0.35' : '0.55') + ')', outline: '3px solid #3fae65', outlineOffset: '-3px', ...cssObj(GEO[id]) }}></button>))}
-                {BLOCKS.map((id) => (
-                  <div key={'t' + id} style={{ position: 'absolute', pointerEvents: 'none', transformOrigin: '50% 50%', transform: 'translate(-50%,-50%) scale(' + (1 / sc).toFixed(3) + ')', whiteSpace: 'nowrap', transition: 'transform 0.7s ease', fontSize: 15, fontWeight: 800, color: '#0f2a21', background: '#f4cf6a', padding: '3px 9px', borderRadius: 5, ...cssObj(TAGPOS[id]) }}>Block {id}</div>))}
-              </div>
-            </div>
-            {!isBlock ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: 18, color: '#2f3f38' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#9ae6b0', border: '2px solid #3fae65' }}></span>Open for sale now</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ display: 'inline-block', width: 24, height: 24, borderRadius: 5, background: '#9cc9ff' }}></span>Coming soon</div>
-              </div>) : null}
-
-            <div ref={typesRef} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8, scrollMarginTop: 80 }}>
-              <h2 style={{ margin: 0, fontSize: 30, lineHeight: 1.2, fontWeight: 800, color: '#0f2a21' }}>{isBlock ? 'Block ' + block + ': choose your plot type' : 'Plot types in every block'}</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(250px, 100%), 1fr))', gap: 14, alignItems: 'stretch' }}>
-                {TYPE_IDS.map((id) => (
-                  <div key={id} style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, padding: 16, borderRadius: 14, border: isBlock ? '2px solid #0f2a21' : '2px solid #c9c2ae', background: isBlock ? '#fbf9f3' : '#fff' }}>
-                    <img src={TYPES[id].photo} alt={'Photo of a ' + TYPES[id].short + ' plot'} style={{ width: '100%', aspectRatio: '2 / 1', objectFit: 'cover', borderRadius: 8 }} />
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a21' }}>{TYPES[id].short}</div>
-                    <div style={{ fontSize: 16, lineHeight: 1.4, color: '#2f3f38', minHeight: '2.8em' }}>{descOf(id)}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 26, fontWeight: 800, color: discOf(id, 'cash') > 0 ? RED : '#0f2a21' }}>{peso(priceOf(id) - discOf(id, 'cash'))}</span>
-                        {discOf(id, 'cash') > 0 ? <Was n={priceOf(id)} size={15} /> : null}
-                        {discOf(id, 'cash') > 0 ? <OffTag was={priceOf(id)} now={priceOf(id) - discOf(id, 'cash')} size={13} /> : null}
-                      </div>
-                      <span style={{ fontSize: 15, color: '#44534c' }}>Spot cash price. Monthly plans available.</span>
-                      {discOf(id, 'cash') > 0 ? <div style={{ fontSize: 'clamp(13px, 3.8vw, 15px)', fontWeight: 800, lineHeight: 1.5, color: '#0f2a21', background: '#e4f1e8', borderRadius: 8, padding: '8px 10px', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                        <div>Preselling discount</div>
-                        <div>For spot cash {Math.round(discOf(id, 'cash') / 1000)}K</div>
-                        <div>For installment {Math.round(discOf(id, 'installment') / 1000)}K</div>
-                      </div> : null}
-                      <span style={{ fontSize: 15, color: '#44534c' }}>{isBlock ? fc[id].toLocaleString('en-PH') + ' plots available in Block ' + block : fc[id].toLocaleString('en-PH') + ' plots in each block'}</span>
-                    </div>
-                    {isBlock ? (
-                      <button type="button" disabled={fc[id] < 1} onClick={() => onChooseType(id)}
-                        style={{ boxSizing: 'border-box', minHeight: 56, marginTop: 'auto', borderRadius: 12, border: 'none', background: '#0f2a21', color: '#f6e7b4', fontSize: 19, fontWeight: 800, cursor: 'pointer', opacity: fc[id] < 1 ? 0.5 : 1 }}>
-                        {fc[id] < 1 ? 'Sold out' : 'Choose ' + TYPES[id].short}
-                      </button>) : null}
-                  </div>))}
-              </div>
-              {!isBlock ? <div style={{ fontSize: 19, lineHeight: 1.5, color: '#16251f', background: '#f6f0dc', borderRadius: 12, padding: '14px 18px' }}>Every block has all three plot types. Touch a block on the map first, then choose your plot type here.</div> : null}
-            </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+          <div style={{ flex: '999 1 560px', minWidth: 0 }}>
+            {plan ? <PlanMap plan={plan} taken={taken} selected={sel} filter={filter} openIds={openIds} onPick={pick} onNotice={setNotice} focusLot={focus} />
+              : <div style={{ ...S.card, fontSize: 20, minHeight: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{planErr ? 'We could not load the plan. Please check your internet and refresh this page.' : 'Loading the plan…'}</div>}
           </div>
 
-          <aside style={{ flex: '1 1 360px', minWidth: 0, boxSizing: 'border-box', background: '#fff', borderRadius: 14, padding: 28, display: 'flex', flexDirection: 'column', gap: 22, border: '2px solid #e3dccb' }}>
-            {!isBlock ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-                <h2 style={{ margin: 0, fontSize: 34, lineHeight: 1.15, fontWeight: 800, color: '#0f2a21' }}>Which block would you like?</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {BLOCKS.map((id) => (
-                    <button key={id} type="button" onClick={() => setBlock(id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, minHeight: 84, padding: '14px 20px', borderRadius: 12, border: '2px solid #0f2a21', background: '#fbf9f3', textAlign: 'left', cursor: 'pointer', color: '#0f2a21' }}>
-                      <span style={{ fontSize: 30, fontWeight: 800 }}>Block {id}</span>
-                      <span style={{ fontSize: 18, color: '#2f3f38' }}>3 plot types to choose from</span>
-                    </button>))}
-                </div>
-              </div>) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-                <button type="button" onClick={() => setBlock('')} style={{ minHeight: 56, padding: '0 20px', borderRadius: 12, border: '2px solid #0f2a21', background: '#fff', color: '#0f2a21', fontSize: 20, fontWeight: 700, textAlign: 'left', cursor: 'pointer' }}>← Go back to the full map</button>
-                <h2 style={{ margin: 0, fontSize: 34, lineHeight: 1.15, fontWeight: 800, color: '#0f2a21' }}>Block {block}</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#2f3f38' }}>Where this is in the park</div>
-                  <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: '#0f2a21' }}>
-                    <img src={MAP_SRC} alt="Park map with the chosen block marked" style={{ display: 'block', width: '100%', height: 'auto' }} />
-                    <div style={{ position: 'absolute', boxSizing: 'border-box', left: (-tx / sc).toFixed(2) + '%', top: (-ty / sc).toFixed(2) + '%', width: (100 / sc).toFixed(2) + '%', height: (100 / sc).toFixed(2) + '%', border: '3px solid #f4cf6a', background: 'rgba(244,207,106,0.22)', borderRadius: 3 }}></div>
-                  </div>
-                </div>
-                <div style={{ fontSize: 19, lineHeight: 1.5, color: '#16251f', background: '#f6f0dc', borderRadius: 12, padding: '16px 18px' }}>You will choose your exact plot on the next screen. We serve buyers in the order they apply.</div>
-              </div>)}
+          <aside style={{ flex: '1 1 340px', minWidth: 0, boxSizing: 'border-box', background: '#fff', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 18, border: '2px solid #e3dccb' }}>
+            <form onSubmit={goFind} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label htmlFor="ps-find" style={{ fontSize: 20, fontWeight: 800, color: '#0f2a21' }}>Know your plot number?</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input id="ps-find" inputMode="numeric" placeholder="Example: 1250" value={find} onChange={(e) => setFind(e.target.value)} style={{ ...S.input, flex: 1, minWidth: 0 }} />
+                <button type="submit" style={{ minHeight: 52, padding: '0 18px', borderRadius: 10, border: 'none', background: '#0f2a21', color: '#f6e7b4', fontSize: 18, fontWeight: 800, cursor: 'pointer' }}>Go</button>
+              </div>
+            </form>
+
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0f2a21', marginBottom: 6 }}>Plot types</div>
+              <div style={{ fontSize: 16, color: '#44534c', marginBottom: 10 }}>Press a type to show only those plots on the map.</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {TYPE_IDS.map((id) => {
+                  const on = filter === id, p = priceOf(id), d = discOf(id, 'cash');
+                  return (
+                    <button key={id} type="button" aria-pressed={on} onClick={() => setFilter(on ? '' : id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 56, padding: '8px 12px', borderRadius: 12, textAlign: 'left', cursor: 'pointer', border: on ? '3px solid #0f2a21' : '1.5px solid #c9c2ae', background: on ? '#fbf3d6' : '#fbf9f3', color: '#0f2a21' }}>
+                      <span style={{ flex: '0 0 auto', width: 26, height: 26, borderRadius: 6, background: TYPES[id].color, border: '2px solid ' + (id === 'mausoleum' ? '#a08a55' : 'rgba(0,0,0,.35)') }}></span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 18, fontWeight: 800 }}>{TYPES[id].short}</span>
+                        <span style={{ display: 'block', fontSize: 15, color: '#44534c' }}>
+                          {p > 0 ? <span>{d > 0 ? <b style={{ color: RED }}>{peso(p - d)}</b> : <b>{peso(p)}</b>}{d > 0 ? <span> <Was n={p} size={14} /></span> : null}</span> : 'Not open yet'}
+                          {' · '}{(counts[id] || 0).toLocaleString('en-PH')} free
+                        </span>
+                      </span>
+                    </button>);
+                })}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 15, marginTop: 12, color: '#2f3f38' }}>
+                <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#e9a3a3', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Taken</span>
+                <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#f5b800', border: '2px solid #3b2a00', verticalAlign: -4 }}></i> Your pick</span>
+                <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#4d7dc4', opacity: 0.45, verticalAlign: -4 }}></i> Faded = not open yet</span>
+              </div>
+            </div>
           </aside>
         </div>
-      </div>);
-  }
 
-  /* ---------- plot picker: block map with a draggable pin + 5x5 close-up ---------- */
-  function PlotPicker({ block, typeId, lot, setLot, taken, notify }) {
-    const svgRef = useRef(null);
-    const [dragging, setDragging] = useState(false);
-    const c = colOf(lot), r = rowOf(lot);
-
-    const pickAt = useCallback((clientX, clientY) => {
-      const svg = svgRef.current;
-      if (!svg) return;
-      const box = svg.getBoundingClientRect();
-      const col = Math.max(0, Math.min(COLS - 1, Math.floor(((clientX - box.left) / box.width) * COLS)));
-      const row = Math.max(0, Math.min(ROWS - 1, Math.floor(((clientY - box.top) / box.height) * ROWS)));
-      const want = lotAt(col, row);
-      const best = nearestFree(want, typeId, taken);
-      if (best) {
-        setLot(best);
-        if (best !== want) notify('We moved your pin to the nearest free ' + TYPES[typeId].short + ' plot.');
-        else notify('');
-      }
-    }, [typeId, taken, setLot, notify]);
-
-    useEffect(() => {
-      if (!dragging) return;
-      const move = (e) => pickAt(e.clientX, e.clientY);
-      const up = () => setDragging(false);
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-      window.addEventListener('pointercancel', up);
-      return () => {
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-        window.removeEventListener('pointercancel', up);
-      };
-    }, [dragging, pickAt]);
-
-    const takenRects = useMemo(() => {
-      const out = [];
-      taken.forEach((n) => out.push(<rect key={n} x={colOf(n)} y={rowOf(n)} width="1" height="1" fill="#ff9d9d" opacity="0.9" />));
-      return out;
-    }, [taken]);
-
-    // 5x5 close-up centred on the chosen plot (clamped so it stays inside the block)
-    const gc = Math.max(2, Math.min(COLS - 3, c));
-    const gr = Math.max(2, Math.min(ROWS - 3, r));
-    const cells = [];
-    for (let rr = gr - 2; rr <= gr + 2; rr++) {
-      for (let cc = gc - 2; cc <= gc + 2; cc++) cells.push(lotAt(cc, rr));
-    }
-    const move = (dc, dr) => {
-      const nc = Math.max(0, Math.min(COLS - 1, c + dc));
-      const nr = Math.max(0, Math.min(ROWS - 1, r + dr));
-      const want = lotAt(nc, nr);
-      const best = nearestFree(want, typeId, taken);
-      if (best) setLot(best);
-    };
-    const choose = (n) => {
-      if (LOT_TYPES[n] !== typeId) { notify('That plot is ' + TYPES[LOT_TYPES[n]].short + '. You chose ' + TYPES[typeId].short + '.'); return; }
-      if (taken.has(n)) { notify('That plot is already taken. Please pick another one.'); return; }
-      notify('');
-      setLot(n);
-    };
-
-    const arrow = { minHeight: 48, fontSize: 17, fontWeight: 700, borderRadius: 10, border: '1.5px solid #c9bd9f', background: '#fff', cursor: 'pointer' };
-
-    return (
-      <div>
-        <style>{'@keyframes ps-beep{0%,100%{transform:scale(1);box-shadow:0 0 0 2px #f5b800,0 0 0 0 rgba(245,184,0,.6)}50%{transform:scale(1.12);box-shadow:0 0 0 2px #f5b800,0 0 0 9px rgba(245,184,0,0)}}@media (prefers-reduced-motion:reduce){[style*="ps-beep"]{animation:none!important}}'}</style>
-        <p style={{ fontSize: 16, margin: '0 0 10px', lineHeight: 1.45 }}>
-          Drag the <b style={{ color: '#9a6b00' }}>gold pin</b> on the map to the place you like. You can also press a square below, or use the arrow buttons.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 14 }} className="presale-pick">
-          <div>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: COLS + ' / ' + ROWS, touchAction: 'none', cursor: 'grab', userSelect: 'none' }}
-              onPointerDown={(e) => { e.preventDefault(); setDragging(true); pickAt(e.clientX, e.clientY); }}>
-              <svg ref={svgRef} viewBox={'0 0 ' + COLS + ' ' + ROWS} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block', borderRadius: 10, border: '2px solid #2f5d4c' }}>
-                <rect x="0" y="0" width={COLS} height={ROWS} fill="#9ae6b0" />
-                <rect x="3" y="3" width={COLS - 6} height={ROWS - 6} fill="#9cc9ff" />
-                <rect x="8" y="8" width={COLS - 16} height={ROWS - 16} fill="#9ae6b0" />
-                <path d={'M0 0H' + COLS + 'V' + ROWS + 'H0Z M3 3V' + (ROWS - 3) + 'H' + (COLS - 3) + 'V3Z'} fill="#d6b8ff" fillRule="evenodd" />
-                {takenRects}
-                <rect x={c - 2} y={r - 2} width="5" height="5" fill="none" stroke="#3b2a00" strokeWidth="0.45">
-                  <animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite" />
-                </rect>
-                <circle cx={c + 0.5} cy={r + 0.5} r="2.2" fill="#f5b800" opacity="0.55" className="ps-beep-ring">
-                  <animate attributeName="r" values="1.2;3.4;1.2" dur="1.2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.9;0.1;0.9" dur="1.2s" repeatCount="indefinite" />
-                </circle>
-                <circle cx={c + 0.5} cy={r + 0.5} r="1.3" fill="#f5b800" stroke="#3b2a00" strokeWidth="0.45" />
-              </svg>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 15, fontWeight: 600, marginTop: 8 }}>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#d6b8ff', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Corner Premium</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#9cc9ff', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Premium</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#9ae6b0', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Regular</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#ff9d9d', border: '1px solid rgba(0,0,0,.35)', verticalAlign: -4 }}></i> Taken</span>
-              <span><i style={{ display: 'inline-block', width: 18, height: 18, borderRadius: 4, background: '#f5b800', border: '2px solid #3b2a00', verticalAlign: -4 }}></i> Your pick</span>
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 4 }}>
-              {cells.map((n) => {
-                const t = LOT_TYPES[n];
-                const isTaken = taken.has(n);
-                const sel = n === lot;
-                const ok = t === typeId && !isTaken;
-                return (
-                  <button key={n} type="button" onClick={() => choose(n)}
-                    aria-label={'Plot ' + n + (isTaken ? ', taken' : '')}
-                    style={{
-                      minHeight: 46, fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: ok ? 'pointer' : 'not-allowed',
-                      border: sel ? '3px solid #3b2a00' : '1px solid rgba(0,0,0,.25)', boxShadow: sel ? '0 0 0 2px #f5b800' : 'none', animation: sel ? 'ps-beep 1.2s ease-in-out infinite' : 'none',
-                      background: sel ? '#f5b800' : isTaken ? '#ff9d9d' : TYPES[t].tint,
-                      color: sel ? '#2b1d00' : isTaken ? '#7a0f0f' : TYPES[t].ink,
-                      opacity: ok || sel || isTaken ? 1 : 0.45, padding: 0
-                    }}>{n}</button>);
-              })}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 6, marginTop: 8 }}>
-              <button type="button" style={arrow} onClick={() => move(0, -1)}>Up</button>
-              <button type="button" style={arrow} onClick={() => move(0, 1)}>Down</button>
-              <button type="button" style={arrow} onClick={() => move(-1, 0)}>Left</button>
-              <button type="button" style={arrow} onClick={() => move(1, 0)}>Right</button>
-            </div>
-          </div>
+        {/* the chosen plot, always visible at the bottom of the screen */}
+        <div style={{ position: 'sticky', bottom: 0, zIndex: 3, margin: '0 -4px', padding: '14px 16px', background: '#fffdf6', border: '3px solid #0f2a21', borderRadius: 14, boxShadow: '0 -4px 14px rgba(0,0,0,.18)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
+          {sel ? (
+            <>
+              <img src={TYPES[selId].photo} alt="" style={{ width: 84, height: 62, objectFit: 'cover', borderRadius: 8 }} />
+              <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0f2a21' }}>Plot {sel} · {TYPES[selId].name}</div>
+                <div style={{ fontSize: 18, color: '#2f3f38' }}>
+                  <b style={{ color: disc > 0 ? RED : '#0f2a21' }}>{peso(priceOf(selId) - disc)}</b> spot cash{disc > 0 ? <span> <Was n={priceOf(selId)} size={15} /> <OffTag was={priceOf(selId)} now={priceOf(selId) - disc} size={13} /></span> : null} · monthly plans available
+                </div>
+                <div style={{ fontSize: 16, color: '#44534c', marginTop: 2 }}>{descOf(selId)}</div>
+              </div>
+              <button type="button" onClick={onContinue} style={{ minHeight: 60, padding: '0 28px', borderRadius: 12, border: 'none', background: '#2f5d4c', color: '#fff', fontSize: 21, fontWeight: 800, cursor: 'pointer' }}>This is my plot. Next →</button>
+            </>) : (
+            <div style={{ fontSize: 21, fontWeight: 700, color: '#3b2a05' }}>No plot chosen yet. Touch a plot on the map.</div>)}
         </div>
       </div>);
   }
@@ -432,14 +436,16 @@
       return raw.replace(/\s*Priced per crypt\/share\.?\s*$/i, '') || TYPES[id].short + ' plot';
     };
 
-    const [step, setStep] = useState(1); // 1 = site plan (block and type), 3 = details
-    const [block, setBlock] = useState('');
-    const [typeId, setTypeId] = useState(startType && TYPES[startType] ? startType : '');
-    const [takenByBlock, setTakenByBlock] = useState({});
+    const [step, setStep] = useState(1); // 1 = the plan map, 3 = details
+    const block = BLOCK;
+    const [filter, setFilter] = useState(startType && TYPES[startType] ? startType : '');
+    const [plan0, setPlan0] = useState(null);   // the plan: { w, h, t, g }
+    const [planErr, setPlanErr] = useState(false);
+    const [takenList, setTakenList] = useState([]);
     const [loadErr, setLoadErr] = useState(false);
     const [lot, setLot] = useState(0);
     const [more, setMore] = useState([]); // plots already added: [{ block, lot, typeId }]
-    const [notice, setNotice] = useState('');
+    const typeId = lot && plan0 ? BY_LETTER[plan0.t[lot - 1]] : '';
     const [plan, setPlan] = useState('cash');
     const [years, setYears] = useState(3);
     const [custom, setCustom] = useState(''); // optional: pay more than the monthly installment
@@ -470,58 +476,48 @@
       } catch (e) {}
     }, [form.name, form.address, form.mobile, form.email, done]);
 
-    const loadTaken = useCallback((b) => {
+    const loadTaken = useCallback(() => {
       setLoadErr(false);
-      return fetch('/api/presale?block=' + b)
+      return fetch('/api/presale?block=' + BLOCK, { cache: 'no-store' })
         .then((r) => { if (!r.ok) throw new Error('bad'); return r.json(); })
-        .then((d) => { setTakenByBlock((m) => ({ ...m, [b]: d.taken || [] })); return d.taken || []; })
+        .then((d) => { setTakenList(d.taken || []); return d.taken || []; })
         .catch(() => { setLoadErr(true); return null; });
     }, []);
-
-    useEffect(() => { BLOCKS.forEach((b) => loadTaken(b)); }, [loadTaken]);
+    useEffect(() => {
+      fetch('/presale-plan.json').then((r) => { if (!r.ok) throw new Error('bad'); return r.json(); }).then(setPlan0).catch(() => setPlanErr(true));
+      loadTaken();
+      const t = setInterval(() => { if (!document.hidden) loadTaken(); }, 45000); // see plots other buyers just took
+      return () => clearInterval(t);
+    }, [loadTaken]);
     useEffect(() => { if (topRef.current) slowScroll(topRef.current, 0, 1200, true); }, [step, done]);
 
     // Plots the buyer already added count as taken, so the same plot cannot be picked twice.
     const taken = useMemo(() => {
-      const t = new Set(takenByBlock[block] || []);
-      more.forEach((m) => { if (m.block === block) t.add(m.lot); });
+      const t = new Set(takenList);
+      more.forEach((m) => t.add(m.lot));
       return t;
-    }, [takenByBlock, block, more]);
+    }, [takenList, more]);
 
-    const freeCounts = (b) => {
-      const t = new Set(takenByBlock[b] || []);
-      more.forEach((m) => { if (m.block === b) t.add(m.lot); });
-      const out = { 'regular': TYPE_TOTALS['regular'], 'premium': TYPE_TOTALS['premium'], 'corner-premium': TYPE_TOTALS['corner-premium'] };
-      t.forEach((n) => { if (LOT_TYPES[n]) out[LOT_TYPES[n]]--; });
+    const openIds = {};
+    TYPE_IDS.forEach((id) => { openIds[id] = priceOf(id) > 0; });
+    const counts = useMemo(() => {
+      const out = {};
+      if (!plan0) return out;
+      for (let i = 0; i < plan0.t.length; i++) { if (!taken.has(i + 1)) { const id = BY_LETTER[plan0.t[i]]; out[id] = (out[id] || 0) + 1; } }
       return out;
-    };
+    }, [plan0, taken]);
 
-    const chooseType = (id) => {
-      setTypeId(id);
-      const first = nearestFree(START_POINT[id], id, taken);
-      setLot(first);
-      setNotice('');
-      pushNav();
-      setStep(3);
-    };
-
-    // If the block data arrives after we picked a type, make sure the pin sits on a free plot.
-    useEffect(() => {
-      if (step === 3 && typeId && (!lot || taken.has(lot))) {
-        const first = nearestFree(START_POINT[typeId], typeId, taken);
-        if (first) setLot(first);
-      }
-    }, [step, typeId, taken]);
+    const goDetails = () => { if (!lot) return; pushNav(); setStep(3); };
 
     const MAX_PLOTS = 100; // safety ceiling only; effectively as many as the buyer wants
-    const allLots = [...more, ...(step === 3 && lot && typeId && !more.some((m) => m.block === block && m.lot === lot) ? [{ block, lot, typeId }] : [])];
+    const allLots = [...more, ...(step === 3 && lot && typeId && !more.some((m) => m.lot === lot) ? [{ block, lot, typeId }] : [])];
     const spot = allLots.reduce((n, l) => n + priceOf(l.typeId) - discOf(l.typeId, 'cash'), 0);          // spot cash price
     const listSum = allLots.reduce((n, l) => n + priceOf(l.typeId), 0);
     const instBase = allLots.reduce((n, l) => n + priceOf(l.typeId) - discOf(l.typeId, 'installment'), 0); // base for monthly plans
     const addAnother = () => {
       if (!lot || allLots.length >= MAX_PLOTS) return;
       setMore((m) => [...m, { block, lot, typeId }]);
-      setNotice('');
+      setLot(0);
       back(); // one step back to the site plan, where the buyer picks the next plot
     };
     const removeMore = (i) => setMore((m) => m.filter((_, k) => k !== i));
@@ -592,17 +588,15 @@
             return;
           }
           if (data.error === 'taken') {
-            const tb = data.block || block, tl = data.lot || lot;
-            const fresh = await loadTaken(tb);
-            const set = new Set(fresh || []);
-            const idx = more.findIndex((m) => m.block === tb && m.lot === tl);
+            const tl = data.lot || lot;
+            await loadTaken();
+            const idx = more.findIndex((m) => m.lot === tl);
             if (idx >= 0) {
               removeMore(idx);
-              setError('Sorry, someone just took plot ' + code(tb, tl) + '. We removed it from your list. You may add another plot, then press Send again.');
+              setError('Sorry, someone just took ' + code(BLOCK, tl) + '. We removed it from your list. You may add another plot, then press Send again.');
             } else {
-              const next = nearestFree(tl, typeId, set);
-              if (next) setLot(next);
-              setError('Sorry, someone just took plot ' + code(tb, tl) + '. We moved your pin to the nearest free plot. Please check it and press Send again.');
+              setLot(0);
+              setError('Sorry, someone just took ' + code(BLOCK, tl) + '. Please press Back and choose another plot on the map.');
             }
           } else if (data.error === 'dup') {
             setError('This mobile number already has a presale reservation. Please call us if you want to add more plots to it.');
@@ -638,7 +632,6 @@
         const c = live.current;
         if (c.done) { closing.current = true; const n = depth.current; depth.current = 0; c.onClose(); if (n > 0) { try { window.history.go(-n); } catch (e) {} } }
         else if (c.step === 3) { setStep(1); }
-        else if (c.block) { setBlock(''); }
         else { c.onClose(); }
       };
       window.addEventListener('popstate', onPop);
@@ -646,7 +639,6 @@
     }, []);
 
     // Each forward move adds a history entry; Back then undoes exactly one move.
-    const goBlock = (id) => { if (id && !block) pushNav(); setBlock(id); };
     const back = () => { try { window.history.back(); } catch (e) { onClose(); } };
     const closeAll = () => {
       const n = depth.current;
@@ -679,7 +671,7 @@
             <h2 style={S.h2}>{done.plots && done.plots.length > 1 ? 'Your ' + done.plots.length + ' plots are reserved' : 'Your plot is reserved'}</h2>
             <p style={S.lead}>Thank you. Please keep this reference number: <b style={{ fontSize: 22, color: '#2f5d4c' }}>{done.ref}</b></p>
             <div style={{ display: 'grid', gap: 8, fontSize: 18 }}>
-              {(done.plots && done.plots.length ? done.plots : [{ plotCode: done.plotCode, typeId: done.typeId }]).map((x) => <div key={x.plotCode}><b>Plot:</b> {x.plotCode} · {TYPES[x.typeId].name}</div>)}
+              {(done.plots && done.plots.length ? done.plots : [{ plotCode: done.plotCode, typeId: done.typeId }]).map((x) => <div key={x.plotCode}><b>Plot:</b> {nicePlot(x.plotCode)} · {(TYPES[x.typeId] || { name: x.typeId }).name}</div>)}
               <div><b>Plan:</b> {done.plan === 'cash' ? 'Spot cash · ' + peso(done.total) : done.years + ' years · ' + peso(done.monthly) + ' a month · total ' + peso(done.total)}</div>
               <div><b>You will pay by:</b> {m.label}</div>
               {info ? <div><b>Where:</b> {info}</div> : null}
@@ -695,9 +687,9 @@
           </div>
         </div>);
     } else if (step !== 3) {
-      body = <SitePlan block={block} setBlock={(id) => (id ? goBlock(id) : back())} freeCounts={freeCounts} priceOf={priceOf} descOf={descOf} onChooseType={chooseType} phone={PAY_INFO.phone} wrapStyle={WRAP} />;
+      body = <SitePlan plan={plan0} planErr={planErr} taken={taken} lot={lot} setLot={setLot} filter={filter} setFilter={setFilter} priceOf={priceOf} descOf={descOf} openIds={openIds} counts={counts} onContinue={goDetails} phone={PAY_INFO.phone} wrapStyle={WRAP} />;
     } else {
-      const t = TYPES[typeId];
+      const t = TYPES[typeId] || TYPES.regular;
       body = (
         <form onSubmit={submit} style={{ ...WRAP, maxWidth: fullPage ? 1240 : 980, margin: '0 auto' }}>
           <Steps step={3} />
@@ -706,26 +698,16 @@
             <img src={t.photo} alt={t.name} style={{ width: 96, aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
             <div>
               <div style={{ fontSize: 14, color: '#4a564f' }}>You are buying</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>Plot {lot ? code(block, lot) : '...'}</div>
-              <div style={{ fontSize: 16 }}>{t.name} · Block {block} · Row {lot ? rowOf(lot) + 1 : ''}, Column {lot ? colOf(lot) + 1 : ''}</div>
+              <div style={{ fontSize: 22, fontWeight: 800 }}>{lot ? code(block, lot) : '...'}</div>
+              <div style={{ fontSize: 16 }}>{t.name}</div>
+              <button type="button" onClick={back} style={{ marginTop: 6, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid #2f5d4c', background: '#fff', color: '#1f4a39', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Change my plot</button>
             </div>
-          </div>
-
-          <div style={{ ...S.card, marginBottom: 16 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Choose your exact plot</div>
-            {notice ? <div style={{ ...S.note, marginBottom: 10 }}>{notice}</div> : null}
-            {lot ? <PlotPicker block={block} typeId={typeId} lot={lot} setLot={setLot} taken={taken} notify={setNotice} /> : <div>Loading plots...</div>}
-            {lot ? (
-              <button type="button" onClick={() => slowScroll(detailsRef.current, 80, 1400)}
-                style={{ marginTop: 14, width: '100%', minHeight: 60, fontSize: 21, fontWeight: 800, borderRadius: 12, border: 0, background: '#2f5d4c', color: '#fff', cursor: 'pointer' }}>
-                ✔ This is my plot ({code(block, lot)}). Next: write my name ↓
-              </button>) : null}
           </div>
 
           <div style={{ ...S.card, marginBottom: 16 }}>
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Your plots ({allLots.length})</div>
             {allLots.map((l, i) => (
-              <div key={l.block + l.lot} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i ? '1px solid #e3dccb' : 'none', fontSize: 18 }}>
+              <div key={l.lot} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i ? '1px solid #e3dccb' : 'none', fontSize: 18 }}>
                 <div style={{ flex: 1 }}><b>{code(l.block, l.lot)}</b> · {TYPES[l.typeId].name}</div>
                 <div style={{ textAlign: 'right' }}><b style={{ color: discOf(l.typeId, 'cash') > 0 ? RED : 'inherit' }}>{peso(priceOf(l.typeId) - discOf(l.typeId, 'cash'))}</b>{discOf(l.typeId, 'cash') > 0 ? <div><Was n={priceOf(l.typeId)} size={14} /> <OffTag was={priceOf(l.typeId)} now={priceOf(l.typeId) - discOf(l.typeId, 'cash')} size={13} /></div> : null}</div>
                 {i < more.length ? <button type="button" onClick={() => removeMore(i)} style={{ border: '1.5px solid #a33', color: '#a33', background: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 15, cursor: 'pointer' }}>Remove</button> : <span style={{ fontSize: 14, color: '#4a564f' }}>(choosing now)</span>}
@@ -806,7 +788,7 @@
         <div style={fullPage ? { ...S.sheet, maxWidth: 'none', padding: '0 0 40px' } : S.sheet}>
           <div ref={topRef} style={S.bar}>
             {done ? null : <button type="button" onClick={back} style={{ background: 'transparent', border: '1.5px solid #fffaf0', color: '#fffaf0', borderRadius: 8, fontSize: 16, padding: '8px 14px', cursor: 'pointer' }}>← Back</button>}
-            <div style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>Presale · Blocks A, B, C, D</div>
+            <div style={{ flex: 1, fontSize: 18, fontWeight: 700 }}>Presale · Choose your plot</div>
             <button type="button" onClick={closeAll} aria-label="Close" style={{ background: 'transparent', border: 'none', color: '#fffaf0', fontSize: 28, cursor: 'pointer', lineHeight: 1 }}>×</button>
           </div>
           {body}
@@ -816,5 +798,5 @@
 
   window.PresaleFlow = PresaleFlow;
   window.PresaleContext = React.createContext({ openPresale: () => {} });
-  window.PRESALE_TYPE_IDS = TYPE_IDS;
+  window.PRESALE_TYPE_IDS = SITE_TYPE_IDS;
 })();
