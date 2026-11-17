@@ -20,16 +20,17 @@
 
   /* ---- The official site plan: 3,696 plots (data in /presale-plan.json), all saved under block "P" ---- */
   const BLOCK = 'P';
-  /* Presale discount on every Regular plot: more off when paying spot cash. */
-  const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
-  const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
+  /* Pre-selling price: regular price minus this, for SPOT CASH only. Installments use the regular price
+     (price list "with 3 to 10 year payment plans"). Same numbers as lib/presale-plan.js. */
+  const SPOT_DISCOUNT = { 'regular': 8000, 'premium': 8000, 'corner-premium': 8000, 'garden-regular': 8000, 'garden-premium': 8000, 'garden-corner': 8000, 'mausoleum': 400000 };
+  const discOf = (typeId, plan) => (plan === 'cash' ? SPOT_DISCOUNT[typeId] || 0 : 0);
   const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   /* One letter per plot in presale-plan.json -> plot type. `fallback` is only used when the
      website's product list has no price; types without one are "not open yet". */
   const TYPES = {
     'regular': { letter: 'r', name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', color: '#4d7dc4' },
-    'valor': { letter: 'v', name: 'Valor Plot', short: 'Valor', fallback: 40000, photo: '/valor_plot.png', color: '#9670c4' },
+    'valor': { letter: 'v', name: 'Valor Plot', short: 'Valor', fallback: 0, photo: '/valor_plot.png', color: '#9670c4' },
     'garden-regular': { letter: 'g', name: 'Garden Plot', short: 'Garden', fallback: 37500, photo: '/regular_garden_plot.jpg', color: '#43a670' },
     'family-vault': { letter: 'f', name: 'Family Vault', short: 'Family Vault', fallback: 105000, photo: '/family_vault.png', color: '#3d9ca3' },
     'premium': { letter: 'p', name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', color: '#e0b31f' },
@@ -38,7 +39,7 @@
     'corner-premium': { letter: 'c', name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', color: '#d4591c' },
     'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 0, photo: '/valor_plot.png', color: '#d4591c' },
     'garden-corner': { letter: 'e', name: 'Corner Premium Garden Plot', short: 'Corner Premium Garden', fallback: 57500, photo: '/corner_prime_garden_plot.jpg', color: '#d4591c' },
-    'mausoleum': { letter: 'm', name: 'Mausoleum', short: 'Mausoleum', fallback: 0, photo: '/mausoleum_serenity.jpg', color: '#efe7d2' }
+    'mausoleum': { letter: 'm', name: 'Mausoleum', short: 'Mausoleum', fallback: 2200000, photo: '/mausoleum_serenity.jpg', color: '#efe7d2' }
   };
   const TYPE_IDS = ['regular', 'valor', 'garden-regular', 'family-vault', 'premium', 'premium-valor', 'garden-premium', 'corner-premium', 'corner-premium-valor', 'garden-corner', 'mausoleum'];
   const BY_LETTER = {};
@@ -46,12 +47,8 @@
   // The website's old "Reserve" buttons only cover these three; the map covers every type.
   const SITE_TYPE_IDS = ['regular', 'premium', 'corner-premium'];
 
-  const TERMS = [
-    { years: 1, surcharge: 0.10 },
-    { years: 2, surcharge: 0.15 },
-    { years: 3, surcharge: 0.20 },
-    { years: 5, surcharge: 0.30, best: true }
-  ];
+  // 3 to 10 years: +20% at 3 years, then +5% for every extra year.
+  const TERMS = [3, 4, 5, 6, 7, 8, 9, 10].map((y) => ({ years: y, surcharge: Math.round((0.20 + 0.05 * (y - 3)) * 100) / 100, best: y === 10 }));
 
   const METHODS = [
     { id: 'paymongo', label: 'Pay Online with PayMongo', hint: 'Verify your reservation email, then review available online deposit options.' },
@@ -521,7 +518,7 @@
       back(); // one step back to the site plan, where the buyer picks the next plot
     };
     const removeMore = (i) => setMore((m) => m.filter((_, k) => k !== i));
-    const term = TERMS.find((t) => t.years === years) || TERMS[2];
+    const term = TERMS.find((t) => t.years === years) || TERMS[0];
     const totalFor = (t) => Math.round(instBase * (1 + t.surcharge));
     const listTotalFor = (t) => Math.round(listSum * (1 + t.surcharge));
     const deposit = allLots.length * 3000;

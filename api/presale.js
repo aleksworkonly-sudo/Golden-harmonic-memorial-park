@@ -40,14 +40,12 @@ function getDb() {
   return admin.firestore();
 }
 
-const { PLAN_BLOCK, TOTAL, LEGACY_BLOCKS, DEFAULT_PRICES, TYPE_LABEL, typeOfPlot, plotCode } = require('../lib/presale-plan');
+const { PLAN_BLOCK, TOTAL, LEGACY_BLOCKS, DEFAULT_PRICES, SPOT_DISCOUNT, SURCHARGE, TYPE_LABEL, typeOfPlot, plotCode } = require('../lib/presale-plan');
 const KNOWN_BLOCKS = [PLAN_BLOCK, ...LEGACY_BLOCKS]; // legacy A-D can still be READ (taken list); new reservations are plan plots only
 const MAX_PLOTS = 100;     // safety ceiling only (one Firestore transaction must stay small)
 
-// Presale discount on every Regular plot (more off for spot cash).
-const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
-const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
-const SURCHARGE = { 1: 0.10, 2: 0.15, 3: 0.20, 5: 0.30 };
+// Pre-selling discount applies to spot cash only (see lib/presale-plan.js).
+const discOf = (typeId, plan) => (plan === 'cash' ? SPOT_DISCOUNT[typeId] || 0 : 0);
 const METHODS = ['cash', 'gcash', 'maya', 'bank', 'cheque', 'paymongo'];
 
 async function priceFor(typeId, db) {
@@ -176,7 +174,7 @@ module.exports = async function handler(req, res) {
     if (!Number.isInteger(w.lot) || w.lot < 1 || w.lot > TOTAL) return res.status(400).json({ error: 'That plot number is not valid.' });
   }
   if (new Set(wanted.map((w) => `${w.block}_${w.lot}`)).size !== wanted.length) return res.status(400).json({ error: 'The same plot was chosen twice.' });
-  if (plan === 'installment' && !SURCHARGE[years]) return res.status(400).json({ error: 'Please choose 1, 2, 3 or 5 years.' });
+  if (plan === 'installment' && !SURCHARGE[years]) return res.status(400).json({ error: 'Please choose a plan of 3 to 10 years.' });
   if (!METHODS.includes(method)) return res.status(400).json({ error: 'Please choose how you will pay.' });
   if (name.length < 3 || address.length < 5 || mobile.replace(/\D/g, '').length < 10 || !/^\S+@\S+\.\S+$/.test(email)) {
     return res.status(400).json({ error: 'Please fill in your name, address, mobile number and email.' });

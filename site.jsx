@@ -61,10 +61,14 @@ const PALETTES = {
    exact schedule): */
 const PLAN_TERMS = [
 { key: 'cash', label: 'Spot Cash', months: 0, surcharge: 0 },
-{ key: '1yr', label: '1-Year Plan', months: 12, surcharge: 0.10 },
-{ key: '2yr', label: '2-Year Plan', months: 24, surcharge: 0.15 },
 { key: '3yr', label: '3-Year Plan', months: 36, surcharge: 0.20 },
-{ key: '5yr', label: '5-Year Plan', months: 60, surcharge: 0.30 }];
+{ key: '4yr', label: '4-Year Plan', months: 48, surcharge: 0.25 },
+{ key: '5yr', label: '5-Year Plan', months: 60, surcharge: 0.30 },
+{ key: '6yr', label: '6-Year Plan', months: 72, surcharge: 0.35 },
+{ key: '7yr', label: '7-Year Plan', months: 84, surcharge: 0.40 },
+{ key: '8yr', label: '8-Year Plan', months: 96, surcharge: 0.45 },
+{ key: '9yr', label: '9-Year Plan', months: 108, surcharge: 0.50 },
+{ key: '10yr', label: '10-Year Plan', months: 120, surcharge: 0.55 }];
 
 
 const BASE_TIERS = [
@@ -1232,7 +1236,7 @@ function Tiers({ tiers }) {
             <h2 style={{ marginTop: 18 }}>Eight ways to plan ahead — from ₱30,000.</h2>
           </div>
           <div className="side">
-            Every plot includes perpetual care and all-faiths welcome. No down payment on any installment plan — pay spot cash, or spread the (surcharged) total over 1, 2, 3, or 5 years.
+            Every plot includes perpetual care and all-faiths welcome. No down payment on any installment plan — pay spot cash, or spread the (surcharged) total over 3 to 10 years.
           </div>
         </div>
         {categories.map((cat) => {
@@ -1281,7 +1285,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
   [{ label: tier.label, caption: tier.name, image: tier.image, scene: tier.image ? undefined : tierSceneKey(tier) }];
   const idx = allTiers.findIndex((t) => t.id === tier.id);
   const isSelected = selectedTierId === tier.id;
-  const fiveYear = PLAN_TERMS[4]; // lowest monthly = longest term
+  const fiveYear = PLAN_TERMS[PLAN_TERMS.length - 1]; // lowest monthly = longest term (10 years)
   const monthly = tier.price * (1 + fiveYear.surcharge) / fiveYear.months;
   const sceneKey = tierSceneKey(tier);
   return (
@@ -1381,7 +1385,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
 function PaymentCalculator({ tiers }) {
   const { selectedTierId, selectTier } = usePlanSelection();
   const [tierId, setTierId] = useState(tiers[0]?.id);
-  const [termKey, setTermKey] = useState('1yr');
+  const [termKey, setTermKey] = useState('3yr');
 
   // Reflect a plan chosen from the Plots & Pricing cards above
   useEffect(() => {
@@ -1463,7 +1467,7 @@ const CATEGORY_GUIDE_TIER_ID = {
 function PaymentPlans({ tiers }) {
   const { selectTier } = usePlanSelection();
   const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
-  const fiveYear = PLAN_TERMS[4];
+  const fiveYear = PLAN_TERMS[PLAN_TERMS.length - 1];
   const cheapest = tiers.reduce((min, t) => t.price < min.price ? t : min, tiers[0] || { price: 0 });
   const lowestMonthly = cheapest.price * (1 + fiveYear.surcharge) / fiveYear.months;
   // Which term column gets the "lowest monthly" highlight + badge
@@ -1483,7 +1487,7 @@ function PaymentPlans({ tiers }) {
             <h2 style={{ marginTop: 18 }}>Own a piece of peace — for as little as {fmt(lowestMonthly)} a month.</h2>
           </div>
           <div className="side">
-            No down payment on any plan. Choose spot cash, or spread the total over 1, 2, 3, or 5 years — the longer the term, the higher the surcharge, but the lower your monthly payment.
+            No down payment on any plan. Choose spot cash, or spread the total over 3 to 10 years — the longer the term, the higher the surcharge, but the lower your monthly payment.
           </div>
         </div>
 
@@ -1636,7 +1640,7 @@ function Mausoleum() {
               <span className="eyebrow">Two-Story Mausoleum</span>
               <h3 style={{ fontSize: 24, margin: '10px 0' }}>{TWO_STORY_MAUSOLEUM.area}</h3>
               <p style={{ color: 'var(--ink-2)' }}>{TWO_STORY_MAUSOLEUM.desc}</p>
-              <p className="small" style={{ marginTop: 12 }}>Payment plans available with a surcharge over 1, 2, 3, or 5 years.</p>
+              <p className="small" style={{ marginTop: 12 }}>Payment plans available with a surcharge over 3 to 10 years.</p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div className="calc-row-head"><label>Spot cash</label></div>

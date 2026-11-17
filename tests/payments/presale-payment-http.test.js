@@ -13,7 +13,7 @@ function presaleEndpoint(f){
   vm.runInNewContext(fs.readFileSync(filename,'utf8'),context,{filename});return context.module.exports;
 }
 const body={lots:[{block:'P',lot:1000}],name:'Synthetic Buyer',address:'Synthetic address',mobile:'09123456789',email:'buyer@example.test',
-  consent:true,method:'gcash',plan:'installment',years:2,requestId:'c'.repeat(64)};
+  consent:true,method:'gcash',plan:'installment',years:3,requestId:'c'.repeat(64)};
 async function call(handler,overrides={}){
   const req={method:'POST',body,headers:{origin:'https://park.example.test','content-type':'application/json'},socket:{remoteAddress:'127.0.0.1'},...overrides};
   const res={headers:{},setHeader(k,v){this.headers[k]=v;},status(code){this.code=code;return this;},json(body){this.body=body;return this;}};
@@ -22,7 +22,7 @@ async function call(handler,overrides={}){
 test('presale endpoint issues scoped HttpOnly cookie, preserves API URLs and never exposes session secret',async()=>{
   const f=presaleFixture(),handler=presaleEndpoint(f),r=await call(handler);
   assert.equal(r.code,200);assert.equal(r.body.paymentFlow,'manual_qr');assert.equal(r.body.secret,undefined);
-  assert.equal(r.body.depositCentavos,300000);assert.equal(r.body.total,54625);
+  assert.equal(r.body.depositCentavos,300000);assert.equal(r.body.total,57000);
   assert.match(r.headers['Set-Cookie'],/^__Host-gh_payment_session=/);
   for(const flag of ['HttpOnly','Secure','SameSite=Strict','Path=/','Max-Age=1800'])assert.ok(r.headers['Set-Cookie'].includes(flag));
   const again=await call(handler);assert.equal(again.body.ref,r.body.ref);assert.equal(f.db.count('plots'),1);
