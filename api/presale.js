@@ -40,13 +40,27 @@ function getDb() {
   return admin.firestore();
 }
 
-const { PLAN_BLOCK, TOTAL, LEGACY_BLOCKS, DEFAULT_PRICES, SPOT_DISCOUNT, SURCHARGE, TYPE_LABEL, typeOfPlot, plotCode } = require('../lib/presale-plan');
+const { VALOR_FAMILY, PLAN_BLOCK, TOTAL, LEGACY_BLOCKS, DEFAULT_PRICES, SPOT_DISCOUNT, SURCHARGE, TYPE_LABEL, typeOfPlot, plotCode } = require('../lib/presale-plan');
 const KNOWN_BLOCKS = [PLAN_BLOCK, ...LEGACY_BLOCKS]; // legacy A-D can still be READ (taken list); new reservations are plan plots only
 const MAX_PLOTS = 100;     // safety ceiling only (one Firestore transaction must stay small)
 
 // Pre-selling discount applies to spot cash only (see lib/presale-plan.js).
 const discOf = (typeId, plan) => (plan === 'cash' ? SPOT_DISCOUNT[typeId] || 0 : 0);
 const METHODS = ['cash', 'gcash', 'maya', 'bank', 'cheque', 'paymongo'];
+
+// Valor-family plots are sold only where staff switched them on (settings/presaleValor.open).
+async function valorOpenSet(db) {
+  try {
+    const snap = await db.collection('settings').doc('presaleValor').get();
+    const open = snap.exists && Array.isArray(snap.data().open) ? snap.data().open : [];
+    return new Set(open.filter((n) => Number.isInteger(n)));
+  } catch (e) { return new Set(); }
+}
+function valorLots() {
+  const out = [];
+  for (let n = 1; n <= TOTAL; n++) if (VALOR_FAMILY.includes(typeOfPlot(n))) out.push(n);
+  return out;
+}
 
 async function priceFor(typeId, db) {
   try {
@@ -142,7 +156,9 @@ module.exports = async function handler(req, res) {
     if (!KNOWN_BLOCKS.includes(block)) return res.status(400).json({ error: 'Unknown block.' });
     const snap = await db.collection('plots').where('blockId', '==', block).get();
     const taken = snap.docs.map((d) => d.data().lotNo).filter((n) => Number.isInteger(n));
-    return res.status(200).json({ block, taken });
+    if (block !== PLAN_BLOCK) return res.status(200).json({ block, taken });
+    const open = await valorOpenSet(db);
+    return res.status(200).json({ block, taken, held: valorLots().filter((n) => !open.has(n)) });
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
@@ -155,6 +171,20 @@ module.exports = async function handler(req, res) {
     if (!b || typeof b !== 'object' || Array.isArray(b)) throw new Error('body');
   } catch (_) { return res.status(400).json({error:'Send valid reservation details.'}); }
   if (b.website) return res.status(200).json({ ok: true }); // honeypot: bots fill this in
+
+  // Staff only: choose which Valor-family plots are on sale in the presale.
+  if (b.action === 'setValorOpen') {
+    const idToken = String(b.idToken || '');
+    if (!idToken) return res.status(401).json({ error: 'Please log in again.' });
+    let uid;
+    try { uid = (await admin.auth().verifyIdToken(idToken)).uid; } catch (e) { return res.status(401).json({ error: 'Please log in again.' }); }
+    const u = await db.collection('users').doc(uid).get();
+    if (!u.exists || !['admin', 'superadmin'].includes(u.data().role)) return res.status(403).json({ error: 'Admins only.' });
+    const valid = new Set(valorLots());
+    const open = [...new Set((Array.isArray(b.open) ? b.open : []).map((n) => parseInt(n, 10)).filter((n) => valid.has(n)))].sort((x, y) => x - y);
+    await db.collection('settings').doc('presaleValor').set({ open, updatedAt: Date.now(), updatedBy: uid });
+    return res.status(200).json({ ok: true, count: open.length });
+  }
 
   // New form sends lots: [{block, lot}]. The old single block + lot is still accepted.
   const rawLots = Array.isArray(b.lots) ? b.lots : [{ block: b.block, lot: b.lot }];
@@ -183,10 +213,15 @@ module.exports = async function handler(req, res) {
 
   // The server decides type and price of every plot. The browser's numbers are never trusted.
   const priceCache = {};
+  let valorOpen = null;
   const plots = [];
   for (const w of wanted) {
     const typeId = typeOfPlot(w.lot);
     if (!(typeId in priceCache)) priceCache[typeId] = await priceFor(typeId, db);
+    if (VALOR_FAMILY.includes(typeId)) {
+      if (!valorOpen) valorOpen = await valorOpenSet(db);
+      if (!valorOpen.has(w.lot)) return res.status(400).json({ error: `Plot ${w.lot} is not open for sale yet. Please choose another plot.` });
+    }
     if (!(priceCache[typeId] > 0)) return res.status(400).json({ error: `${TYPE_LABEL[typeId] || 'This'} plots are not open for online reservation yet. Please call our office.` });
     plots.push({
       blockId: w.block, lotNo: w.lot, typeId, price: priceCache[typeId],
