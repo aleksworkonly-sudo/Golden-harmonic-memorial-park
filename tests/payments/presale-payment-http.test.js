@@ -12,7 +12,7 @@ function presaleEndpoint(f){
     process:{env:f.settings.env},Buffer,AbortController,setTimeout,clearTimeout,console:{error(){}},fetch:()=>{throw Error('No external call allowed');}};
   vm.runInNewContext(fs.readFileSync(filename,'utf8'),context,{filename});return context.module.exports;
 }
-const body={lots:[{block:'A',lot:1}],name:'Synthetic Buyer',address:'Synthetic address',mobile:'09123456789',email:'buyer@example.test',
+const body={lots:[{block:'P',lot:1000}],name:'Synthetic Buyer',address:'Synthetic address',mobile:'09123456789',email:'buyer@example.test',
   consent:true,method:'gcash',plan:'installment',years:2,requestId:'c'.repeat(64)};
 async function call(handler,overrides={}){
   const req={method:'POST',body,headers:{origin:'https://park.example.test','content-type':'application/json'},socket:{remoteAddress:'127.0.0.1'},...overrides};

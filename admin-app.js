@@ -3641,13 +3641,21 @@ function PendingPayments({
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
-// ── Presale applications (Blocks A, B, C, D) ──────────────────────────────────
+// ── Presale applications ──────────────────────────────────
 // Buyers reserve through /api/presale, which writes presaleApplications/{ref}
 // and plots/{block}_{lot}. Staff verify by phone, then confirm payment here.
 const PRESALE_TYPE_NAME = {
   regular: 'Regular',
   premium: 'Premium',
-  'corner-premium': 'Corner Premium'
+  'corner-premium': 'Corner Premium',
+  valor: 'Valor',
+  'garden-regular': 'Garden',
+  'garden-premium': 'Premium Garden',
+  'garden-corner': 'Corner Premium Garden',
+  'family-vault': 'Family Vault',
+  'premium-valor': 'Premium Valor',
+  'corner-premium-valor': 'Corner Premium Valor',
+  mausoleum: 'Mausoleum'
 };
 const PRESALE_METHOD_LABEL = {
   paymongo: 'PayMongo (Online)',
@@ -3656,11 +3664,7 @@ const PRESALE_METHOD_LABEL = {
   bank: 'Bank transfer',
   cheque: 'Cheque'
 };
-const PRESALE_TYPE_LABEL = {
-  'regular': 'Regular',
-  'premium': 'Premium',
-  'corner-premium': 'Corner Premium'
-};
+const PRESALE_TYPE_LABEL = PRESALE_TYPE_NAME;
 function presalePlots(a) {
   return Array.isArray(a.plots) && a.plots.length ? a.plots : [{
     blockId: a.blockId,
@@ -4087,7 +4091,7 @@ function PresaleApplications({
         index: payIndex,
         email: a.email || '',
         photoType: (presalePlots(a)[0] && presalePlots(a)[0].typeId) || 'regular',
-        items: presalePlots(a).map(p => (PRESALE_TYPE_NAME[p.typeId] || p.typeId) + ' Plot · Block ' + (p.blockId || String(p.plotCode || '').split('-')[0]) + ', plot ' + p.plotCode),
+        items: presalePlots(a).map(p => (PRESALE_TYPE_NAME[p.typeId] || p.typeId) + ' Plot · ' + ((p.blockId || String(p.plotCode || '').split('-')[0]) === 'P' ? 'Plot no. ' + Number(p.lotNo || String(p.plotCode).split('-')[1]) : 'Block ' + (p.blockId || String(p.plotCode || '').split('-')[0]) + ', plot ' + p.plotCode)),
         planText: a.plan === 'installment' ? 'Monthly installment, ' + a.years + (a.years === 1 ? ' year' : ' years') + ' (' + fmt(a.monthly) + ' a month)' : 'Spot cash',
         total: a.totalPrice || 0,
         paidSoFar: L.paid + amount,
