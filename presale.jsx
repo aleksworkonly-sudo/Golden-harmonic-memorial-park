@@ -62,7 +62,7 @@
   // "P-0123" is how the office sees a plot; buyers just see "Plot 123".
   function code(block, lot) { return block === BLOCK ? 'Plot ' + lot : block + '-' + String(lot).padStart(4, '0'); }
   function nicePlot(plotCode) { const m = /^P-0*(\d+)$/.exec(String(plotCode || '')); return m ? 'Plot ' + m[1] : plotCode; }
-  function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{maximumFractionDigits:2}); }
+  function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{minimumFractionDigits:Number.isInteger(Number(n))?0:2,maximumFractionDigits:2}); }
   /* Mall-style price: red price, old price crossed out, red "-27%" tag. */
   const RED = '#d0342c';
   function offPct(was, now) { return was > now && was > 0 ? Math.round(((was - now) / was) * 100) : 0; }
