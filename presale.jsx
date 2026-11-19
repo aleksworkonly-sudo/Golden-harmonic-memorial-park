@@ -9,7 +9,8 @@
   /* ---- Payment details shown to buyers. Fill these in when you have them;
      an empty value simply shows the generic "our staff will call you" line. ---- */
   const PAY_INFO = {
-    phone: '',    // e.g. '0917 123 4567'  (shown on the "Need help? Call us" button)
+    phone: '0998 324 9859',    // shown on the "Need help? Call us" button
+    email: 'goldenharmonicpalawan@gmail.com',
     office: '',   // e.g. 'Golden Harmonic office, Poblacion, Taytay, Palawan'
     hours: '',    // e.g. 'Monday to Saturday, 8:00 AM to 5:00 PM'
     gcash: '',    // e.g. 'Juan Dela Cruz · 09XX XXX XXXX'
@@ -328,7 +329,7 @@
       const id = BY_LETTER[plan.t[n - 1]];
       if (taken.has(n)) { setNotice('Plot ' + n + ' is already taken. Please touch another plot.'); return; }
       if (held.has(n)) { setNotice(TYPES[id].short + ' plot ' + n + ' is not open for sale yet. Please touch another plot.'); return; }
-      if (STAFF_ONLY.includes(id)) { setNotice(TYPES[id].short + ' plots have their own down payment. Please ask our staff for assistance' + (phone ? ': call ' + phone : '') + '.'); return; }
+      if (STAFF_ONLY.includes(id)) { setNotice(TYPES[id].short + ' plots have their own down payment. Please ask our staff for assistance' + (phone ? ': call ' + phone : '') + (PAY_INFO.email ? ' or email ' + PAY_INFO.email : '') + '.'); return; }
       if (!openIds[id]) { setNotice(TYPES[id].short + ' plots are not open for online reservation yet. Please call our office' + (phone ? ' at ' + phone : '') + '.'); return; }
       setNotice(''); setLot(n);
     };
@@ -350,6 +351,7 @@
             <a href={'tel:' + phone.replace(/[^0-9+]/g, '')} style={{ display: 'flex', flexDirection: 'column', minHeight: 64, padding: '10px 22px', border: '2px solid #0f2a21', borderRadius: 12, background: '#fff', textDecoration: 'none', color: '#0f2a21' }}>
               <span style={{ fontSize: 17, fontWeight: 600 }}>Need help? Call us</span>
               <span style={{ fontSize: 24, fontWeight: 800 }}>{phone}</span>
+              {PAY_INFO.email ? <span style={{ fontSize: 16, fontWeight: 600, marginTop: 2 }}>{PAY_INFO.email}</span> : null}
             </a>) : null}
         </div>
 
