@@ -12,26 +12,49 @@ const PLAN_TERMS = [{
   months: 0,
   surcharge: 0
 }, {
-  key: '1yr',
-  label: '1-Year Plan',
-  months: 12,
-  surcharge: 0.10
-}, {
-  key: '2yr',
-  label: '2-Year Plan',
-  months: 24,
-  surcharge: 0.15
-}, {
   key: '3yr',
   label: '3-Year Plan',
   months: 36,
   surcharge: 0.20
 }, {
+  key: '4yr',
+  label: '4-Year Plan',
+  months: 48,
+  surcharge: 0.25
+}, {
   key: '5yr',
   label: '5-Year Plan',
   months: 60,
   surcharge: 0.30
+}, {
+  key: '6yr',
+  label: '6-Year Plan',
+  months: 72,
+  surcharge: 0.35
+}, {
+  key: '7yr',
+  label: '7-Year Plan',
+  months: 84,
+  surcharge: 0.40
+}, {
+  key: '8yr',
+  label: '8-Year Plan',
+  months: 96,
+  surcharge: 0.45
+}, {
+  key: '9yr',
+  label: '9-Year Plan',
+  months: 108,
+  surcharge: 0.50
+}, {
+  key: '10yr',
+  label: '10-Year Plan',
+  months: 120,
+  surcharge: 0.55
 }];
+// Older customers may still be on a 1 or 2 year plan; these are only for looking them up.
+const LEGACY_PLAN_TERMS = [{ key: '1yr', label: '1-Year Plan', months: 12, surcharge: 0.10 }, { key: '2yr', label: '2-Year Plan', months: 24, surcharge: 0.15 }];
+const ALL_PLAN_TERMS = [...PLAN_TERMS, ...LEGACY_PLAN_TERMS];
 const BASE_TIERS = [{
   id: 'regular',
   name: 'Regular Plot',
@@ -1297,7 +1320,7 @@ function PlanFields({
     tierId: '',
     tierName: '',
     price: 0,
-    termKey: '1yr',
+    termKey: '3yr',
     startDate: new Date().toISOString().slice(0, 10)
   };
   const set = patch => onChange({
@@ -1327,11 +1350,11 @@ function PlanFields({
       tierId,
       tierName: tier.name,
       price: tier.price,
-      termKey: p.termKey || '1yr',
+      termKey: p.termKey || '3yr',
       imageUrl: productImages[tierId] || tier.imageUrl || ''
     });
   };
-  const term = PLAN_TERMS.find(t => t.key === (p.termKey || '1yr')) || PLAN_TERMS[1];
+  const term = ALL_PLAN_TERMS.find(t => t.key === (p.termKey || '3yr')) || PLAN_TERMS[1];
   const total = (Number(p.price) || 0) * (1 + term.surcharge);
   const monthly = term.months ? Math.round(total / term.months) : 0;
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -1390,7 +1413,7 @@ function PlanFields({
   }, PLAN_TERMS.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.key,
     type: "button",
-    className: `btn btn-sm ${p.termKey === t.key || !p.termKey && t.key === '1yr' ? 'btn-primary' : 'btn-outline'}`,
+    className: `btn btn-sm ${p.termKey === t.key || !p.termKey && t.key === '3yr' ? 'btn-primary' : 'btn-outline'}`,
     onClick: () => set({
       termKey: t.key
     })
@@ -1404,7 +1427,7 @@ function PlanFields({
 }
 function buildPlanPayload(p) {
   if (!p || !p.tierId) return null;
-  const term = PLAN_TERMS.find(t => t.key === (p.termKey || '1yr')) || PLAN_TERMS[1];
+  const term = ALL_PLAN_TERMS.find(t => t.key === (p.termKey || '3yr')) || PLAN_TERMS[1];
   const price = Number(p.price) || 0;
   const total = price * (1 + term.surcharge);
   const monthlyAmount = term.months ? Math.round(total / term.months) : 0;
@@ -1917,7 +1940,7 @@ function CustomerDetailModal({
     tierId: customer.interestedPlanId,
     tierName: customer.interestedPlanName,
     price: customer.interestedPlanPrice,
-    termKey: '1yr',
+    termKey: '3yr',
     startDate: new Date().toISOString().slice(0, 10)
   } : null));
   const [savingPlan, setSavingPlan] = useState(false);
@@ -3699,7 +3722,13 @@ const PRESALE_SURCHARGE = {
   1: 0.10,
   2: 0.15,
   3: 0.20,
-  5: 0.30
+  4: 0.25,
+  5: 0.30,
+  6: 0.35,
+  7: 0.40,
+  8: 0.45,
+  9: 0.50,
+  10: 0.55
 };
 // Splits a reservation's total into the plot price and the installment surcharge.
 function presaleSplit(a) {
@@ -3763,7 +3792,7 @@ function presaleLedger(a) {
   }];
   const paid = a.verifiedLedger ? a.verifiedLedger.paid : list.reduce((n, x) => n + (Number(x.amount) || 0), 0);
   const balance = a.verifiedLedger ? a.verifiedLedger.balance : Math.max(0, total - paid);
-  const newInstallments=a.plan==='installment' && a.installmentCalculation==='remaining_after_deposit_v1';
+  const newInstallments=a.plan==='installment' && (a.installmentCalculation==='remaining_after_deposit_v1' || a.installmentCalculation==='total_over_term_v2');
   const requiredDeposit=a.depositPerPlotCentavos?presalePlots(a).length*a.depositPerPlotCentavos/100:0;
   const depositPaid=Math.min(paid,requiredDeposit);
   let initialFunding=depositPaid;
@@ -3771,7 +3800,7 @@ function presaleLedger(a) {
   if(newInstallments && !a.verifiedLedger){
     let initialCredit=0;for(const entry of list){initialCredit+=Number(entry.amount)||0;if(initialCredit>=requiredDeposit)break;}
     initialFunding=initialCredit;
-    monthly=Math.floor(Math.max(0,total-Math.max(requiredDeposit,initialCredit))*100/(a.years*12))/100;
+    if(a.installmentCalculation==='remaining_after_deposit_v1') monthly=Math.floor(Math.max(0,total-Math.max(requiredDeposit,initialCredit))*100/(a.years*12))/100;
   }
   const monthsPaid = monthly > 0 ? Math.min(a.years * 12 || 1, Math.floor((Math.max(0,paid-initialFunding) + 0.005) / monthly)) : 0;
   const monthsLeft = balance <= 0 ? 0 : monthly > 0 ? Math.ceil((balance - 0.5) / monthly) : 0;

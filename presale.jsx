@@ -20,9 +20,10 @@
 
   /* ---- The official site plan: 3,696 plots (data in /presale-plan.json), all saved under block "P" ---- */
   const BLOCK = 'P';
-  /* Presale discount on every Regular plot: more off when paying spot cash. */
-  const DISCOUNT = { regular: { cash: 8000, installment: 5000 } };
-  const discOf = (typeId, plan) => (DISCOUNT[typeId] ? DISCOUNT[typeId][plan] || 0 : 0);
+  /* Pre-selling price: regular price minus this, for SPOT CASH only. Installments use the regular price
+     (price list "with 3 to 10 year payment plans"). Same numbers as lib/presale-plan.js. */
+  const SPOT_DISCOUNT = { 'regular': 8000, 'premium': 8000, 'corner-premium': 8000, 'garden-regular': 8000, 'garden-premium': 8000, 'garden-corner': 8000, 'mausoleum': 400000, 'valor': 8000, 'premium-valor': 8000, 'corner-premium-valor': 8000 };
+  const discOf = (typeId, plan) => (plan === 'cash' ? SPOT_DISCOUNT[typeId] || 0 : 0);
   const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   /* One letter per plot in presale-plan.json -> plot type. `fallback` is only used when the
@@ -33,25 +34,23 @@
     'garden-regular': { letter: 'g', name: 'Garden Plot', short: 'Garden', fallback: 37500, photo: '/regular_garden_plot.jpg', color: '#43a670' },
     'family-vault': { letter: 'f', name: 'Family Vault', short: 'Family Vault', fallback: 105000, photo: '/family_vault.png', color: '#3d9ca3' },
     'premium': { letter: 'p', name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', color: '#e0b31f' },
-    'premium-valor': { letter: 'q', name: 'Premium Valor Plot', short: 'Premium Valor', fallback: 0, photo: '/valor_plot.png', color: '#e0b31f' },
+    'premium-valor': { letter: 'q', name: 'Premium Valor Plot', short: 'Premium Valor', fallback: 40000, photo: '/valor_plot.png', color: '#e0b31f' },
     'garden-premium': { letter: 'h', name: 'Premium Garden Plot', short: 'Premium Garden', fallback: 47500, photo: '/premium_garden_plot.jpg', color: '#e0b31f' },
     'corner-premium': { letter: 'c', name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', color: '#d4591c' },
-    'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 0, photo: '/valor_plot.png', color: '#d4591c' },
+    'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 40000, photo: '/valor_plot.png', color: '#d4591c' },
     'garden-corner': { letter: 'e', name: 'Corner Premium Garden Plot', short: 'Corner Premium Garden', fallback: 57500, photo: '/corner_prime_garden_plot.jpg', color: '#d4591c' },
-    'mausoleum': { letter: 'm', name: 'Mausoleum', short: 'Mausoleum', fallback: 0, photo: '/mausoleum_serenity.jpg', color: '#efe7d2' }
+    'mausoleum': { letter: 'm', name: 'Mausoleum', short: 'Mausoleum', fallback: 2200000, photo: '/mausoleum_serenity.jpg', color: '#efe7d2' }
   };
   const TYPE_IDS = ['regular', 'valor', 'garden-regular', 'family-vault', 'premium', 'premium-valor', 'garden-premium', 'corner-premium', 'corner-premium-valor', 'garden-corner', 'mausoleum'];
   const BY_LETTER = {};
   TYPE_IDS.forEach((id) => { BY_LETTER[TYPES[id].letter] = id; });
+  // Priced too high for the standard down payment: arranged with staff until the owners decide the terms.
+  const STAFF_ONLY = ['family-vault', 'mausoleum'];
   // The website's old "Reserve" buttons only cover these three; the map covers every type.
   const SITE_TYPE_IDS = ['regular', 'premium', 'corner-premium'];
 
-  const TERMS = [
-    { years: 1, surcharge: 0.10 },
-    { years: 2, surcharge: 0.15 },
-    { years: 3, surcharge: 0.20 },
-    { years: 5, surcharge: 0.30, best: true }
-  ];
+  // 3 to 10 years: +20% at 3 years, then +5% for every extra year.
+  const TERMS = [3, 4, 5, 6, 7, 8, 9, 10].map((y) => ({ years: y, surcharge: Math.round((0.20 + 0.05 * (y - 3)) * 100) / 100, best: y === 10 }));
 
   const METHODS = [
     { id: 'paymongo', label: 'Pay Online with PayMongo', hint: 'Verify your reservation email, then review available online deposit options.' },
@@ -65,7 +64,7 @@
   // "P-0123" is how the office sees a plot; buyers just see "Plot 123".
   function code(block, lot) { return block === BLOCK ? 'Plot ' + lot : block + '-' + String(lot).padStart(4, '0'); }
   function nicePlot(plotCode) { const m = /^P-0*(\d+)$/.exec(String(plotCode || '')); return m ? 'Plot ' + m[1] : plotCode; }
-  function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{maximumFractionDigits:2}); }
+  function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{minimumFractionDigits:Number.isInteger(Number(n))?0:2,maximumFractionDigits:2}); }
   /* Mall-style price: red price, old price crossed out, red "-27%" tag. */
   const RED = '#d0342c';
   function offPct(was, now) { return was > now && was > 0 ? Math.round(((was - now) / was) * 100) : 0; }
@@ -130,14 +129,14 @@
   }
 
   /* ---------- the plan map: every plot of the real site plan, tap to choose ---------- */
-  function PlanMap({ plan, taken, selected, filter, openIds, onPick, onNotice, focusLot }) {
+  function PlanMap({ plan, taken, held, marked, selected, filter, openIds, onPick, onNotice, focusLot }) {
     const wrapRef = useRef(null);
     const cvRef = useRef(null);
     const view = useRef({ s: 0.05, ox: 0, oy: 0, w: 600, h: 700 });
     const [, force] = useState(0);
     const raf = useRef(0);
     const live = useRef({});
-    live.current = { taken, selected, filter, openIds, onPick, onNotice };
+    live.current = { taken, held, marked, selected, filter, openIds, onPick, onNotice };
 
     // Precompute bounding boxes, centres and a coarse grid so a tap finds its plot quickly.
     const idx = useMemo(() => {
@@ -165,7 +164,7 @@
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.fillStyle = '#f3efe4'; c.fillRect(0, 0, v.w, v.h);
       c.setTransform(dpr * v.s, 0, 0, dpr * v.s, dpr * v.ox, dpr * v.oy);
-      const { taken: tk, selected: sel, filter: fl, openIds: open } = live.current;
+      const { taken: tk, held: hd, marked: mk, selected: sel, filter: fl, openIds: open } = live.current;
       const x0 = -v.ox / v.s, y0 = -v.oy / v.s, x1 = (v.w - v.ox) / v.s, y1 = (v.h - v.oy) / v.s;
       const px = (u) => u * v.s;
       const detail = px(60) > 5;           // plots are big enough to outline
@@ -175,11 +174,11 @@
       const later = [];
       for (let i = 0; i < t.length; i++) {
         if (idx.cx[i] + idx.bw[i] < x0 || idx.cx[i] - idx.bw[i] > x1 || idx.cy[i] + idx.bh[i] < y0 || idx.cy[i] - idx.bh[i] > y1) continue;
-        const id = BY_LETTER[t[i]], lot = i + 1, g = plan.g[i], isTaken = tk.has(lot), isSel = lot === sel;
+        const id = BY_LETTER[t[i]], lot = i + 1, g = plan.g[i], isTaken = tk.has(lot), isSel = lot === sel || (mk && mk.has(lot));
         const match = !fl || fl === id;
         let fill = TYPES[id].color, alpha = 1;
         if (isTaken) { fill = '#e9a3a3'; alpha = match ? 1 : 0.35; }
-        else if (!open[id]) alpha = match ? 0.45 : 0.15;
+        else if (!open[id] || (hd && hd.has(lot))) alpha = match ? 0.45 : 0.15;
         else if (!match) alpha = 0.18;
         c.beginPath();
         c.moveTo(g[0], g[1]);
@@ -188,7 +187,7 @@
         c.globalAlpha = alpha; c.fillStyle = isSel ? '#f5b800' : fill; c.fill();
         if (detail || id === 'mausoleum') { c.globalAlpha = Math.min(1, alpha + 0.3); c.strokeStyle = id === 'mausoleum' ? '#a08a55' : 'rgba(40,40,40,.55)'; c.stroke(); }
         c.globalAlpha = 1;
-        if (isSel) later.push(i);
+        if (isSel && !mk) later.push(i);
         if (isTaken && px(Math.min(idx.bw[i], idx.bh[i])) > 7) {
           c.globalAlpha = match ? 1 : 0.35; c.strokeStyle = '#a32222'; c.lineWidth = 1.6 / v.s;
           c.beginPath(); c.moveTo(g[0], g[1]);
@@ -219,7 +218,7 @@
       }
     }, [plan, idx]);
     const redraw = useCallback(() => { if (!raf.current) raf.current = requestAnimationFrame(draw); }, [draw]);
-    useEffect(() => { redraw(); }, [taken, selected, filter, openIds, redraw]);
+    useEffect(() => { redraw(); }, [taken, held, marked, selected, filter, openIds, redraw]);
 
     const fit = useCallback(() => {
       const v = view.current;
@@ -319,7 +318,7 @@
       </div>);
   }
 
-  function SitePlan({ plan, planErr, taken, lot, setLot, filter, setFilter, priceOf, descOf, openIds, counts, onContinue, phone, wrapStyle }) {
+  function SitePlan({ plan, planErr, taken, held, lot, setLot, filter, setFilter, priceOf, descOf, openIds, counts, onContinue, phone, wrapStyle }) {
     const [notice, setNotice] = useState('');
     const [find, setFind] = useState('');
     const [focus, setFocus] = useState(null);
@@ -328,6 +327,8 @@
     const pick = (n) => {
       const id = BY_LETTER[plan.t[n - 1]];
       if (taken.has(n)) { setNotice('Plot ' + n + ' is already taken. Please touch another plot.'); return; }
+      if (held.has(n)) { setNotice(TYPES[id].short + ' plot ' + n + ' is not open for sale yet. Please touch another plot.'); return; }
+      if (STAFF_ONLY.includes(id)) { setNotice(TYPES[id].short + ' plots have their own down payment. Please ask our staff for assistance' + (phone ? ': call ' + phone : '') + '.'); return; }
       if (!openIds[id]) { setNotice(TYPES[id].short + ' plots are not open for online reservation yet. Please call our office' + (phone ? ' at ' + phone : '') + '.'); return; }
       setNotice(''); setLot(n);
     };
@@ -361,7 +362,7 @@
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
           <div style={{ flex: '999 1 560px', minWidth: 0 }}>
-            {plan ? <PlanMap plan={plan} taken={taken} selected={sel} filter={filter} openIds={openIds} onPick={pick} onNotice={setNotice} focusLot={focus} />
+            {plan ? <PlanMap plan={plan} taken={taken} held={held} selected={sel} filter={filter} openIds={openIds} onPick={pick} onNotice={setNotice} focusLot={focus} />
               : <div style={{ ...S.card, fontSize: 20, minHeight: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{planErr ? 'We could not load the plan. Please check your internet and refresh this page.' : 'Loading the plan…'}</div>}
           </div>
 
@@ -442,6 +443,7 @@
     const [plan0, setPlan0] = useState(null);   // the plan: { w, h, t, g }
     const [planErr, setPlanErr] = useState(false);
     const [takenList, setTakenList] = useState([]);
+    const [heldList, setHeldList] = useState([]);   // Valor plots staff have not switched on for the presale
     const [loadErr, setLoadErr] = useState(false);
     const [lot, setLot] = useState(0);
     const [more, setMore] = useState([]); // plots already added: [{ block, lot, typeId }]
@@ -480,7 +482,7 @@
       setLoadErr(false);
       return fetch('/api/presale?block=' + BLOCK, { cache: 'no-store' })
         .then((r) => { if (!r.ok) throw new Error('bad'); return r.json(); })
-        .then((d) => { setTakenList(d.taken || []); return d.taken || []; })
+        .then((d) => { setTakenList(d.taken || []); setHeldList(d.held || []); return d.taken || []; })
         .catch(() => { setLoadErr(true); return null; });
     }, []);
     useEffect(() => {
@@ -498,14 +500,15 @@
       return t;
     }, [takenList, more]);
 
+    const heldSet = useMemo(() => new Set(heldList), [heldList]);
     const openIds = {};
-    TYPE_IDS.forEach((id) => { openIds[id] = priceOf(id) > 0; });
+    TYPE_IDS.forEach((id) => { openIds[id] = priceOf(id) > 0 && !STAFF_ONLY.includes(id); });
     const counts = useMemo(() => {
       const out = {};
       if (!plan0) return out;
-      for (let i = 0; i < plan0.t.length; i++) { if (!taken.has(i + 1)) { const id = BY_LETTER[plan0.t[i]]; out[id] = (out[id] || 0) + 1; } }
+      for (let i = 0; i < plan0.t.length; i++) { if (!taken.has(i + 1) && !heldSet.has(i + 1)) { const id = BY_LETTER[plan0.t[i]]; out[id] = (out[id] || 0) + 1; } }
       return out;
-    }, [plan0, taken]);
+    }, [plan0, taken, heldSet]);
 
     const goDetails = () => { if (!lot) return; pushNav(); setStep(3); };
 
@@ -521,11 +524,11 @@
       back(); // one step back to the site plan, where the buyer picks the next plot
     };
     const removeMore = (i) => setMore((m) => m.filter((_, k) => k !== i));
-    const term = TERMS.find((t) => t.years === years) || TERMS[2];
+    const term = TERMS.find((t) => t.years === years) || TERMS[0];
     const totalFor = (t) => Math.round(instBase * (1 + t.surcharge));
     const listTotalFor = (t) => Math.round(listSum * (1 + t.surcharge));
     const deposit = allLots.length * 3000;
-    const monthlyFor = (t) => Math.floor(Math.max(0,totalFor(t)-deposit)*100 / (t.years * 12))/100;
+    const monthlyFor = (t) => Math.floor(Math.max(0, totalFor(t) - deposit) * 100 / (t.years * 12)) / 100; // (total - deposit) / months
     const total = plan === 'cash' ? spot : totalFor(term);
     const customNum = Math.round(Number(String(custom).replace(/[^0-9.]/g, '')) || 0);
     const customMonths = customNum > 0 ? Math.ceil(Math.max(0,total-deposit) / customNum) : 0;
@@ -687,7 +690,7 @@
           </div>
         </div>);
     } else if (step !== 3) {
-      body = <SitePlan plan={plan0} planErr={planErr} taken={taken} lot={lot} setLot={setLot} filter={filter} setFilter={setFilter} priceOf={priceOf} descOf={descOf} openIds={openIds} counts={counts} onContinue={goDetails} phone={PAY_INFO.phone} wrapStyle={WRAP} />;
+      body = <SitePlan plan={plan0} planErr={planErr} taken={taken} held={heldSet} lot={lot} setLot={setLot} filter={filter} setFilter={setFilter} priceOf={priceOf} descOf={descOf} openIds={openIds} counts={counts} onContinue={goDetails} phone={PAY_INFO.phone} wrapStyle={WRAP} />;
     } else {
       const t = TYPES[typeId] || TYPES.regular;
       body = (
@@ -797,6 +800,8 @@
   }
 
   window.PresaleFlow = PresaleFlow;
+  window.PresalePlanMap = PlanMap;
+  window.PRESALE_PLAN_TYPES = { TYPES, BY_LETTER };
   window.PresaleContext = React.createContext({ openPresale: () => {} });
   window.PRESALE_TYPE_IDS = SITE_TYPE_IDS;
 })();
