@@ -54,7 +54,7 @@ const PALETTES = {
 };
 
 /* ---------- Pricing (base in PHP) ----------
-   Sourced from the park's actual price list. No down payment on any plan —
+   Sourced from the park's actual price list. A PHP 3,000 down payment applies (see DOWN_PAYMENT) —
    installment plans instead apply a surcharge to the spot-cash price, then
    divide evenly by the term. Verified against every example in the source
    price list (Regular, Garden, and Family Vault categories all matched this
@@ -69,6 +69,14 @@ const PLAN_TERMS = [
 { key: '8yr', label: '8-Year Plan', months: 96, surcharge: 0.45 },
 { key: '9yr', label: '9-Year Plan', months: 108, surcharge: 0.50 },
 { key: '10yr', label: '10-Year Plan', months: 120, surcharge: 0.55 }];
+
+/* Down payment: every installment plan starts with a PHP 3,000 down payment per plot, and the rest is
+   divided over the chosen years. Family Vault (and the Mausoleums) have their own down payment, which
+   our staff arrange with the buyer, so no monthly figure is shown for them. */
+const DOWN_PAYMENT = 3000;
+const STAFF_ARRANGED_IDS = ['family-vault'];
+const downFor = (id) => STAFF_ARRANGED_IDS.includes(id) ? 0 : DOWN_PAYMENT;
+const monthlyAfterDown = (total, term, down) => term.months ? Math.floor(Math.max(0, total - down) * 100 / term.months) / 100 : null;
 
 
 const BASE_TIERS = [
@@ -1269,7 +1277,7 @@ function Tiers({ tiers }) {
             <h2 style={{ marginTop: 18 }}>Eight ways to plan ahead — from ₱30,000.</h2>
           </div>
           <div className="side">
-            Every plot includes perpetual care and all-faiths welcome. No down payment on any installment plan — pay spot cash, or spread the (surcharged) total over 3 to 10 years.
+            Every plot includes perpetual care and all-faiths welcome. Installment plans start with a ₱3,000 down payment per plot, and the rest is spread over 3 to 10 years. Or pay spot cash.
           </div>
         </div>
         {categories.map((cat) => {
@@ -1319,7 +1327,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
   const idx = allTiers.findIndex((t) => t.id === tier.id);
   const isSelected = selectedTierId === tier.id;
   const fiveYear = PLAN_TERMS[PLAN_TERMS.length - 1]; // lowest monthly = longest term (10 years)
-  const monthly = tier.price * (1 + fiveYear.surcharge) / fiveYear.months;
+  const monthly = STAFF_ARRANGED_IDS.includes(tier.id) ? null : monthlyAfterDown(tier.price * (1 + fiveYear.surcharge), fiveYear, DOWN_PAYMENT);
   const sceneKey = tierSceneKey(tier);
   return (
     <div
@@ -1430,7 +1438,9 @@ function PaymentCalculator({ tiers }) {
   const term = PLAN_TERMS.find((t) => t.key === termKey) || PLAN_TERMS[0];
   const isCash = term.key === 'cash';
   const total = price * (1 + term.surcharge);
-  const monthly = isCash ? 0 : total / term.months;
+  const staffArranged = STAFF_ARRANGED_IDS.includes(tier?.id);
+  const down = downFor(tier?.id);
+  const monthly = isCash || staffArranged ? 0 : monthlyAfterDown(total, term, down);
   const surchargeAmt = total - price;
 
   return (
@@ -1438,8 +1448,8 @@ function PaymentCalculator({ tiers }) {
       <h3>{selectedTierId ? `Your plan: ${tier?.name || ''}` : 'Build your own plan'}</h3>
       <div className="calc-sub">
         {selectedTierId ?
-        'Pick a payment term below — no down payment on any plan.' :
-        'Pick a plot and a term — no down payment on any plan.'}
+        'Pick a payment term below — pay ₱3,000 down first, then monthly.' :
+        'Pick a plot and a term — pay ₱3,000 down first, then monthly.'}
       </div>
 
       <div className="calc-row">
@@ -1466,18 +1476,23 @@ function PaymentCalculator({ tiers }) {
         {isCash ?
         <>
             <div className="box"><div className="lbl">Spot cash price</div><div className="val">{fmt(price)}</div></div>
-            <div className="box"><div className="lbl">Down payment</div><div className="val">None</div></div>
+            <div className="box"><div className="lbl">Down payment</div><div className="val">None (full payment)</div></div>
             <div className="box wide"><div className="lbl">Due today</div><div className="val">{fmt(price)}</div></div>
           </> :
 
         <>
             <div className="box"><div className="lbl">Surcharge ({Math.round(term.surcharge * 100)}%)</div><div className="val">{fmt(surchargeAmt)}</div></div>
             <div className="box"><div className="lbl">Total over {term.months}mo</div><div className="val">{fmt(total)}</div></div>
-            <div className="box wide"><div className="lbl">Monthly payment</div><div className="val">{fmt(monthly)}/mo</div></div>
+            {staffArranged ?
+            <div className="box wide"><div className="lbl">Down payment and monthly</div><div className="val" style={{ fontSize: 16 }}>Please ask our staff for assistance</div></div> :
+            <>
+            <div className="box"><div className="lbl">Pay first (down payment)</div><div className="val">{fmt(down)}</div></div>
+            <div className="box wide"><div className="lbl">Then monthly payment</div><div className="val">{fmt(monthly)}/mo</div></div>
+            </>}
           </>}
 
       </div>
-      <p className="small" style={{ marginTop: 10 }}>No down payment required on any plan. Late payments incur a 2% monthly penalty.</p>
+      <p className="small" style={{ marginTop: 10 }}>The ₱3,000 down payment must be paid first before the monthly installments begin. Late payments incur a 2% monthly penalty.</p>
       <a href="#brochure" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}>
         Lock this plan · Request the price list
       </a>
@@ -1502,7 +1517,7 @@ function PaymentPlans({ tiers }) {
   const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
   const fiveYear = PLAN_TERMS[PLAN_TERMS.length - 1];
   const cheapest = tiers.reduce((min, t) => t.price < min.price ? t : min, tiers[0] || { price: 0 });
-  const lowestMonthly = cheapest.price * (1 + fiveYear.surcharge) / fiveYear.months;
+  const lowestMonthly = monthlyAfterDown(cheapest.price * (1 + fiveYear.surcharge), fiveYear, DOWN_PAYMENT);
   // Which term column gets the "lowest monthly" highlight + badge
   const BEST_VALUE_KEY = '5yr';
 
@@ -1520,7 +1535,7 @@ function PaymentPlans({ tiers }) {
             <h2 style={{ marginTop: 18 }}>Own a piece of peace — for as little as {fmt(lowestMonthly)} a month.</h2>
           </div>
           <div className="side">
-            No down payment on any plan. Choose spot cash, or spread the total over 3 to 10 years — the longer the term, the higher the surcharge, but the lower your monthly payment.
+            Pay a ₱3,000 down payment first, then spread the rest over 3 to 10 years — the longer the term, the higher the surcharge, but the lower your monthly payment. Or pay spot cash.
           </div>
         </div>
 
@@ -1561,10 +1576,14 @@ function PaymentPlans({ tiers }) {
                       <td><strong>{t.name}</strong></td>
                       {PLAN_TERMS.map((term) => {
                       const total = t.price * (1 + term.surcharge);
-                      const monthly = term.months ? total / term.months : null;
+                      const monthly = STAFF_ARRANGED_IDS.includes(t.id) ? null : monthlyAfterDown(total, term, DOWN_PAYMENT);
                       return (
                         <td key={term.key} className={term.key === BEST_VALUE_KEY ? 'highlight' : ''}>
                             <div>{fmt(total)}</div>
+                            {term.months && monthly === null &&
+                          <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2, fontWeight: 400 }}>
+                                Ask our staff
+                              </div>}
                             {monthly &&
                           <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2, fontWeight: 400 }}>
                                 {fmt(monthly)}/mo · {term.months}mo
@@ -1577,7 +1596,7 @@ function PaymentPlans({ tiers }) {
                 </tbody>
               </table>
               <p className="small" style={{ marginTop: 10 }}>
-                {guideTier.name} shown at {fmt(guideTier.price)} spot cash · no down payment on any plan.
+                {guideTier.name} shown at {fmt(guideTier.price)} spot cash · {STAFF_ARRANGED_IDS.includes(guideTier.id) ? 'the down payment is arranged with our staff.' : 'monthly figures are after the first ₱3,000 down payment.'}
               </p>
 
               <div style={{ marginTop: 14 }}>
@@ -1612,7 +1631,7 @@ function PaymentPlans({ tiers }) {
             <a href="#brochure" className="btn btn-primary">Get a custom quote</a>
           </div>
           <p className="small" style={{ marginTop: 18 }}>
-            No down payment on any plan; a 2% monthly penalty applies to late payments.
+            The ₱3,000 down payment per plot is paid first (Family Vault and Mausoleum: ask our staff). A 2% monthly penalty applies to late payments.
           </p>
         </div>
       </div>
@@ -1712,7 +1731,7 @@ function PrePostNeed() {
             </div>
             <ul>
               <li><span className="check">✓</span> Lock today's price — protected from yearly increases</li>
-              <li><span className="check">✓</span> 0–10% down payment, terms up to 60 months</li>
+              <li><span className="check">✓</span> ₱3,000 down payment, then 3 to 10 year terms</li>
               <li><span className="check">✓</span> Transferable to any family member or third party</li>
               <li><span className="check">✓</span> Full refund within 30 days of reservation</li>
               <li><span className="check">✓</span> Choice of any open section, including premium blocks</li>
@@ -2580,7 +2599,8 @@ function CartDrawer({ open, onClose }) {
   };
   const rawSubtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   const subtotal = rawSubtotal * (1 + selectedTerm.surcharge);
-  const monthly = selectedTerm.months ? subtotal / selectedTerm.months : null;
+  const cartDown = cart.reduce((sum, i) => sum + downFor(i.id) * i.qty, 0);
+  const monthly = selectedTerm.months ? monthlyAfterDown(subtotal, selectedTerm, cartDown) : null;
   const itemCount = cart.reduce((sum, i) => sum + i.qty, 0);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -2836,7 +2856,7 @@ function CartDrawer({ open, onClose }) {
                 </div>
                 {monthly &&
                 <p style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: -10, marginBottom: 4, textAlign: 'right' }}>
-                    {fmt(monthly)}/mo · {selectedTerm.months}mo
+                    {cartDown > 0 ? `Pay ${fmt(cartDown)} down first, then ` : ''}{fmt(monthly)}/mo · {selectedTerm.months}mo
                   </p>}
 
                 <button className="gh-cart-btn" type="submit" disabled={saving}>
