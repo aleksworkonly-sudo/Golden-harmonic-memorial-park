@@ -525,8 +525,7 @@
     const totalFor = (t) => Math.round(instBase * (1 + t.surcharge));
     const listTotalFor = (t) => Math.round(listSum * (1 + t.surcharge));
     const deposit = allLots.length * 3000;
-    const monthlyFor = (t) => Math.round(totalFor(t) * 100 / (t.years * 12)) / 100; // total / months, as on the price list
-    const monthsWithDeposit = (t) => Math.min(t.years * 12, Math.ceil(Math.max(0, totalFor(t) - deposit) / monthlyFor(t)));
+    const monthlyFor = (t) => Math.floor(Math.max(0, totalFor(t) - deposit) * 100 / (t.years * 12)) / 100; // (total - deposit) / months
     const total = plan === 'cash' ? spot : totalFor(term);
     const customNum = Math.round(Number(String(custom).replace(/[^0-9.]/g, '')) || 0);
     const customMonths = customNum > 0 ? Math.ceil(Math.max(0,total-deposit) / customNum) : 0;
@@ -756,7 +755,7 @@
             <div style={{ ...S.note, marginTop: 8 }}>
               {['gcash','maya'].includes(method) && <p><b>Reservation deposit:</b> {peso(deposit)}, credited toward your plan. Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.</p>}
               {plan === 'cash' ? <div><b>You pay:</b> {peso(total)} by {methodInfo.label}</div> :
-                <div><b>You pay:</b> {peso(deposit)} deposit, then approximately {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}. Your deposit counts toward this total, so you finish in about {monthsWithDeposit(term)} months instead of {term.years * 12}; the last payment is the remainder. Monthly payments start after the deposit is verified.</div>}
+                <div><b>You pay:</b> {peso(deposit)} deposit, then approximately {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}. The deposit is part of this total. Monthly payments start after the deposit is verified; the final payment adjusts for cents.</div>}
               <div style={{ marginTop: 4, fontSize: 15 }}>Our staff will tell you exactly how and where to pay when they call you.</div>
             </div>
           </div>
