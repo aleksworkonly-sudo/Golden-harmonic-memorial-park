@@ -40,7 +40,7 @@ function getDb() {
   return admin.firestore();
 }
 
-const { VALOR_FAMILY, PLAN_BLOCK, TOTAL, LEGACY_BLOCKS, DEFAULT_PRICES, SPOT_DISCOUNT, SURCHARGE, TYPE_LABEL, typeOfPlot, plotCode } = require('../lib/presale-plan');
+const { STAFF_ONLY, VALOR_FAMILY, PLAN_BLOCK, TOTAL, LEGACY_BLOCKS, DEFAULT_PRICES, SPOT_DISCOUNT, SURCHARGE, TYPE_LABEL, typeOfPlot, plotCode } = require('../lib/presale-plan');
 const KNOWN_BLOCKS = [PLAN_BLOCK, ...LEGACY_BLOCKS]; // legacy A-D can still be READ (taken list); new reservations are plan plots only
 const MAX_PLOTS = 100;     // safety ceiling only (one Firestore transaction must stay small)
 
@@ -218,6 +218,7 @@ module.exports = async function handler(req, res) {
   for (const w of wanted) {
     const typeId = typeOfPlot(w.lot);
     if (!(typeId in priceCache)) priceCache[typeId] = await priceFor(typeId, db);
+    if (STAFF_ONLY.includes(typeId)) return res.status(400).json({ error: `${TYPE_LABEL[typeId]} plots have their own down payment. Please ask our staff for assistance.` });
     if (VALOR_FAMILY.includes(typeId)) {
       if (!valorOpen) valorOpen = await valorOpenSet(db);
       if (!valorOpen.has(w.lot)) return res.status(400).json({ error: `Plot ${w.lot} is not open for sale yet. Please choose another plot.` });

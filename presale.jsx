@@ -44,6 +44,8 @@
   const TYPE_IDS = ['regular', 'valor', 'garden-regular', 'family-vault', 'premium', 'premium-valor', 'garden-premium', 'corner-premium', 'corner-premium-valor', 'garden-corner', 'mausoleum'];
   const BY_LETTER = {};
   TYPE_IDS.forEach((id) => { BY_LETTER[TYPES[id].letter] = id; });
+  // Priced too high for the standard down payment: arranged with staff until the owners decide the terms.
+  const STAFF_ONLY = ['family-vault', 'mausoleum'];
   // The website's old "Reserve" buttons only cover these three; the map covers every type.
   const SITE_TYPE_IDS = ['regular', 'premium', 'corner-premium'];
 
@@ -326,6 +328,7 @@
       const id = BY_LETTER[plan.t[n - 1]];
       if (taken.has(n)) { setNotice('Plot ' + n + ' is already taken. Please touch another plot.'); return; }
       if (held.has(n)) { setNotice(TYPES[id].short + ' plot ' + n + ' is not open for sale yet. Please touch another plot.'); return; }
+      if (STAFF_ONLY.includes(id)) { setNotice(TYPES[id].short + ' plots have their own down payment. Please ask our staff for assistance' + (phone ? ': call ' + phone : '') + '.'); return; }
       if (!openIds[id]) { setNotice(TYPES[id].short + ' plots are not open for online reservation yet. Please call our office' + (phone ? ' at ' + phone : '') + '.'); return; }
       setNotice(''); setLot(n);
     };
@@ -499,7 +502,7 @@
 
     const heldSet = useMemo(() => new Set(heldList), [heldList]);
     const openIds = {};
-    TYPE_IDS.forEach((id) => { openIds[id] = priceOf(id) > 0; });
+    TYPE_IDS.forEach((id) => { openIds[id] = priceOf(id) > 0 && !STAFF_ONLY.includes(id); });
     const counts = useMemo(() => {
       const out = {};
       if (!plan0) return out;
