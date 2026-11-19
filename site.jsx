@@ -1062,19 +1062,44 @@ function Hero({ onOpenPortal }) {
           </div>
         </div>
         <div className="fade-up in">
-          <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <a href="/vicinity-map.jpg" target="_blank" rel="noopener" aria-label="Open the vicinity map in a new tab, full size" style={{ display: 'block', maxWidth: 520, width: '100%' }}>
-              <img src="/vicinity-map.jpg" alt="Vicinity map of Golden Harmonic Memorial Park, So. Igang, Brgy. Poblacion, Taytay, Palawan. The park is outlined in orange beside the Taytay–El Nido National Highway."
-                style={{ display: 'block', width: '100%', height: 'auto', maxHeight: 680, objectFit: 'contain', borderRadius: 14, border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }} />
-            </a>
-            <figcaption style={{ textAlign: 'center', maxWidth: 520 }}>
-              <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 22, lineHeight: 1.25 }}>Find us along the Taytay–El Nido National Highway</div>
-              <div style={{ marginTop: 6, fontSize: 15, opacity: 0.8 }}>So. Igang, Brgy. Poblacion, Taytay, Palawan</div>
-            </figcaption>
-          </figure>
+          <VicinityMap />
         </div>
       </div>
     </section>);
+
+}
+
+/* ---------- Vicinity map (top section): small picture, opens large with a Close button ---------- */
+function VicinityMap() {
+  const [open, setOpen] = useState(false);
+  useBodyScrollLock(open);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+  const alt = 'Vicinity map of Golden Harmonic Memorial Park, So. Igang, Brgy. Poblacion, Taytay, Palawan. The park is outlined in orange beside the Taytay–El Nido National Highway.';
+  return (
+    <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+      <button type="button" onClick={() => setOpen(true)} aria-label="Open the vicinity map larger"
+        style={{ display: 'block', padding: 0, border: 0, background: 'none', cursor: 'zoom-in', maxWidth: 380, width: '100%' }}>
+        <img src="/vicinity-map.jpg" alt={alt}
+          style={{ display: 'block', width: '100%', height: 'auto', maxHeight: 500, objectFit: 'contain', borderRadius: 14, border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }} />
+      </button>
+      <figcaption style={{ textAlign: 'center', maxWidth: 380 }}>
+        <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 21, lineHeight: 1.25 }}>Find us along the Taytay–El Nido National Highway</div>
+        <div style={{ marginTop: 6, fontSize: 15, opacity: 0.8 }}>So. Igang, Brgy. Poblacion, Taytay, Palawan</div>
+      </figcaption>
+      {open && (
+        <div role="dialog" aria-modal="true" aria-label="Vicinity map" onClick={() => setOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(15,22,19,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 16 }}>
+          <img src="/vicinity-map.jpg" alt={alt} onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 110px)', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10 }} />
+          <button type="button" autoFocus onClick={() => setOpen(false)}
+            style={{ minHeight: 48, padding: '0 28px', borderRadius: 999, border: '2px solid #fff', background: '#fff', color: '#14211b', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>✕ Close</button>
+        </div>)}
+    </figure>);
 
 }
 
