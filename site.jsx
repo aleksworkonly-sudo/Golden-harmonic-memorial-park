@@ -1083,9 +1083,9 @@ function VicinityMap() {
   return (
     <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
       <button type="button" onClick={() => setOpen(true)} aria-label="Open the vicinity map larger"
-        style={{ display: 'block', padding: 0, border: 0, background: 'none', cursor: 'zoom-in', maxWidth: 380, width: '100%' }}>
+        style={{ display: 'block', padding: 0, border: 0, background: 'none', cursor: 'zoom-in', maxWidth: '100%', lineHeight: 0 }}>
         <img src="/vicinity-map.jpg" alt={alt}
-          style={{ display: 'block', width: '100%', height: 'auto', maxHeight: 500, objectFit: 'contain', borderRadius: 14, border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }} />
+          style={{ display: 'block', width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: 500, borderRadius: 14, border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }} />
       </button>
       <figcaption style={{ textAlign: 'center', maxWidth: 380 }}>
         <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 21, lineHeight: 1.25 }}>Find us along the Taytay–El Nido National Highway</div>
