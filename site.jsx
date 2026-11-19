@@ -1091,14 +1091,14 @@ function VicinityMap() {
         <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 21, lineHeight: 1.25 }}>Find us along the Taytay–El Nido National Highway</div>
         <div style={{ marginTop: 6, fontSize: 15, opacity: 0.8 }}>So. Igang, Brgy. Poblacion, Taytay, Palawan</div>
       </figcaption>
-      {open && (
+      {open && ReactDOM.createPortal(
         <div role="dialog" aria-modal="true" aria-label="Vicinity map" onClick={() => setOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(15,22,19,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 16 }}>
+          style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(15,22,19,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 16 }}>
           <img src="/vicinity-map.jpg" alt={alt} onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 110px)', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10 }} />
           <button type="button" autoFocus onClick={() => setOpen(false)}
             style={{ minHeight: 48, padding: '0 28px', borderRadius: 999, border: '2px solid #fff', background: '#fff', color: '#14211b', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>✕ Close</button>
-        </div>)}
+        </div>, document.body)}
     </figure>);
 
 }
