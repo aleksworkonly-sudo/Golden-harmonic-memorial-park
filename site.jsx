@@ -1062,8 +1062,16 @@ function Hero({ onOpenPortal }) {
           </div>
         </div>
         <div className="fade-up in">
-          <Photo aspect="aspect-hero" image="/hero-tabon-cave.jpg" imagePosition="60% 55%" label="the soul's passage — after Palawan's Tabon Cave funerary boats"
-            items={[{ label: 'the soul\'s passage', caption: 'A motif carried from the Tabon Caves — Palawan\'s earliest funerary art, and the same lineage later carved into the Manunggul jar.' }]} />
+          <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <a href="/vicinity-map.jpg" target="_blank" rel="noopener" aria-label="Open the vicinity map in a new tab, full size" style={{ display: 'block', maxWidth: 520, width: '100%' }}>
+              <img src="/vicinity-map.jpg" alt="Vicinity map of Golden Harmonic Memorial Park, So. Igang, Brgy. Poblacion, Taytay, Palawan. The park is outlined in orange beside the Taytay–El Nido National Highway."
+                style={{ display: 'block', width: '100%', height: 'auto', maxHeight: 680, objectFit: 'contain', borderRadius: 14, border: '1px solid rgba(0,0,0,0.12)', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }} />
+            </a>
+            <figcaption style={{ textAlign: 'center', maxWidth: 520 }}>
+              <div style={{ fontFamily: 'var(--serif, Georgia, serif)', fontSize: 22, lineHeight: 1.25 }}>Find us along the Taytay–El Nido National Highway</div>
+              <div style={{ marginTop: 6, fontSize: 15, opacity: 0.8 }}>So. Igang, Brgy. Poblacion, Taytay, Palawan</div>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>);
