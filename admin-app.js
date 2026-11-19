@@ -4029,10 +4029,11 @@ function PresaleApplications({
   const [period, setPeriod] = useState('all'); // 'all' or 'YYYY-MM' for the Sales and VAT box
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
-  useEffect(() => window.db.collection('presaleApplications').orderBy('createdAt', 'desc').onSnapshot(snap => setRows(snap.docs.map(d => ({
+  const [loadErr, setLoadErr] = useState('');
+  useEffect(() => window.db.collection('presaleApplications').orderBy('createdAt', 'desc').onSnapshot(snap => { setLoadErr(''); setRows(snap.docs.map(d => ({
     _id: d.id,
     ...d.data()
-  })))), []);
+  }))); }, err => setLoadErr(err && err.code === 'permission-denied' ? 'Your account is not allowed to see presale reservations.' : 'Could not load the reservations. If you use an ad blocker or browser Shields (Brave), turn it off for this site and press Reload.')), []);
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(''), 2400);
@@ -4040,6 +4041,7 @@ function PresaleApplications({
     }
   }, [toast]);
   if (recordsError) return React.createElement(window.AdminPaymentRecords.ErrorNotice,{error:recordsError,retry:retryRecords});
+  if (!rows && loadErr) return plotEl("div", { className: "loading" }, plotEl("div", { style: { maxWidth: 420, textAlign: 'center', lineHeight: 1.5 } }, loadErr), plotEl("button", { className: "btn btn-outline btn-sm", style: { marginTop: 12 }, onClick: () => window.location.reload() }, "Reload"));
   if (!rows) return plotEl("div", {
     className: "loading"
   }, plotEl("div", {
