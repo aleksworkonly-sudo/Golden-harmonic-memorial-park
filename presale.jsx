@@ -682,7 +682,10 @@
               {info ? <div><b>Where:</b> {info}</div> : null}
               {PAY_INFO.hours && done.method === 'cash' ? <div><b>Office hours:</b> {PAY_INFO.hours}</div> : null}
             </div>
-            <div style={{ ...S.note, marginTop: 16 }}>
+            <div style={{ ...S.note, marginTop: 16, background: '#fff6dc', border: '2px solid #b08544' }}>
+              <b>Pay first:</b> a {peso(3000)} down payment for every plot{done.plots && done.plots.length > 1 ? ' (' + peso(3000 * done.plots.length) + ' in all)' : ''} must be paid before your {done.plan === 'cash' ? 'full payment' : 'monthly installments'} can continue.
+            </div>
+            <div style={{ ...S.note, marginTop: 12 }}>
               <b>What happens next:</b> our staff will call you to check your name and address. Your plot stays reserved while we do this. Your reservation is final once we receive your payment.
             </div>
             <div style={{ ...S.note, marginTop: 12 }}>
@@ -722,8 +725,16 @@
             <div style={{ fontSize: 15, color: '#4a564f', marginTop: 6 }}>You may reserve as many plots as you need. One payment plan covers all of them.</div>
           </div>
 
+          <div style={{ ...S.card, marginBottom: 16, border: '2px solid #b08544', background: '#fff6dc' }}>
+            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.06em', color: '#7a5a1f' }}>STEP 1 OF PAYING</div>
+            <div style={{ fontSize: 22, fontWeight: 800, margin: '4px 0 6px' }}>Pay {peso(deposit)} first</div>
+            <div style={{ fontSize: 17, lineHeight: 1.45 }}>
+              Every plot needs a <b>{peso(3000)} down payment</b> ({allLots.length} {allLots.length === 1 ? 'plot' : 'plots'} = <b>{peso(deposit)}</b>). You must pay this first, whether you choose spot cash or monthly installment. Your {plan === 'cash' ? 'full payment' : 'monthly payments'} can only continue after our staff verify it. The {peso(deposit)} is part of your total, not extra.
+            </div>
+          </div>
+
           <div style={{ ...S.card, marginBottom: 16 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>How will you pay?</div>
+            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Then, how will you pay the rest?</div>
             {[{ id: 'cash', title: 'Spot cash', sub: listSum > spot ? <span><b style={{ color: RED }}>{peso(spot)}</b> <Was n={listSum} size={15} /> <OffTag was={listSum} now={spot} size={13} /> paid in full</span> : peso(spot) + ' paid in full' }, { id: 'installment', title: 'Monthly installment', sub: 'Pay a little every month' }].map((o) => (
               <label key={o.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '12px 10px', borderRadius: 10, border: plan === o.id ? '2px solid #2f5d4c' : '1px solid #c9bd9f', background: plan === o.id ? '#eaf2ec' : '#fff', marginBottom: 8, cursor: 'pointer', fontSize: 18 }}>
                 <input type="radio" name="plan" checked={plan === o.id} onChange={() => setPlan(o.id)} style={{ width: 24, height: 24 }} />
@@ -758,9 +769,9 @@
                 <span><b>{m.label}</b><br /><span style={{ fontSize: 15, color: '#4a564f' }}>{['gcash','maya'].includes(m.id) && !wallets[m.id] ? 'Unavailable — awaiting a verified receiving QR. Do not send money.' : m.hint}</span></span>
               </label>))}
             <div style={{ ...S.note, marginTop: 8 }}>
-              {['gcash','maya'].includes(method) && <p><b>Reservation deposit:</b> {peso(deposit)}, credited toward your plan. Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.</p>}
-              {plan === 'cash' ? <div><b>You pay:</b> {peso(total)} by {methodInfo.label}</div> :
-                <div><b>You pay:</b> {peso(deposit)} deposit, then approximately {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}. The deposit is part of this total. Monthly payments start after the deposit is verified; the final payment adjusts for cents.</div>}
+              <p><b>First payment (down payment):</b> {peso(deposit)}, credited toward your plan.{['gcash','maya'].includes(method) ? ' Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.' : ' Our staff will verify it before your plan continues.'}</p>
+              {plan === 'cash' ? <div><b>You pay:</b> {peso(deposit)} down payment first, then the remaining {peso(Math.max(0, total - deposit))} (total {peso(total)}) by {methodInfo.label}. The down payment is part of this total.</div> :
+                <div><b>You pay:</b> {peso(deposit)} down payment first, then approximately {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}. The deposit is part of this total. Monthly payments only start after the down payment is verified; the final payment adjusts for cents.</div>}
               <div style={{ marginTop: 4, fontSize: 15 }}>Our staff will tell you exactly how and where to pay when they call you.</div>
             </div>
           </div>
