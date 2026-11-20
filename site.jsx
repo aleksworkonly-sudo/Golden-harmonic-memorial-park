@@ -2897,7 +2897,7 @@ function Footer() {
         </div>
         <div className="legal">
           <div>© 2026 Golden Harmonic Memorial Park</div>
-          <div><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></div>
+          <div><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="/company.html">Company Documents</a></div>
         </div>
       </div>
     </footer>);

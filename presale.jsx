@@ -729,7 +729,7 @@
             <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.06em', color: '#7a5a1f' }}>STEP 1 OF PAYING</div>
             <div style={{ fontSize: 22, fontWeight: 800, margin: '4px 0 6px' }}>Pay {peso(deposit)} first</div>
             <div style={{ fontSize: 17, lineHeight: 1.45 }}>
-              Every plot needs a <b>{peso(3000)} down payment</b> ({allLots.length} {allLots.length === 1 ? 'plot' : 'plots'} = <b>{peso(deposit)}</b>). You must pay this first, whether you choose spot cash or monthly installment. Your {plan === 'cash' ? 'full payment' : 'monthly payments'} can only continue after our staff verify it. The {peso(deposit)} is part of your total, not extra.
+              Every plot needs a <b>{peso(3000)} down payment</b> ({allLots.length} {allLots.length === 1 ? 'plot' : 'plots'} = <b>{peso(deposit)}</b>). You must pay this first, whether you choose spot cash or monthly installment. Your {plan === 'cash' ? 'full payment' : 'monthly payments'} can only continue after our staff verify it. The {peso(deposit)} is part of your total, not extra. <a href="/company.html" target="_blank" rel="noopener" style={{ color: '#1f4a39', fontWeight: 700 }}>See our company documents</a>.
             </div>
           </div>
 
