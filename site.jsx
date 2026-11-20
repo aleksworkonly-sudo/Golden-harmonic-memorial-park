@@ -2892,6 +2892,7 @@ function Footer() {
             <h4>Visit</h4>
             <ul>
               <li><a href="#brochure">Palawan · 4.9 ha</a></li>
+              <li><a href="https://www.google.com/maps?q=10.824991,119.513859" target="_blank" rel="noopener">Office: Valdez Building, Purok 4, Brgy. Poblacion, Taytay, Palawan · Get directions</a></li>
             </ul>
           </div>
         </div>

@@ -11,7 +11,7 @@
   const PAY_INFO = {
     phone: '0998 324 9859',    // shown on the "Need help? Call us" button
     email: 'goldenharmonicpalawan@gmail.com',
-    office: '',   // e.g. 'Golden Harmonic office, Poblacion, Taytay, Palawan'
+    office: 'Valdez Building, Purok 4, Brgy. Poblacion, Taytay, Palawan',
     hours: '',    // e.g. 'Monday to Saturday, 8:00 AM to 5:00 PM'
     gcash: '',    // e.g. 'Juan Dela Cruz · 09XX XXX XXXX'
     bank: '',     // e.g. 'BPI · Golden Harmonic Memorial Park · 0000-0000-00'
@@ -353,6 +353,7 @@
               <span style={{ fontSize: 24, fontWeight: 800 }}>{phone}</span>
               {PAY_INFO.email ? <span style={{ fontSize: 16, fontWeight: 600, marginTop: 2 }}>{PAY_INFO.email}</span> : null}
             </a>) : null}
+          <a href="https://www.google.com/maps?q=10.824991,119.513859" target="_blank" rel="noopener" style={{ display: 'block', fontSize: 17, fontWeight: 700, color: '#1f4a39', marginTop: 8 }}>Visit our office: Valdez Building, Purok 4, Brgy. Poblacion, Taytay, Palawan. Get directions</a>
         </div>
 
         <Steps step={1} />
