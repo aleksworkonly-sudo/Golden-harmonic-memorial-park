@@ -434,7 +434,12 @@
       return t && t.price > 0 ? Math.round(t.price) : TYPES[id].fallback;
     };
 
+    // One plot holds two crypt spaces, but the price covers one crypt only. Family Vault: five spaces, one included.
+    const cryptNote = (id) => id === 'mausoleum' ? '' :
+      id === 'family-vault' ? 'Contains five (5) crypt spaces. Your purchase includes one (1) crypt; the other four may be separately owned.' :
+      'Contains two (2) crypt spaces. Your purchase includes one (1) crypt; the other may be separately owned.';
     const descOf = (id) => {
+      if (cryptNote(id)) return cryptNote(id);
       const t = (tiers || []).find((x) => x.id === id);
       const raw = t && t.desc ? t.desc : '';
       return raw.replace(/\s*Priced per crypt\/share\.?\s*$/i, '') || TYPES[id].short + ' plot';
@@ -770,6 +775,7 @@
                 <span><b>{m.label}</b><br /><span style={{ fontSize: 15, color: '#4a564f' }}>{['gcash','maya'].includes(m.id) && !wallets[m.id] ? 'Unavailable — awaiting a verified receiving QR. Do not send money.' : m.hint}</span></span>
               </label>))}
             <div style={{ ...S.note, marginTop: 8 }}>
+              {typeId && cryptNote(typeId) ? <p><b>What you are buying:</b> {cryptNote(typeId)}</p> : null}
               <p><b>First payment (down payment):</b> {peso(deposit)}, credited toward your plan.{['gcash','maya'].includes(method) ? ' Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.' : ' Our staff will verify it before your plan continues.'}</p>
               {plan === 'cash' ? <div><b>You pay:</b> {peso(deposit)} down payment first, then the remaining {peso(Math.max(0, total - deposit))} (total {peso(total)}) by {methodInfo.label}. The down payment is part of this total.</div> :
                 <div><b>You pay:</b> {peso(deposit)} down payment first, then {peso(monthly)} every month by {methodInfo.label} (the price list amount for {years} {years === 1 ? 'year' : 'years'}). Total {peso(total)}. The down payment is credited to your total, so your last payment is smaller and you finish a few months early. Monthly payments only start after the down payment is verified.</div>}
