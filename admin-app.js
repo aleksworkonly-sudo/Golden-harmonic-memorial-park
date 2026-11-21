@@ -1360,7 +1360,7 @@ function PlanFields({
   };
   const term = ALL_PLAN_TERMS.find(t => t.key === (p.termKey || '3yr')) || PLAN_TERMS[1];
   const total = (Number(p.price) || 0) * (1 + term.surcharge);
-  const monthly = term.months ? Math.round(Math.max(0, total - downFor(p.tierId)) / term.months) : 0;
+  const monthly = term.months ? Math.round(total / term.months) : 0;
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("label", null, "Plot / plan"), /*#__PURE__*/React.createElement("select", {
@@ -1435,7 +1435,7 @@ function buildPlanPayload(p) {
   const price = Number(p.price) || 0;
   const total = price * (1 + term.surcharge);
   const downPayment = term.months ? downFor(p.tierId) : 0;
-  const monthlyAmount = term.months ? Math.round(Math.max(0, total - downPayment) / term.months) : 0;
+  const monthlyAmount = term.months ? Math.round(total / term.months) : 0;
   return {
     downPayment,
     tierId: p.tierId,
@@ -3020,7 +3020,7 @@ function Products() {
         display: 'inline-block',
         marginRight: 12
       }
-    }, t.label.replace(' Plan', ''), ": ", fmt(Math.round(Math.max(0, price * (1 + t.surcharge) - downFor(p._id)) / t.months)), "/mo"))), /*#__PURE__*/React.createElement("div", {
+    }, t.label.replace(' Plan', ''), ": ", fmt(Math.round(price * (1 + t.surcharge) / t.months)), "/mo"))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         alignItems: 'center',

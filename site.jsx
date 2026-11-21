@@ -76,7 +76,7 @@ const PLAN_TERMS = [
 const DOWN_PAYMENT = 3000;
 const STAFF_ARRANGED_IDS = ['family-vault'];
 const downFor = (id) => STAFF_ARRANGED_IDS.includes(id) ? 0 : DOWN_PAYMENT;
-const monthlyAfterDown = (total, term, down) => term.months ? Math.floor(Math.max(0, total - down) * 100 / term.months) / 100 : null;
+const monthlyAfterDown = (total, term, down) => term.months ? Math.round(total * 100 / term.months) / 100 : null; // price-list amount: total / months; the down payment is credited so the plan finishes a few months early
 
 
 const BASE_TIERS = [
@@ -1602,7 +1602,7 @@ function PaymentPlans({ tiers }) {
                 </tbody>
               </table>
               <p className="small" style={{ marginTop: 10 }}>
-                {guideTier.name} shown at {fmt(guideTier.price)} spot cash · {STAFF_ARRANGED_IDS.includes(guideTier.id) ? 'the down payment is arranged with our staff.' : 'monthly figures are after the first ₱3,000 down payment.'}
+                {guideTier.name} shown at {fmt(guideTier.price)} spot cash · {STAFF_ARRANGED_IDS.includes(guideTier.id) ? 'the down payment is arranged with our staff.' : 'monthly amounts are the price list amounts, and the ₱3,000 down payment is credited to your total.'}
               </p>
 
               <div style={{ marginTop: 14 }}>

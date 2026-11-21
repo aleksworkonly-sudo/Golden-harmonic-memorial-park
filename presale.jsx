@@ -531,7 +531,7 @@
     const totalFor = (t) => Math.round(instBase * (1 + t.surcharge));
     const listTotalFor = (t) => Math.round(listSum * (1 + t.surcharge));
     const deposit = allLots.length * 3000;
-    const monthlyFor = (t) => Math.floor(Math.max(0, totalFor(t) - deposit) * 100 / (t.years * 12)) / 100; // (total - deposit) / months
+    const monthlyFor = (t) => Math.round(totalFor(t) * 100 / (t.years * 12)) / 100; // total / months, as on the price list
     const total = plan === 'cash' ? spot : totalFor(term);
     const customNum = Math.round(Number(String(custom).replace(/[^0-9.]/g, '')) || 0);
     const customMonths = customNum > 0 ? Math.ceil(Math.max(0,total-deposit) / customNum) : 0;
@@ -772,7 +772,7 @@
             <div style={{ ...S.note, marginTop: 8 }}>
               <p><b>First payment (down payment):</b> {peso(deposit)}, credited toward your plan.{['gcash','maya'].includes(method) ? ' Your plots are held before the QR is shown. Upload proof after paying; an admin must verify it.' : ' Our staff will verify it before your plan continues.'}</p>
               {plan === 'cash' ? <div><b>You pay:</b> {peso(deposit)} down payment first, then the remaining {peso(Math.max(0, total - deposit))} (total {peso(total)}) by {methodInfo.label}. The down payment is part of this total.</div> :
-                <div><b>You pay:</b> {peso(deposit)} down payment first, then approximately {peso(monthly)} every month for {years} {years === 1 ? 'year' : 'years'} by {methodInfo.label}. Total {peso(total)}. The deposit is part of this total. Monthly payments only start after the down payment is verified; the final payment adjusts for cents.</div>}
+                <div><b>You pay:</b> {peso(deposit)} down payment first, then {peso(monthly)} every month by {methodInfo.label} (the price list amount for {years} {years === 1 ? 'year' : 'years'}). Total {peso(total)}. The down payment is credited to your total, so your last payment is smaller and you finish a few months early. Monthly payments only start after the down payment is verified.</div>}
               <div style={{ marginTop: 4, fontSize: 15 }}>Our staff will tell you exactly how and where to pay when they call you.</div>
             </div>
           </div>
