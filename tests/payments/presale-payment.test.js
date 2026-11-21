@@ -13,7 +13,7 @@ test('new manual reservation atomically holds plots and provisions zero-credit c
   const b=f.db.read('bookings/PRESALE-PS-0001');assert.equal(b.balanceCentavos,5700000);assert.equal(b.netCreditCentavos,0);
   assert.equal(b.monthlyCentavos,null);assert.equal(b.notificationContact.enabled,false);
   assert.equal(b.lifecycleTerms.depositPerPlotCentavos,300000);
-  assert.equal(b.lifecycleTerms.installmentCalculation,'remaining_after_deposit_v1');
+  assert.equal(b.lifecycleTerms.installmentCalculation,'total_over_term_v2');
   assert.equal(f.db.read('plots/A_1').hold,true);assert.equal(f.db.read('plots/A_1').paymentBookingId,'PRESALE-PS-0001');
   assert.equal(f.db.read('presaleApplications/PS-0001').accessVersion,1);assert.equal(f.db.count('receipts'),0);
   assert.equal(f.db.count('ledgerEntries'),1);assert.equal(f.db.count('payments'),0);
