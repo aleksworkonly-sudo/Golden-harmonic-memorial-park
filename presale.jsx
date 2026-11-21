@@ -31,14 +31,14 @@
      website's product list has no price; types without one are "not open yet". */
   const TYPES = {
     'regular': { letter: 'r', name: 'Regular Plot', short: 'Regular', fallback: 30000, photo: '/regular_plot.jpg', color: '#4d7dc4' },
-    'valor': { letter: 'v', name: 'Valor Plot', short: 'Valor', fallback: 40000, photo: '/valor_plot.png', color: '#9670c4' },
+    'valor': { letter: 'v', name: 'Valor Plot', short: 'Valor', fallback: 40000, photo: '/valor_plot.jpg', color: '#9670c4' },
     'garden-regular': { letter: 'g', name: 'Garden Plot', short: 'Garden', fallback: 37500, photo: '/regular_garden_plot.jpg', color: '#43a670' },
-    'family-vault': { letter: 'f', name: 'Family Vault', short: 'Family Vault', fallback: 105000, photo: '/family_vault.png', color: '#3d9ca3' },
+    'family-vault': { letter: 'f', name: 'Family Vault', short: 'Family Vault', fallback: 105000, photo: '/family_vault.jpg', color: '#3d9ca3' },
     'premium': { letter: 'p', name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', color: '#e0b31f' },
-    'premium-valor': { letter: 'q', name: 'Premium Valor Plot', short: 'Premium Valor', fallback: 40000, photo: '/valor_plot.png', color: '#e0b31f' },
+    'premium-valor': { letter: 'q', name: 'Premium Valor Plot', short: 'Premium Valor', fallback: 40000, photo: '/valor_plot.jpg', color: '#e0b31f' },
     'garden-premium': { letter: 'h', name: 'Premium Garden Plot', short: 'Premium Garden', fallback: 47500, photo: '/premium_garden_plot.jpg', color: '#e0b31f' },
     'corner-premium': { letter: 'c', name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', color: '#d4591c' },
-    'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 40000, photo: '/valor_plot.png', color: '#d4591c' },
+    'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 40000, photo: '/valor_plot.jpg', color: '#d4591c' },
     'garden-corner': { letter: 'e', name: 'Corner Premium Garden Plot', short: 'Corner Premium Garden', fallback: 57500, photo: '/corner_prime_garden_plot.jpg', color: '#d4591c' },
     'mausoleum': { letter: 'm', name: 'Mausoleum', short: 'Mausoleum', fallback: 2200000, photo: '/mausoleum_serenity.jpg', color: '#efe7d2' }
   };
@@ -411,7 +411,7 @@
         <div style={{ position: 'sticky', bottom: 0, zIndex: 3, margin: '0 -4px', padding: '14px 16px', background: '#fffdf6', border: '3px solid #0f2a21', borderRadius: 14, boxShadow: '0 -4px 14px rgba(0,0,0,.18)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
           {sel ? (
             <>
-              <img src={TYPES[selId].photo} alt="" style={{ width: 84, height: 62, objectFit: 'cover', borderRadius: 8 }} />
+              <img src={TYPES[selId].photo} alt="" style={{ width: 84, height: 62, objectFit: 'cover', objectPosition: 'center 68%', borderRadius: 8 }} />
               <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#0f2a21' }}>Plot {sel} · {TYPES[selId].name}</div>
                 <div style={{ fontSize: 18, color: '#2f3f38' }}>
@@ -704,7 +704,7 @@
           <Steps step={3} />
           <h2 style={S.h2}>Your plot and your details</h2>
           <div style={{ ...S.card, marginBottom: 16, display: 'flex', gap: 14, alignItems: 'center' }}>
-            <img src={t.photo} alt={t.name} style={{ width: 96, aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
+            <img src={t.photo} alt={t.name} style={{ width: 96, aspectRatio: '4 / 3', objectFit: 'cover', objectPosition: 'center 68%', borderRadius: 8 }} />
             <div>
               <div style={{ fontSize: 14, color: '#4a564f' }}>You are buying</div>
               <div style={{ fontSize: 22, fontWeight: 800 }}>{lot ? code(block, lot) : '...'}</div>
