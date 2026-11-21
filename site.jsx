@@ -119,7 +119,7 @@ const BASE_TIERS = [
   id: 'valor', name: 'Valor Plot', category: 'Family Vault', price: 40000,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem'],
-  label: 'valor plot — memorial marker', image: '/valor_plot.png'
+  label: 'valor plot — memorial marker', image: '/valor_plot.jpg'
 }];const PLOT_MESSAGES = {
   'regular': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   'premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
@@ -195,7 +195,8 @@ function LightboxRoot({ children }) {
             {state.items.length > 1 &&
           <button className="lb-btn lb-prev" onClick={() => step(-1)} aria-label="Previous">‹</button>}
 
-            <div className={`ph aspect-wide ${(state.items[state.index].image || state.items[state.index].scene) ? 'illustrated' : ''}`}>
+            <div className={`ph ${isPortraitImage(state.items[state.index].image) ? 'aspect-portrait' : 'aspect-wide'} ${(state.items[state.index].image || state.items[state.index].scene) ? 'illustrated' : ''}`}
+              style={isPortraitImage(state.items[state.index].image) ? { width: 'min(100%, 68vh)', margin: '0 auto' } : undefined}>
               {state.items[state.index].image
                 ? <img
                     src={state.items[state.index].image}
@@ -222,8 +223,13 @@ function LightboxRoot({ children }) {
 
 }
 
+/* The new plot pictures are tall (5:6) with the title built in, so they get a tall frame instead of being cropped. */
+const PORTRAIT_IMAGES = ['/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
+const isPortraitImage = (src) => PORTRAIT_IMAGES.includes(src);
+
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
 function Photo({ label, caption, items, index, aspect = '', className = '', style, scene, image, imagePosition }) {
+  if (image && isPortraitImage(image)) aspect = 'aspect-portrait';
   const openLightbox = useLightbox();
   const group = (items || [{ label, caption: caption || label }]).map((it) => ({
     image: it.image || image,
@@ -482,8 +488,8 @@ const LOCAL_PLOT_IMAGES = {
   'garden-regular': '/regular_garden_plot.jpg',
   'garden-premium': '/premium_garden_plot.jpg',
   'garden-corner': '/corner_prime_garden_plot.jpg',
-  'family-vault': '/family_vault.png',
-  'valor': '/valor_plot.png'
+  'family-vault': '/family_vault.jpg',
+  'valor': '/valor_plot.jpg'
 };
 
 /* ---------- App ---------- */
