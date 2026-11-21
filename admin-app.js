@@ -53,6 +53,10 @@ const PLAN_TERMS = [{
   surcharge: 0.55
 }];
 // Older customers may still be on a 1 or 2 year plan; these are only for looking them up.
+// Installment plans start with a PHP 3,000 down payment per plot; Family Vault and the Mausoleums have their own down payment arranged by staff.
+const DOWN_PAYMENT = 3000;
+const staffArrangedTier = id => id === 'family-vault' || /mausoleum/i.test(String(id || ''));
+const downFor = id => staffArrangedTier(id) ? 0 : DOWN_PAYMENT;
 const LEGACY_PLAN_TERMS = [{ key: '1yr', label: '1-Year Plan', months: 12, surcharge: 0.10 }, { key: '2yr', label: '2-Year Plan', months: 24, surcharge: 0.15 }];
 const ALL_PLAN_TERMS = [...PLAN_TERMS, ...LEGACY_PLAN_TERMS];
 const BASE_TIERS = [{
@@ -1356,7 +1360,7 @@ function PlanFields({
   };
   const term = ALL_PLAN_TERMS.find(t => t.key === (p.termKey || '3yr')) || PLAN_TERMS[1];
   const total = (Number(p.price) || 0) * (1 + term.surcharge);
-  const monthly = term.months ? Math.round(total / term.months) : 0;
+  const monthly = term.months ? Math.round(Math.max(0, total - downFor(p.tierId)) / term.months) : 0;
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("label", null, "Plot / plan"), /*#__PURE__*/React.createElement("select", {
@@ -1404,7 +1408,7 @@ function PlanFields({
     })
   }))), /*#__PURE__*/React.createElement("div", {
     className: "field"
-  }, /*#__PURE__*/React.createElement("label", null, "Payment term — no down payment on any plan"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("label", null, "Payment term — ₱3,000 down payment first (Family Vault and Mausoleum: arranged by staff)"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 6,
@@ -1423,15 +1427,17 @@ function PlanFields({
       color: 'var(--ink-3)',
       marginTop: 6
     }
-  }, term.key === 'cash' ? `Due in full: ${fmt(p.price)}` : `${fmt(monthly)}/mo for ${term.months} months (total ${fmt(total)}, includes ${Math.round(term.surcharge * 100)}% surcharge)`))));
+  }, term.key === 'cash' ? `Due in full: ${fmt(p.price)}` : `${downFor(p.tierId) ? `Pay ${fmt(downFor(p.tierId))} down first, then ` : 'Down payment arranged with staff, then '}${fmt(monthly)}/mo for ${term.months} months (total ${fmt(total)}, includes ${Math.round(term.surcharge * 100)}% surcharge)`))));
 }
 function buildPlanPayload(p) {
   if (!p || !p.tierId) return null;
   const term = ALL_PLAN_TERMS.find(t => t.key === (p.termKey || '3yr')) || PLAN_TERMS[1];
   const price = Number(p.price) || 0;
   const total = price * (1 + term.surcharge);
-  const monthlyAmount = term.months ? Math.round(total / term.months) : 0;
+  const downPayment = term.months ? downFor(p.tierId) : 0;
+  const monthlyAmount = term.months ? Math.round(Math.max(0, total - downPayment) / term.months) : 0;
   return {
+    downPayment,
     tierId: p.tierId,
     tierName: p.tierName,
     price,
@@ -3008,13 +3014,13 @@ function Products() {
         margin: '10px 0',
         lineHeight: 1.6
       }
-    }, "No down payment — surcharge + term applies:", /*#__PURE__*/React.createElement("br", null), PLAN_TERMS.slice(1).map(t => /*#__PURE__*/React.createElement("span", {
+    }, "₱3,000 down payment first, then monthly (Family Vault: arranged by staff):", /*#__PURE__*/React.createElement("br", null), PLAN_TERMS.slice(1).map(t => /*#__PURE__*/React.createElement("span", {
       key: t.key,
       style: {
         display: 'inline-block',
         marginRight: 12
       }
-    }, t.label.replace(' Plan', ''), ": ", fmt(Math.round(price * (1 + t.surcharge) / t.months)), "/mo"))), /*#__PURE__*/React.createElement("div", {
+    }, t.label.replace(' Plan', ''), ": ", fmt(Math.round(Math.max(0, price * (1 + t.surcharge) - downFor(p._id)) / t.months)), "/mo"))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         alignItems: 'center',
