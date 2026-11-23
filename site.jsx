@@ -99,7 +99,7 @@ const BASE_TIERS = [
   label: 'corner premium plot', image: '/corner_premium_plot.jpg'
 },
 {
-  id: 'garden-regular', name: 'Regular Garden Plot', category: 'Garden Plots', price: 37500,
+  id: 'garden-regular', name: 'Garden Plot', category: 'Garden Plots', price: 37500,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Garden setting'],
   label: 'regular garden plot'
@@ -111,23 +111,35 @@ const BASE_TIERS = [
   label: 'premium garden plot'
 },
 {
-  id: 'garden-corner', name: 'Corner Prime Garden Plot', category: 'Garden Plots', price: 57500,
+  id: 'garden-corner', name: 'Corner Premium Garden Plot', category: 'Garden Plots', price: 57500,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Prime corner placement'],
   label: 'corner prime garden plot'
 },
 {
-  id: 'family-vault', name: 'Family Vault Package', category: 'Family Vault', price: 105000,
-  desc: 'Contains five (5) crypt spaces. Purchase includes one (1) crypt only; the remaining four may be separately owned.',
-  features: ['1 crypt included (vault has 5 crypt spaces)', 'Payment plans available (surcharge applies)'],
-  label: 'family vault — apartment-style'
-},
-{
   // Live price comes from Firestore 'products' (id: 'valor'); this is the fallback
-  id: 'valor', name: 'Valor Plot', category: 'Family Vault', price: 40000,
+  id: 'valor', name: 'Valor Plot', category: 'Valor Plots', price: 40000,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem'],
   label: 'valor plot — memorial marker', image: '/valor_plot.jpg'
+},
+{
+  id: 'premium-valor', name: 'Premium Valor Plot', category: 'Valor Plots', price: 40000,
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem', 'Preferred section placement'],
+  label: 'premium valor plot', image: '/valor_plot.jpg'
+},
+{
+  id: 'corner-premium-valor', name: 'Corner Premium Valor Plot', category: 'Valor Plots', price: 40000,
+  desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem', 'Corner placement'],
+  label: 'corner premium valor plot', image: '/valor_plot.jpg'
+},
+{
+  id: 'family-vault', name: 'Family Vault', category: 'Family Vault', price: 105000,
+  desc: 'Contains five (5) crypt spaces. Purchase includes one (1) crypt only; the remaining four may be separately owned.',
+  features: ['1 crypt included (vault has 5 crypt spaces)', 'Payment plans available (surcharge applies)'],
+  label: 'family vault — apartment-style', image: '/family_vault.jpg'
 }];const PLOT_MESSAGES = {
   'regular': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   'premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
@@ -136,6 +148,8 @@ const BASE_TIERS = [
   'garden-premium': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   'garden-corner': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   'valor': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'premium-valor': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
+  'corner-premium-valor': 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   'family-vault': 'Contains five (5) crypt spaces. Purchase includes one (1) crypt only; the remaining four may be separately owned.'
 }
 
@@ -497,7 +511,9 @@ const LOCAL_PLOT_IMAGES = {
   'garden-premium': '/premium_garden_plot.jpg',
   'garden-corner': '/corner_prime_garden_plot.jpg',
   'family-vault': '/family_vault.jpg',
-  'valor': '/valor_plot.jpg'
+  'valor': '/valor_plot.jpg',
+  'premium-valor': '/valor_plot.jpg',
+  'corner-premium-valor': '/valor_plot.jpg'
 };
 
 /* ---------- App ---------- */
@@ -598,19 +614,13 @@ function App() {
           // Price, name and order come from the database; the wording that describes
           // what a buyer receives (desc + features) comes from this file, so an old
           // description saved in the Products tab cannot override the approved text.
-          const fromDb = snap.docs.map(d => {
-            const row = { id: d.id, ...d.data() };
-            const base = BASE_TIERS.find(t => t.id === d.id);
-            if (base) { row.desc = base.desc; row.features = base.features; }
-            return row;
+          const byId = new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
+          // Only the approved plot types are shown, in the same order and with the same
+          // names as the presale. Prices come from the database when it has them.
+          const fromDb = BASE_TIERS.map(base => {
+            const row = byId.get(base.id);
+            return row ? { ...row, name: base.name, category: base.category, desc: base.desc, features: base.features, image: row.image || base.image } : base;
           });
-          // Valor Plot always shows, even before it's added to Firestore.
-          // Once a 'valor' product exists in Firestore, that one wins.
-          if (!fromDb.some(t => t.id === 'valor')) {
-            const valor = BASE_TIERS.find(t => t.id === 'valor');
-            const at = fromDb.findIndex(t => t.id === 'family-vault');
-            if (valor) fromDb.splice(at >= 0 ? at + 1 : fromDb.length, 0, valor);
-          }
           setBaseTiers(fromDb);
         }
       })
@@ -1223,7 +1233,7 @@ function CarouselSlider({ slides = [] }) {
 
 function Tiers({ tiers }) {
   const isPWA = useIsPWA();
-  const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
+  const categories = ['Regular Plots', 'Garden Plots', 'Valor Plots', 'Family Vault'];
   return (
     <section className="block" id="tiers">
       <style>{`
@@ -1515,12 +1525,13 @@ function PaymentCalculator({ tiers }) {
 const CATEGORY_GUIDE_TIER_ID = {
   'Regular Plots': 'regular',
   'Garden Plots': 'garden-regular',
+  'Valor Plots': 'valor',
   'Family Vault': 'family-vault'
 };
 
 function PaymentPlans({ tiers }) {
   const { selectTier } = usePlanSelection();
-  const categories = ['Regular Plots', 'Garden Plots', 'Family Vault'];
+  const categories = ['Regular Plots', 'Garden Plots', 'Valor Plots', 'Family Vault'];
   const fiveYear = PLAN_TERMS[PLAN_TERMS.length - 1];
   const cheapest = tiers.reduce((min, t) => t.price < min.price ? t : min, tiers[0] || { price: 0 });
   const lowestMonthly = monthlyAfterDown(cheapest.price * (1 + fiveYear.surcharge), fiveYear, DOWN_PAYMENT);
@@ -2954,7 +2965,7 @@ function Tweaks({ t, setTweak, priceMult }) {
         <div style={{ fontSize: 11, color: 'rgba(41,38,27,.55)', marginTop: 4, padding: '0 4px', lineHeight: 1.6, fontFamily: 'JetBrains Mono, monospace' }}>
           Regular Plot · {fmt(30000 * priceMult)}<br />
           Family Vault · {fmt(105000 * priceMult)}<br />
-          Corner Prime Garden · {fmt(57500 * priceMult)}
+          Corner Premium Garden · {fmt(57500 * priceMult)}
         </div>
       </TweakSection>
     </TweaksPanel>);

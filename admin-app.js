@@ -85,7 +85,7 @@ const BASE_TIERS = [{
   features: ['1 interment space', 'Perpetual care included', 'Corner placement']
 }, {
   id: 'garden-regular',
-  name: 'Regular Garden Plot',
+  name: 'Garden Plot',
   category: 'Garden Plots',
   price: 37500,
   sortOrder: 4,
@@ -101,7 +101,7 @@ const BASE_TIERS = [{
   features: ['1 interment space', 'Perpetual care included', 'Preferred garden section']
 }, {
   id: 'garden-corner',
-  name: 'Corner Prime Garden Plot',
+  name: 'Corner Premium Garden Plot',
   category: 'Garden Plots',
   price: 57500,
   sortOrder: 6,
@@ -109,7 +109,7 @@ const BASE_TIERS = [{
   features: ['1 interment space', 'Perpetual care included', 'Prime corner placement']
 }, {
   id: 'family-vault',
-  name: 'Family Vault Package',
+  name: 'Family Vault',
   category: 'Family Vault',
   price: 105000,
   sortOrder: 7,
