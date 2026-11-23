@@ -246,7 +246,7 @@ function LightboxRoot({ children }) {
 }
 
 /* The new plot pictures are tall (5:6) with the title built in, so they get a tall frame instead of being cropped. */
-const PORTRAIT_IMAGES = ['/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
+const PORTRAIT_IMAGES = ['/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/corner_prime_garden_plot.jpg', '/premium_garden_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
 const isPortraitImage = (src) => PORTRAIT_IMAGES.includes(src);
 
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
