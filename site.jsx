@@ -127,13 +127,13 @@ const BASE_TIERS = [
   id: 'premium-valor', name: 'Premium Valor Plot', category: 'Valor Plots', price: 40000,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem', 'Preferred section placement'],
-  label: 'premium valor plot', image: '/valor_plot.jpg'
+  label: 'premium valor plot', image: '/premium_valor_plot.jpg'
 },
 {
   id: 'corner-premium-valor', name: 'Corner Premium Valor Plot', category: 'Valor Plots', price: 40000,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem', 'Corner placement'],
-  label: 'corner premium valor plot', image: '/valor_plot.jpg'
+  label: 'corner premium valor plot', image: '/corner_premium_valor_plot.jpg'
 },
 {
   id: 'family-vault', name: 'Family Vault', category: 'Family Vault', price: 105000,
@@ -246,7 +246,7 @@ function LightboxRoot({ children }) {
 }
 
 /* The new plot pictures are tall (5:6) with the title built in, so they get a tall frame instead of being cropped. */
-const PORTRAIT_IMAGES = ['/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/corner_prime_garden_plot.jpg', '/premium_garden_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
+const PORTRAIT_IMAGES = ['/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/corner_prime_garden_plot.jpg', '/premium_garden_plot.jpg', '/premium_valor_plot.jpg', '/corner_premium_valor_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
 const isPortraitImage = (src) => PORTRAIT_IMAGES.includes(src);
 
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
@@ -512,8 +512,8 @@ const LOCAL_PLOT_IMAGES = {
   'garden-corner': '/corner_prime_garden_plot.jpg',
   'family-vault': '/family_vault.jpg',
   'valor': '/valor_plot.jpg',
-  'premium-valor': '/valor_plot.jpg',
-  'corner-premium-valor': '/valor_plot.jpg'
+  'premium-valor': '/premium_valor_plot.jpg',
+  'corner-premium-valor': '/corner_premium_valor_plot.jpg'
 };
 
 /* ---------- App ---------- */

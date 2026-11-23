@@ -35,10 +35,10 @@
     'garden-regular': { letter: 'g', name: 'Garden Plot', short: 'Garden', fallback: 37500, photo: '/regular_garden_plot.jpg', color: '#43a670' },
     'family-vault': { letter: 'f', name: 'Family Vault', short: 'Family Vault', fallback: 105000, photo: '/family_vault.jpg', color: '#3d9ca3' },
     'premium': { letter: 'p', name: 'Premium Plot', short: 'Premium', fallback: 42500, photo: '/premium_plot.jpg', color: '#e0b31f' },
-    'premium-valor': { letter: 'q', name: 'Premium Valor Plot', short: 'Premium Valor', fallback: 40000, photo: '/valor_plot.jpg', color: '#e0b31f' },
+    'premium-valor': { letter: 'q', name: 'Premium Valor Plot', short: 'Premium Valor', fallback: 40000, photo: '/premium_valor_plot.jpg', color: '#e0b31f' },
     'garden-premium': { letter: 'h', name: 'Premium Garden Plot', short: 'Premium Garden', fallback: 47500, photo: '/premium_garden_plot.jpg', color: '#e0b31f' },
     'corner-premium': { letter: 'c', name: 'Corner Premium Plot', short: 'Corner Premium', fallback: 47500, photo: '/corner_premium_plot.jpg', color: '#d4591c' },
-    'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 40000, photo: '/valor_plot.jpg', color: '#d4591c' },
+    'corner-premium-valor': { letter: 'd', name: 'Corner Premium Valor Plot', short: 'Corner Premium Valor', fallback: 40000, photo: '/corner_premium_valor_plot.jpg', color: '#d4591c' },
     'garden-corner': { letter: 'e', name: 'Corner Premium Garden Plot', short: 'Corner Premium Garden', fallback: 57500, photo: '/corner_prime_garden_plot.jpg', color: '#d4591c' },
     'mausoleum': { letter: 'm', name: 'Mausoleum', short: 'Mausoleum', fallback: 2200000, photo: '/mausoleum_serenity.jpg', color: '#efe7d2' }
   };
