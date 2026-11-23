@@ -90,7 +90,7 @@ const BASE_TIERS = [
   id: 'premium', name: 'Premium Plot', category: 'Regular Plots', price: 42500,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Preferred section placement'],
-  label: 'premium plot — preferred section', image: '/premium_plot.jpg'
+  label: 'premium plot — preferred section', image: '/premium_plot_tall.jpg'
 },
 {
   id: 'corner-premium', name: 'Corner Premium Plot', category: 'Regular Plots', price: 47500,
@@ -246,7 +246,7 @@ function LightboxRoot({ children }) {
 }
 
 /* The new plot pictures are tall (5:6) with the title built in, so they get a tall frame instead of being cropped. */
-const PORTRAIT_IMAGES = ['/premium_plot.jpg', '/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/corner_prime_garden_plot.jpg', '/premium_garden_plot.jpg', '/premium_valor_plot.jpg', '/corner_premium_valor_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
+const PORTRAIT_IMAGES = ['/premium_plot_tall.jpg', '/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/corner_prime_garden_plot.jpg', '/premium_garden_plot.jpg', '/premium_valor_plot.jpg', '/corner_premium_valor_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
 const isPortraitImage = (src) => PORTRAIT_IMAGES.includes(src);
 
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
@@ -505,7 +505,7 @@ function CountUp({ text }) {
 // Firestore 'products' docs don't have an image field yet.
 const LOCAL_PLOT_IMAGES = {
   'regular': '/regular_plot.jpg',
-  'premium': '/premium_plot.jpg',
+  'premium': '/premium_plot_tall.jpg',
   'corner-premium': '/corner_premium_plot.jpg',
   'garden-regular': '/regular_garden_plot.jpg',
   'garden-premium': '/premium_garden_plot.jpg',
