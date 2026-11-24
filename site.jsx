@@ -157,14 +157,16 @@ const BASE_TIERS = [
 // Mausoleum: land and construction are priced as ranges (they depend on the
 // exact size and design), so these live outside the fixed-price calculator
 // above and are presented as request-a-quote items instead.
+// Every mausoleum has the same regular price.
+const MAUSOLEUM_PRICE = 2200000;
 const MAUSOLEUM_PACKAGES = [
-{ size: 'Serenity Glass Mausoleum', area: '12–20 sqm', low: 500000, high: 700000, desc: 'A modern and elegant design for a peaceful remembrance.', image: '/mausoleum_serenity.jpg' },
-{ size: 'Elysian Mausoleum', area: '30–50 sqm', low: 1200000, high: 1800000, desc: 'A timeless sanctuary of faith, love and remembrance.', image: '/mausoleum_elysian.jpg' },
-{ size: 'Solace Mausoleum', area: '70–100+ sqm', low: 3000000, high: null, desc: 'A serene and intimate space for your loved ones.', image: '/mausoleum_solace.jpg' }];
+{ size: 'Serenity Glass Mausoleum', area: '12–20 sqm', desc: 'A modern and elegant design for a peaceful remembrance.', image: '/mausoleum_serenity.jpg' },
+{ size: 'Elysian Mausoleum', area: '30–50 sqm', desc: 'A timeless sanctuary of faith, love and remembrance.', image: '/mausoleum_elysian.jpg' },
+{ size: 'Solace Mausoleum', area: '70–100+ sqm', desc: 'A serene and intimate space for your loved ones.', image: '/mausoleum_solace.jpg' }];
 
 
 const TWO_STORY_MAUSOLEUM = {
-  area: '120–160 sqm', low: 5000000, high: 7000000,
+  area: '120–160 sqm',
   desc: 'Two floors: a ground-floor memorial chamber, comfort room, and reception area, plus a second-floor family rest area, kitchenette, and reflection nook.'
 };
 
@@ -1696,8 +1698,8 @@ function Mausoleum() {
                 </div>
                 <div className="price-row">
                   <div>
-                    <div className="from">{m.area}</div>
-                    <div className="price" style={{ fontSize: 26 }}>{fmtRange(m.low, m.high)}</div>
+                    <div className="from">Regular price · {m.area}</div>
+                    <div className="price" style={{ fontSize: 26 }}>{fmt(MAUSOLEUM_PRICE)}</div>
                   </div>
                 </div>
                 <a href="#brochure" className="btn btn-primary">Request a quote →</a>
@@ -1715,8 +1717,8 @@ function Mausoleum() {
               <p className="small" style={{ marginTop: 12 }}>Payment plans available with a surcharge over 3 to 10 years.</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div className="calc-row-head"><label>Spot cash</label></div>
-              <div className="price" style={{ fontSize: 30 }}>{fmtRange(TWO_STORY_MAUSOLEUM.low, TWO_STORY_MAUSOLEUM.high)}</div>
+              <div className="calc-row-head"><label>Regular price</label></div>
+              <div className="price" style={{ fontSize: 30 }}>{fmt(MAUSOLEUM_PRICE)}</div>
               <a href="#brochure" className="btn btn-gold" style={{ marginTop: 14 }}>Request a consultation →</a>
             </div>
           </div>
