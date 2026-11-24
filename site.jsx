@@ -1565,7 +1565,8 @@ function PaymentPlans({ tiers }) {
             <div key={cat} style={{ marginBottom: 44 }}>
               <h3 className="cat-head fade-up">{cat}</h3>
 
-              <table className="plan-table fade-up">
+              <div className="plan-table-wrap fade-up">
+              <table className="plan-table">
                 <thead>
                   <tr>
                     <th>Plot Type</th>
@@ -1597,7 +1598,7 @@ function PaymentPlans({ tiers }) {
                       return (
                         <td key={term.key} className={term.key === BEST_VALUE_KEY ? 'highlight' : ''}>
                             <div>{fmt(total)}</div>
-                            {term.months && monthly === null &&
+                            {term.months > 0 && monthly === null &&
                           <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2, fontWeight: 400 }}>
                                 Ask our staff
                               </div>}
@@ -1612,6 +1613,8 @@ function PaymentPlans({ tiers }) {
                   )}
                 </tbody>
               </table>
+              </div>
+              <div className="plan-scroll-hint">Swipe or scroll sideways to see every plan →</div>
               <p className="small" style={{ marginTop: 10 }}>
                 {guideTier.name} shown at {fmt(guideTier.price)} spot cash · {STAFF_ARRANGED_IDS.includes(guideTier.id) ? 'the down payment is arranged with our staff.' : 'monthly amounts are the price list amounts, and the ₱3,000 down payment is credited to your total.'}
               </p>
