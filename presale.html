@@ -53,11 +53,19 @@
   .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
   a { color: inherit; }
   .loading { min-height: 100vh; display: grid; place-items: center; font-size: 20px; color: var(--ink-2); }
+
+  /* Logo loader */
+  .gh-loader{min-height:60vh;display:grid;place-items:center;align-content:center;gap:14px;color:#6b6b60;font-size:15px;text-align:center}
+  .gh-loader img{width:84px;height:84px;object-fit:contain;animation:ghPulse 1.8s ease-in-out infinite}
+  .gh-loader.full{min-height:100vh}
+  @keyframes ghPulse{0%,100%{opacity:.35;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+  .gh-btn-logo{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;margin-right:.5em;object-fit:contain;animation:ghPulse 1.2s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){.gh-loader img,.gh-btn-logo{animation:none;opacity:.8}}
 </style>
 </head>
 <body>
 
-<div id="root"><div class="loading">Loading the presale…</div></div>
+<div id="root"><div class="gh-loader full"><img src="/logo-192.png" alt=""><span>Loading the presale…</span></div></div>
 <noscript><p style="padding:24px;font-size:18px">Please turn on JavaScript to choose your plot, or call our office and we will help you.</p></noscript>
 
 <script type="text/babel" src="presale.jsx"></script>

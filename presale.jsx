@@ -669,7 +669,7 @@
         <h2 style={S.h2}>Recover your reservation request</h2>
         <p style={S.lead}>Your previous request may already have held the plots. Retry that same request to recover its result. Do not pay or start another reservation.</p>
         {error && <p role="alert" style={S.note}>{error}</p>}
-        <button type="button" style={S.big} disabled={busy} onClick={submit}>{busy?'Checking…':'Check / retry saved reservation'}</button>
+        <button type="button" style={S.big} disabled={busy} onClick={submit}>{busy?<><img className="gh-btn-logo" src="/logo-192.png" alt="" />Checking…</>:'Check / retry saved reservation'}</button>
         <p><a href="/my-payments?mode=reservation">Already have a reference? Open secure payment access</a></p>
       </div></div>;
     } else if (done) {
@@ -802,7 +802,7 @@
           </div>
 
           {error ? <div role="alert" style={{ ...S.note, background: '#fde8e6', borderColor: '#e0a39d', marginBottom: 14 }}>{error}</div> : null}
-          <button type="submit" disabled={busy || !lot} style={{ ...S.big, opacity: busy ? 0.6 : 1 }}>{busy ? 'Sending...' : 'Send my details'}</button>
+          <button type="submit" disabled={busy || !lot} style={{ ...S.big, opacity: busy ? 0.6 : 1 }}>{busy ? <><img className="gh-btn-logo" src="/logo-192.png" alt="" />Sending...</> : 'Send my details'}</button>
         </form>);
     }
 
