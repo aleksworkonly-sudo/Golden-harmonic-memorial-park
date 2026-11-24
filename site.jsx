@@ -124,13 +124,13 @@ const BASE_TIERS = [
   label: 'valor plot — memorial marker', image: '/valor_plot.jpg'
 },
 {
-  id: 'premium-valor', name: 'Premium Valor Plot', category: 'Valor Plots', price: 40000,
+  id: 'premium-valor', name: 'Premium Valor Plot', category: 'Valor Plots', price: 52500,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem', 'Preferred section placement'],
   label: 'premium valor plot', image: '/premium_valor_plot.jpg'
 },
 {
-  id: 'corner-premium-valor', name: 'Corner Premium Valor Plot', category: 'Valor Plots', price: 40000,
+  id: 'corner-premium-valor', name: 'Corner Premium Valor Plot', category: 'Valor Plots', price: 57500,
   desc: 'Contains two (2) crypt spaces. Purchase includes one (1) crypt only; the other may be separately owned.',
   features: ['1 crypt included (plot has 2 crypt spaces)', 'Perpetual care included', 'Memorial marker with laurel emblem', 'Corner placement'],
   label: 'corner premium valor plot', image: '/corner_premium_valor_plot.jpg'
