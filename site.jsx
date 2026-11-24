@@ -1604,7 +1604,7 @@ function PaymentPlans({ tiers }) {
                               </div>}
                             {monthly &&
                           <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2, fontWeight: 400 }}>
-                                {fmt(monthly)}/mo · {term.months}mo
+                                {fmt(monthly)}/mo
                               </div>}
                           </td>);
 
