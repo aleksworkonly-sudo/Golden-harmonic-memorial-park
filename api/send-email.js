@@ -11,7 +11,7 @@
 const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
 
 // ─── Branded HTML email builder ────────────────────────────────────
-function buildInquiryHtml({ first_name, last_name, interest, plan_name, plan_price }) {
+function buildInquiryHtml(safe) {
   return `
 <!DOCTYPE html>
 <html>
@@ -61,7 +61,7 @@ function buildInquiryHtml({ first_name, last_name, interest, plan_name, plan_pri
 </html>`;
 }
 
-function buildOrderHtml({ first_name, last_name, plan_name, plan_price, payment_term, payment_method }) {
+function buildOrderHtml(safe) {
   return `
 <!DOCTYPE html>
 <html>
@@ -112,17 +112,40 @@ function buildOrderHtml({ first_name, last_name, plan_name, plan_price, payment_
 </html>`;
 }
 
-// ─── Handler ───────────────────────────────────────────────────────
-module.exports = async (req, res) => {
-  // CORS headers (the front-end is on the same Vercel deployment, but
-  // just in case it's accessed from a custom domain or preview deploy)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+const admin = require('firebase-admin');
 
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
+
+function initAdmin() {
+  if (!admin.apps.length) {
+    const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
+    if (!b64) throw new Error('FIREBASE_SERVICE_ACCOUNT_B64 is not set');
+    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(Buffer.from(b64, 'base64').toString('utf8'))) });
+  }
+}
+
+// ─── Handler ───────────────────────────────────────────────────────
+// Staff only. Without this check anyone on the internet could make our Brevo
+// account send any email to any address (spam / phishing from our own domain).
+module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const header = String(req.headers.authorization || '');
+  const idToken = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!idToken) return res.status(401).json({ error: 'Please log in again.' });
+  try {
+    initAdmin();
+    const uid = (await admin.auth().verifyIdToken(idToken)).uid;
+    const u = await admin.firestore().collection('users').doc(uid).get();
+    if (!u.exists || !['staff', 'admin', 'superadmin'].includes(u.data().role)) {
+      return res.status(403).json({ error: 'Staff only.' });
+    }
+  } catch (e) {
+    return res.status(401).json({ error: 'Please log in again.' });
   }
 
   const apiKey = process.env.BREVO_API_KEY;
@@ -145,11 +168,18 @@ module.exports = async (req, res) => {
     plan_price,
     payment_term,
     payment_method
-  } = req.body || {};
+  } = (typeof req.body === 'object' && req.body) || {};
 
-  if (!to_email) {
-    return res.status(400).json({ error: 'to_email is required' });
+  if (!/^[^\s@<>",;]{1,64}@[^\s@<>",;]{1,255}$/.test(String(to_email || '')) || String(to_email).length > 254) {
+    return res.status(400).json({ error: 'A valid to_email is required' });
   }
+
+  // Everything below goes into HTML, so escape it and cap the length.
+  const safe = {
+    first_name: esc(clip(first_name, 60)), last_name: esc(clip(last_name, 60)), interest: esc(clip(interest, 120)),
+    plan_name: esc(clip(plan_name, 200)), plan_price: esc(clip(plan_price, 40)),
+    payment_term: esc(clip(payment_term, 60)), payment_method: esc(clip(payment_method, 60))
+  };
 
   // Build HTML body based on email type
   const isOrder = type === 'order';
@@ -158,8 +188,8 @@ module.exports = async (req, res) => {
     : `Thank you for your inquiry — Golden Harmonic Memorial Park`;
 
   const htmlContent = isOrder
-    ? buildOrderHtml({ first_name, last_name, plan_name, plan_price, payment_term, payment_method })
-    : buildInquiryHtml({ first_name, last_name, interest, plan_name, plan_price });
+    ? buildOrderHtml(safe)
+    : buildInquiryHtml(safe);
 
   try {
     const brevoRes = await fetch(BREVO_ENDPOINT, {
@@ -171,7 +201,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         sender: { name: senderName, email: senderEmail },
-        to: [{ email: to_email, name: `${first_name || ''} ${last_name || ''}`.trim() || to_email }],
+        to: [{ email: to_email, name: clip(`${first_name || ''} ${last_name || ''}`, 100).replace(/[<>"]/g, '').trim() || to_email }],
         subject,
         htmlContent
       })
@@ -180,13 +210,13 @@ module.exports = async (req, res) => {
     if (!brevoRes.ok) {
       const errorText = await brevoRes.text();
       console.error(`[send-email] Brevo ${brevoRes.status}: ${errorText}`);
-      return res.status(brevoRes.status).json({ error: `Brevo error: ${errorText}` });
+      return res.status(502).json({ error: 'The email could not be sent.' });
     }
 
     const result = await brevoRes.json();
     return res.status(200).json({ success: true, messageId: result.messageId });
   } catch (err) {
     console.error('[send-email] Error:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'The email could not be sent.' });
   }
 };
