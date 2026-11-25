@@ -191,6 +191,7 @@ function useLightbox() { return React.useContext(LightboxContext); }
 
 function LightboxRoot({ children }) {
   const [state, setState] = useState(null); // { items: [{label, caption}], index }
+  const [tallSrc, setTallSrc] = useState({});
 
   const open = (items, index = 0) => setState({ items, index });
   const close = () => setState(null);
@@ -219,13 +220,14 @@ function LightboxRoot({ children }) {
             {state.items.length > 1 &&
           <button className="lb-btn lb-prev" onClick={() => step(-1)} aria-label="Previous">‹</button>}
 
-            <div className={`ph ${isPortraitImage(state.items[state.index].image) ? 'aspect-portrait' : 'aspect-wide'} ${(state.items[state.index].image || state.items[state.index].scene) ? 'illustrated' : ''}`}
-              style={isPortraitImage(state.items[state.index].image) ? { width: 'min(100%, 68vh)', margin: '0 auto' } : undefined}>
+            <div className={`ph ${(isPortraitImage(state.items[state.index].image) || tallSrc[state.items[state.index].image]) ? 'aspect-portrait' : 'aspect-wide'} ${(state.items[state.index].image || state.items[state.index].scene) ? 'illustrated' : ''}`}
+              style={(isPortraitImage(state.items[state.index].image) || tallSrc[state.items[state.index].image]) ? { width: 'min(100%, 68vh)', margin: '0 auto' } : undefined}>
               {state.items[state.index].image
                 ? <img
                     src={state.items[state.index].image}
                     alt={state.items[state.index].label}
                     className="ph-image"
+                    onLoad={(ev) => { const src = state.items[state.index].image; if (isTallEl(ev.currentTarget) && !tallSrc[src]) setTallSrc((m) => ({ ...m, [src]: true })); }}
                     style={state.items[state.index].imagePosition ? { objectPosition: state.items[state.index].imagePosition } : undefined} />
                 : state.items[state.index].scene
                 ? <Scene variant={state.items[state.index].scene} />
@@ -249,11 +251,14 @@ function LightboxRoot({ children }) {
 
 /* The new plot pictures are tall (5:6) with the title built in, so they get a tall frame instead of being cropped. */
 const PORTRAIT_IMAGES = ['/premium_plot_tall.jpg', '/regular_plot.jpg', '/corner_premium_plot.jpg', '/regular_garden_plot.jpg', '/family_vault.jpg', '/valor_plot.jpg', '/corner_prime_garden_plot.jpg', '/premium_garden_plot.jpg', '/premium_valor_plot.jpg', '/corner_premium_valor_plot.jpg', '/mausoleum_elysian.jpg', '/mausoleum_serenity.jpg', '/mausoleum_solace.jpg'];
-const isPortraitImage = (src) => PORTRAIT_IMAGES.includes(src);
+const isPortraitImage = (src) => PORTRAIT_IMAGES.includes(String(src || '').split('?')[0]);
+/* A picture that turns out taller than wide gets the tall frame too, whatever its file name. */
+const isTallEl = (el) => !!el && el.naturalHeight > el.naturalWidth * 1.1;
 
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
 function Photo({ label, caption, items, index, aspect = '', className = '', style, scene, image, imagePosition }) {
-  if (image && isPortraitImage(image)) aspect = 'aspect-portrait';
+  const [tall, setTall] = useState(false);
+  if (image && (isPortraitImage(image) || tall)) aspect = 'aspect-portrait';
   const openLightbox = useLightbox();
   const group = (items || [{ label, caption: caption || label }]).map((it) => ({
     image: it.image || image,
@@ -274,7 +279,7 @@ function Photo({ label, caption, items, index, aspect = '', className = '', styl
       onKeyDown={(e) => { if (e.key === 'Enter') openLightbox(group, idx); }}>
 
       {image
-        ? <img src={image} alt={label} className="ph-image" style={imagePosition ? { objectPosition: imagePosition } : undefined} />
+        ? <img src={image} alt={label} className="ph-image" onLoad={(ev) => { if (isTallEl(ev.currentTarget)) setTall(true); }} style={imagePosition ? { objectPosition: imagePosition } : undefined} />
         : scene ? <Scene variant={scene} /> : <div className="ph-label">{label}</div>}
       {isArt && <div className="ph-label ph-label-overlay">{label}</div>}
       <div className="ph-expand">⤢</div>
@@ -621,7 +626,7 @@ function App() {
           // names as the presale. Prices come from the database when it has them.
           const fromDb = BASE_TIERS.map(base => {
             const row = byId.get(base.id);
-            return row ? { ...row, name: base.name, category: base.category, desc: base.desc, features: base.features, image: row.image || base.image } : base;
+            return row ? { ...row, name: base.name, category: base.category, desc: base.desc, features: base.features, image: base.image || row.image } : base;
           });
           setBaseTiers(fromDb);
         }
