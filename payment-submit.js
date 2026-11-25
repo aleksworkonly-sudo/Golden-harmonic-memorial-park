@@ -92,6 +92,7 @@
       const match = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/.exec(form.amount);
       const amount = match ? Number(match[1]) * 100 + Number((match[2] || '').padEnd(2,'0')) : NaN;
       if (!Number.isSafeInteger(amount) || amount <= 0) return setError('Enter a positive peso amount with at most two decimal places.');
+      if (offer.allowPartial && amount>offer.maxAmountCentavos) return setError(`Enter an amount up to your remaining balance of ${peso(offer.maxAmountCentavos)}. If you already transferred more, contact the office.`);
       request.current = { requestId:crypto.randomUUID(), offerId:offer.id, scopeVersion:options.scopeVersion,
         claimedCentavos:amount, transferDate:form.transferDate, reference:form.reference, image:form.image.split(',')[1],
         ...(offer.payerDetailsRequired ? {payerName:form.payerName.trim(),payerMobile:form.payerMobile,transferTime:form.transferTime} : {}),
@@ -123,12 +124,13 @@
       busy && h('p', { role:'status' },'Please wait…'),
       enabled === false ? h('p', { className:'pv-notice' },'Online proof submission is not available yet. Please contact the office.') :
         options && h(React.Fragment, null,
-          !options.offers.length && h('p', { className:'pv-notice' },'The office must confirm your payment amount and receiving instructions before you submit online.'),
-          !form && options.offers.length > 0 && !(qrFirst && rows.some(r=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(r.status))) && h('button', { className:'pv-primary',disabled:busy,onClick:() => start(null) },'Add payment proof'),
+          !options.offers.length && h('p', { className:'pv-notice' },options.settled ? 'Your contract balance is fully paid. No further payment is needed.' : 'The office must confirm your payment amount and receiving instructions before you submit online.'),
+          !form && options.offers.filter(item=>item.allowPartial).map(item=>h('p',{key:item.id,className:'pv-notice'},`${item.label} is available for your remaining balance of ${peso(item.maxAmountCentavos)}. You may pay it in full or make a smaller partial payment. Open payment details below to see the verified receiving QR.`)),
+          !form && options.offers.length > 0 && !(qrFirst && rows.some(r=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(r.status))) && h('button', { className:'pv-primary',disabled:busy,onClick:() => start(null) },options.offers.some(item=>item.allowPartial)?'Pay remaining balance / submit proof':'Add payment proof'),
           form && h('div', { className:'ps-form' },
             h('h3', { ref:heading,tabIndex:-1 },review ? 'Review before submitting' : form.existing ? 'Correct your submission' : 'Payment details'),
             !proofEntry && offer ? h(React.Fragment,null,
-              h('p',null,plots.join(' · ')),h('p',{className:'pv-status'},`Deposit to pay: ${peso(offer.expectedAmountCentavos)}`),
+              h('p',null,(plots || []).join(' · ')),h('p',{className:'pv-status'},`${labels[offer.purpose]}: ${peso(offer.expectedAmountCentavos)}`),
               h('p',null,`${offer.label} · ${offer.accountName}`),
               offer.qrImagePath ? h('figure',{className:'ps-receiving-qr'},h('img',{src:offer.qrImagePath,alt:`Verified ${offer.label} receiving QR for ${offer.accountName}`,width:240,height:240}),
                 h('figcaption',null,'Check the recipient name in your wallet before sending money.'),h('a',{href:offer.qrImagePath,download:true,className:'pv-secondary'},'Save QR image')) : h('p',{className:'pv-notice'},'A verified receiving QR is unavailable. Do not send payment.'),
@@ -141,7 +143,8 @@
                 ['Recipient',`${offer.label} · ${offer.accountName} · ${offer.accountNumber}`],['Transfer date',form.transferDate],['Reference',form.reference]
                 ,...(offer.payerDetailsRequired ? [['Wallet account holder',form.payerName],['Wallet mobile',form.payerMobile],['Transaction time (Philippines)',form.transferTime]] : [])
               ].map(([label,value]) => h('div', { key:label },h('dt', null,label),h('dd', null,value)))),
-              request.current.claimedCentavos !== offer.expectedAmountCentavos && h('p', { className:'pv-notice pv-warning' },'Your amount differs from the expected amount. The admin will review it; the expected amount will stay unchanged.'),
+              !offer.allowPartial && request.current.claimedCentavos !== offer.expectedAmountCentavos && h('p', { className:'pv-notice pv-warning' },'Your amount differs from the expected amount. The admin will review it; the expected amount will stay unchanged.'),
+              offer.allowPartial && h('p',{className:'pv-notice'},'Partial payments are allowed. Only the amount verified by the office will reduce your balance. Your original payment deadline still applies.'),
               preview(form.image,'Check that all transfer details are readable.'),
               h('p', { className:'pv-notice' },'This is a claim for review, not a receipt confirming that the park received money.'),
               uncertain && h('p', { className:'pv-notice pv-warning' },'The previous response was uncertain. Retry these same details to recover the saved result without duplicating it.'),
@@ -153,10 +156,11 @@
                     options.offers.map((item) => h('option', { key:item.id,value:item.id },`${labels[item.purpose]} · ${item.label} · ${peso(item.expectedAmountCentavos)}`)))),
                 offer && h('div', { className:'ps-instructions' },h('div', null,h('h4', null,offer.label),h('p', null,offer.accountName),h('p', { className:'ps-number' },offer.accountNumber),h('p', null,offer.instructions),
                   offer.accountNumber && h('button', { type:'button',className:'pv-secondary',onClick:() => run(() => navigator.clipboard.writeText(offer.accountNumber),() => setMessage('Receiving account number copied.')) },'Copy account number')),
-                  offer.qrImagePath ? h('figure', { className:'ps-receiving-qr' },h('img', { src:offer.qrImagePath,alt:`Receiving QR for ${offer.accountName}`,width:180,height:180 }),h('figcaption', null,'Verify the recipient before payment')) :
+                  offer.qrImagePath ? h('figure', { className:'ps-receiving-qr' },h('img', { src:offer.qrImagePath,alt:`Receiving QR for ${offer.accountName}`,width:180,height:180 }),h('figcaption', null,'Verify the recipient before payment'),h('a',{href:offer.qrImagePath,download:true,className:'pv-secondary'},'Save QR image')) :
                     h('p',{className:'pv-notice'},'No verified receiving QR is configured. Contact the office for payment instructions.')),
                 offer?.payerDetailsRequired && field('proof-payer-name','Wallet account holder name','text','payerName',{minLength:2,maxLength:120,autoComplete:'name'}),
                 offer?.payerDetailsRequired && field('proof-payer-mobile','Wallet mobile number','tel','payerMobile',{pattern:'(09[0-9]{9}|\\+639[0-9]{9})',maxLength:13,placeholder:'09XXXXXXXXX',autoComplete:'tel'}),
+                offer?.allowPartial && h('p',{className:'pv-notice'},`Remaining balance: ${peso(offer.maxAmountCentavos)}. You may transfer this in full or pay a smaller amount. Your original payment deadline still applies.`),
                 field('proof-amount','Amount you transferred (₱)','text','amount',{ inputMode:'decimal',maxLength:16 }),
                 field('proof-reference','Transfer reference','text','reference',{ maxLength:100 }),
                 field('proof-date','Transfer date (Philippines)','date','transferDate'),
