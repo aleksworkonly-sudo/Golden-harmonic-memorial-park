@@ -778,17 +778,22 @@
   .calc-output .box.wide .val { color: var(--terracotta); }
 
   /* Logo loader */
-  .gh-loader{min-height:60vh;display:grid;place-items:center;align-content:center;gap:14px;color:#6b6b60;font-size:15px;text-align:center}
-  .gh-loader img{width:84px;height:84px;object-fit:contain;animation:ghPulse 1.8s ease-in-out infinite}
+  .gh-loader{min-height:60vh;display:grid;place-items:center;align-content:center;gap:18px;color:#6b6b60;font-size:15px;text-align:center}
   .gh-loader.full{min-height:100vh}
-  @keyframes ghPulse{0%,100%{opacity:.35;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
-  .gh-btn-logo{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;margin-right:.5em;object-fit:contain;animation:ghPulse 1.2s ease-in-out infinite}
-  @media (prefers-reduced-motion:reduce){.gh-loader img,.gh-btn-logo{animation:none;opacity:.8}}
+  .gh-ring{position:relative;width:116px;height:116px}
+  .gh-ring::before,.gh-ring::after{content:"";position:absolute;inset:0;border-radius:50%;box-sizing:border-box;border:5px solid rgba(201,162,75,.2)}
+  .gh-ring::after{border-color:transparent;border-top-color:#c9a24b;border-right-color:#c9a24b;animation:ghSpin 1.15s linear infinite}
+  .gh-ring img{position:absolute;inset:0;margin:auto;width:64px;height:64px;object-fit:contain;animation:ghPulse 1.8s ease-in-out infinite}
+  @keyframes ghSpin{to{transform:rotate(360deg)}}
+  @keyframes ghPulse{0%,100%{opacity:.6;transform:scale(.96)}50%{opacity:1;transform:scale(1)}}
+  .gh-btn-logo{position:relative;display:inline-block;width:1.3em;height:1.3em;vertical-align:-.3em;margin-right:.55em;background:url(/logo-192.png) center/62% no-repeat}
+  .gh-btn-logo::after{content:"";position:absolute;inset:0;border-radius:50%;box-sizing:border-box;border:2px solid rgba(201,162,75,.3);border-top-color:#c9a24b;animation:ghSpin .9s linear infinite}
+  @media (prefers-reduced-motion:reduce){.gh-ring img,.gh-ring::after,.gh-btn-logo::after{animation:none}}
 </style>
 </head>
 <body>
 
-<div id="root"><div class="gh-loader full"><img src="/logo-192.png" alt=""><span>Loading…</span></div></div>
+<div id="root"><div class="gh-loader full"><div class="gh-ring"><img src="/logo-192.png" alt=""></div><span>Loading…</span></div></div>
 
 <script>
 window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
