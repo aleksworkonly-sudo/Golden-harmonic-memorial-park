@@ -2056,7 +2056,7 @@ function Brochure({ tiers = [] }) {
               )}
               <button className="btn btn-primary" type="submit" disabled={saving}
                 style={{ opacity: saving ? 0.7 : 1 }}>
-                {saving ? <><img className="gh-btn-logo" src="/logo-192.png" alt="" />Sending…</> : 'Send me the price list →'}
+                {saving ? <><span className="gh-btn-logo" aria-hidden="true" />Sending…</> : 'Send me the price list →'}
               </button>
               <p className="small" style={{ marginTop: 14, textAlign: 'center' }}>
                 We use your details only to answer your request and never sell them. See our <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.
