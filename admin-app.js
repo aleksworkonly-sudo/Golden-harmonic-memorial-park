@@ -2531,6 +2531,35 @@ function presaleSheetData(a) {
     _app: a
   };
 }
+// Prints one clean reservation form per sale (one page each) through a hidden frame, so no pop-up is needed.
+function printReservationForms(apps) {
+  const e = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const when = ms => ms ? new Date(Number(ms)).toLocaleString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  const row = (k, v) => '<tr><td class="k">' + k + '</td><td><b>' + (v === '' || v == null ? '&nbsp;' : v) + '</b></td></tr>';
+  const pages = apps.map(a => {
+    const plots = presalePlots(a);
+    const L = presaleLedger(a);
+    const deposit = a.depositPerPlotCentavos ? plots.length * a.depositPerPlotCentavos / 100 : 0;
+    const plotRows = plots.map(p => '<tr><td>' + e(p.plotCode) + '</td><td>' + e(PRESALE_TYPE_LABEL[p.typeId] || p.typeId) + '</td><td>' + e(p.blockId || String(p.plotCode || '').split('-')[0]) + '</td><td>' + e(p.lotNo || '') + '</td></tr>').join('');
+    const payRows = (L.list || []).map((x, i) => '<tr><td>' + (i + 1) + '</td><td>' + e(when(x.date)) + '</td><td>' + e(x.ref || '') + '</td><td>' + e(PRESALE_METHOD_LABEL[x.method || a.method] || x.method || a.method || '') + '</td><td style="text-align:right">' + e(fmt2(x.amount)) + '</td></tr>').join('') || '<tr><td colspan="5" style="color:#777">No payment recorded yet.</td></tr>';
+    return '<section>' +
+      '<h2>Golden Harmonic Memorial Park</h2><div class="sub">Presale Reservation Form</div>' +
+      '<table class="kv">' + row('Reference no.', e(a.ref)) + row('Date reserved', e(when(a.createdAt))) + row('Buyer', e(a.name)) + row('Mobile', e(a.mobile)) + row('Email', e(a.email || '')) + (a.address ? row('Address', e(a.address)) : '') + '</table>' +
+      '<h3>Plot</h3><table class="grid"><tr><th>Plot code</th><th>Type</th><th>Block</th><th>Lot</th></tr>' + plotRows + '</table>' +
+      '<h3>Plan</h3><table class="kv">' + row('Payment plan', e(presalePlanText(a))) + row('Total price', e(fmt2(a.totalPrice || 0))) + (deposit ? row('Pay first (credited to the price)', e(fmt2(deposit))) : '') + row('Pays by', e(PRESALE_METHOD_LABEL[a.method] || a.method || '')) + row('Agent', e(a.agentName || '')) + row('Broker', e(a.brokerName || '')) + '</table>' +
+      '<h3>Payments</h3><table class="grid"><tr><th>#</th><th>Date</th><th>Receipt / ref</th><th>Method</th><th>Amount</th></tr>' + payRows + '</table>' +
+      '<table class="kv">' + row('Total paid', e(fmt2(L.paid))) + row('Balance', e(fmt2(L.balance))) + '</table>' +
+      '<div class="sig"><div>Buyer signature over printed name</div><div>Received by</div></div>' +
+      '<div class="foot">Printed ' + e(when(Date.now())) + '</div></section>';
+  }).join('');
+  const html = '<html><head><title>Reservation form</title><style>@page{margin:14mm}body{font-family:Arial,sans-serif;font-size:13px;color:#111;margin:0}section{page-break-after:always}section:last-child{page-break-after:auto}h2{margin:0}.sub{color:#555;margin-bottom:10px}h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#2f5d4c}table{width:100%;border-collapse:collapse}.kv td{padding:4px 0;border-top:1px solid #ddd}.kv td.k{width:42%;color:#555}.grid th,.grid td{border:1px solid #bbb;padding:4px 6px;text-align:left}.grid th{background:#f2f2f2}.sig{display:flex;gap:40px;margin-top:38px}.sig div{flex:1;border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555}.foot{margin-top:14px;font-size:10px;color:#888}</style></head><body>' + pages + '</body></html>';
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f);
+  const d = f.contentWindow.document;
+  d.open(); d.write(html); d.close();
+  setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); setTimeout(() => f.remove(), 60000); }, 300);
+}
 // Edit screen: staff can correct anything on the sheet before the Word file is made.
 function CustomerSheetEditor(props) {
   const {data,onClose}=props;
@@ -4224,7 +4253,18 @@ function PresaleApplications({
   const allPaid = live.reduce((n, r) => n + presaleLedger(r).paid, 0);
   const allVat = presaleVat(allPaid);
   const paymentStatus=r=>r.status==='cancelled'?'cancelled':r.verifiedLedger?.paid>0?'paid':r.status;
-  const shown = rows.filter(r => filter === 'all' ? true : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : paymentStatus(r) === filter);
+  const needsPrint = r => r.status !== 'cancelled' && !r.printedAt;
+  const shown = rows.filter(r => filter === 'all' ? true : filter === 'toprint' ? needsPrint(r) : filter === 'cash' ? r.plan === 'cash' && r.status !== 'cancelled' : filter === 'installment' ? r.plan === 'installment' && r.status !== 'cancelled' : paymentStatus(r) === filter);
+  const toPrintCount = rows.filter(needsPrint).length;
+  const printForms = async list => {
+    if (!list.length) return;
+    try { printReservationForms(list); } catch (err) { setToast('Could not open the print window: ' + (err && err.message || 'error')); return; }
+    let failed = 0;
+    for (const r of list) {
+      try { await window.paymentLegacyGuard.update('presaleApplications', r._id, { printedAt: Date.now(), printedBy: actor }); } catch (err) { failed++; }
+    }
+    setToast(failed ? 'Printed, but ' + failed + ' could not be marked as printed.' : (list.length === 1 ? 'Form sent to the printer and marked as printed.' : list.length + ' forms sent to the printer and marked as printed.'));
+  };
   const statusBadge = (s, r) => plotEl("span", {
     className: s === 'paid' ? 'badge badge-converted' : s === 'cancelled' ? 'badge' : s === 'verified' ? 'badge badge-contacted' : 'badge badge-new'
   }, s === 'new' ? 'New' : s === 'verified' ? 'Verified' : s === 'paid' ? r && !presaleLedger(r).full ? r.plan==='installment'?`Paying · ${presaleLedger(r).monthsLeft} mo left`:'Deposit verified' : 'Paid in full' : 'Cancelled');
@@ -4741,17 +4781,23 @@ function PresaleApplications({
       flexWrap: 'wrap',
       marginBottom: 14
     }
-  }, [['all', 'All'], ['new', 'New'], ['verified', 'Verified'], ['paid', 'Paid'], ['cash', 'Spot cash'], ['installment', 'Monthly'], ['cancelled', 'Cancelled']].map(([id, label]) => plotEl("button", {
+  }, [['all', 'All'], ['new', 'New'], ['toprint', 'To print (' + toPrintCount + ')'], ['verified', 'Verified'], ['paid', 'Paid'], ['cash', 'Spot cash'], ['installment', 'Monthly'], ['cancelled', 'Cancelled']].map(([id, label]) => plotEl("button", {
     key: id,
     className: `btn btn-sm ${filter === id ? 'btn-primary' : 'btn-outline'}`,
     onClick: () => setFilter(id)
-  }, label))), plotEl("div", {
+  }, label))), filter === 'toprint' && plotEl("div", {
+    style: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }
+  }, plotEl("button", {
+    className: "btn btn-primary btn-sm",
+    disabled: shown.length === 0,
+    onClick: () => printForms(shown)
+  }, '🖨 Print all new (' + shown.length + ')'), plotEl("span", { style: { fontSize: 12, color: '#777' } }, "Each form is marked as printed after it is sent to the printer, so it leaves this list.")), plotEl("div", {
     className: "table-card"
   }, shown.length === 0 ? plotEl("div", {
     style: {
       padding: 24
     }
-  }, "No presale applications here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status', ''].map(h => plotEl("th", {
+  }, filter === 'toprint' ? "Everything has been printed. New reservations appear here by themselves." : "No presale applications here yet.") : plotEl("table", { className: "gh-table" }, plotEl("thead", null, plotEl("tr", null, ['Ref', 'Buyer', 'Plot', 'Plan', 'Pays by', 'Status', ''].map(h => plotEl("th", {
     key: h
   }, h)))), plotEl("tbody", null, shown.map(r => plotEl("tr", {
     key: r._id,
@@ -4779,7 +4825,12 @@ function PresaleApplications({
     className: "btn btn-outline btn-sm",
     title: "Open the envelope sheet: check, edit, then download",
     onClick: ev => { ev.stopPropagation(); setSheetData(presaleSheetData(r)); }
-  }, "🖨 Print sheet"))))))), sheetData && plotEl(CustomerSheetEditor, {
+  }, "🖨 Print sheet"), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    style: { marginLeft: 6 },
+    title: r.printedAt ? "Already printed. Print again." : "Print the reservation form",
+    onClick: ev => { ev.stopPropagation(); printForms([r]); }
+  }, r.printedAt ? "🖨 Form ✓" : "🖨 Form"))))))), sheetData && plotEl(CustomerSheetEditor, {
     data: sheetData,
     onClose: () => setSheetData(null),
     onToast: setToast,
