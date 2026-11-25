@@ -1,0 +1,12 @@
+# Internal files that must never be published as public web pages.
+# (Vercel serves everything in the repo root unless it is listed here.)
+.agents
+docs
+tests
+scripts
+*.md
+skills-lock.json
+customer-monitoring-sheet.docx
+# Old copies of the site that are no longer used
+website-preview.html
+Golden_Harmonic_Memorial_Park.html
