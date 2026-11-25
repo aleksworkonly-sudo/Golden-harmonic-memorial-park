@@ -1538,7 +1538,7 @@ function PaymentPlans({ tiers }) {
   const cheapest = tiers.reduce((min, t) => t.price < min.price ? t : min, tiers[0] || { price: 0 });
   const lowestMonthly = monthlyAfterDown(cheapest.price * (1 + fiveYear.surcharge), fiveYear, DOWN_PAYMENT);
   // Which term column gets the "lowest monthly" highlight + badge
-  const BEST_VALUE_KEY = '5yr';
+  const BEST_VALUE_KEY = '10yr';
 
   const jumpToBrochure = (tierId) => (e) => {
     selectTier(tierId);
