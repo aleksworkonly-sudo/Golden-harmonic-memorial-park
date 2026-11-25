@@ -57,17 +57,14 @@
   /* Logo loader */
   .gh-loader{min-height:60vh;display:grid;place-items:center;align-content:center;gap:18px;color:#6b6b60;font-size:15px;text-align:center}
   .gh-loader.full{min-height:100vh}
-  .gh-ring{position:relative;width:116px;height:116px}
-  .gh-ring::before,.gh-ring::after{content:"";position:absolute;inset:0;border-radius:50%;box-sizing:border-box;border:5px solid rgba(201,162,75,.2)}
-  .gh-ring::after{border-color:transparent;border-top-color:#c9a24b;border-right-color:#c9a24b;animation:ghSpin 1.15s linear infinite}
+  .gh-ring{position:relative;width:104px;height:104px}
   .gh-ring{perspective:420px}
-  .gh-ring img{position:absolute;inset:0;margin:auto;width:64px;height:64px;object-fit:contain;transform-style:preserve-3d;filter:drop-shadow(0 6px 5px rgba(0,0,0,.28)) drop-shadow(0 0 1px rgba(0,0,0,.35));animation:ghTurn 2.6s ease-in-out infinite}
-  @keyframes ghSpin{to{transform:rotate(360deg)}}
+  .gh-ring img{position:absolute;inset:0;margin:auto;width:96px;height:96px;object-fit:contain;transform-style:preserve-3d;filter:drop-shadow(0 6px 5px rgba(0,0,0,.28)) drop-shadow(0 0 1px rgba(0,0,0,.35));animation:ghTurn 2.6s ease-in-out infinite}
   @keyframes ghTurn{0%{transform:rotateY(0deg)}100%{transform:rotateY(360deg)}}
   @keyframes ghPulse{0%,100%{opacity:.6;transform:scale(.96)}50%{opacity:1;transform:scale(1)}}
   .gh-btn-logo{position:relative;display:inline-block;width:1.3em;height:1.3em;vertical-align:-.3em;margin-right:.55em;background:url(/logo-192.png) center/62% no-repeat}
-  .gh-btn-logo::after{content:"";position:absolute;inset:0;border-radius:50%;box-sizing:border-box;border:2px solid rgba(201,162,75,.3);border-top-color:#c9a24b;animation:ghSpin .9s linear infinite}
-  @media (prefers-reduced-motion:reduce){.gh-ring img,.gh-ring::after,.gh-btn-logo::after{animation:none}}
+  .gh-btn-logo{perspective:200px;animation:ghTurn 1.6s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){.gh-ring img,.gh-btn-logo{animation:none}}
 </style>
 </head>
 <body>
