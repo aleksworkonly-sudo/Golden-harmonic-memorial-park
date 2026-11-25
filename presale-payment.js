@@ -12,7 +12,8 @@
         h('p',null,`Reservation ${reservation.ref} · ${reservation.plots.map(p=>p.plotCode).join(' · ')}`),
         h('p',null,`Original reservation deadline: ${reservation.deadlineDate} (Philippines).`),
         h('p',null,'The deposit is credited toward your plan. Only admin verification changes your balance.'),
-        h('a',{className:'pv-secondary',href:`/my-payments?mode=reservation&ref=${encodeURIComponent(reservation.ref)}`},'Open secure payment access')),
+        h('a',{className:'pv-secondary',href:`/my-payments?mode=reservation&ref=${encodeURIComponent(reservation.ref)}`},'Open secure payment access'),
+        window.ghPrintReservation?h('button',{type:'button',className:'pv-secondary',onClick:()=>window.ghPrintReservation(reservation)},'Print or save my reservation (PDF)'):null),
       accessLost ? h('p',{role:'alert',className:'pv-notice'},'Your submission session expired. Your plots remain held. Open secure payment access above to continue; do not reserve or pay again.') :
         h(window.PaymentSubmission,{mode:'reservation',reservationRef:reservation.ref,plots:reservation.plots.map(p=>p.plotCode),qrFirst:true,onAccessLost:()=>setAccessLost(true),onSubmitted:setSaved}),
       h('div',{className:'pv-card'},h('h3',null,'Your deadline and next steps'),

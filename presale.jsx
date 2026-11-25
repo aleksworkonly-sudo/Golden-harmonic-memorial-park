@@ -66,6 +66,29 @@
   function code(block, lot) { return block === BLOCK ? 'Plot ' + lot : block + '-' + String(lot).padStart(4, '0'); }
   function nicePlot(plotCode) { const m = /^P-0*(\d+)$/.exec(String(plotCode || '')); return m ? 'Plot ' + m[1] : plotCode; }
   function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{minimumFractionDigits:Number.isInteger(Number(n))?0:2,maximumFractionDigits:2}); }
+  // The buyer's own copy: a one-page slip they can print or save as PDF (print dialog > Save as PDF).
+  function printMyReservation(r) {
+    const e = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const plots = (r.plots && r.plots.length ? r.plots : [{ plotCode: r.plotCode, typeId: r.typeId }]);
+    const m = METHODS.find((x) => x.id === r.method);
+    const first = plots.filter((x) => x.typeId !== 'family-vault' && x.typeId !== 'mausoleum').length * 3000;
+    const row = (k, v) => '<tr><td class="k">' + k + '</td><td><b>' + v + '</b></td></tr>';
+    const html = '<html><head><title>My reservation ' + e(r.ref) + '</title><style>@page{margin:16mm}body{font-family:Arial,sans-serif;font-size:15px;color:#111}h1{margin:0;font-size:22px}.sub{color:#555;margin:2px 0 14px}.ref{font-size:26px;font-weight:700;color:#2f5d4c;margin:6px 0 14px}table{width:100%;border-collapse:collapse}td{padding:7px 0;border-top:1px solid #ddd;vertical-align:top}td.k{width:40%;color:#555}.note{margin-top:16px;padding:10px 12px;border:1px solid #b08544;background:#fff6dc}.foot{margin-top:22px;font-size:12px;color:#666}</style></head><body>' +
+      '<h1>Golden Harmonic Memorial Park</h1><div class="sub">Presale reservation slip</div>' +
+      '<div>Reference number</div><div class="ref">' + e(r.ref) + '</div>' +
+      '<table>' + plots.map((x) => row('Plot', e(nicePlot(x.plotCode)) + ' &middot; ' + e((TYPES[x.typeId] || { name: x.typeId }).name))).join('') +
+      (r.plan && r.total ? row('Payment plan', r.plan === 'cash' ? 'Spot cash &middot; ' + e(peso(r.total)) : e(r.years) + ' years &middot; ' + e(peso(r.monthly)) + ' a month &middot; total ' + e(peso(r.total))) : '') +
+      row('You will pay by', e(m ? m.label : 'PayMongo')) +
+      (first ? row('Pay first', e(peso(first)) + ' down payment, credited to your total') : '') + '</table>' +
+      '<div class="note">Your reservation is final once we receive your payment. Keep this slip and your reference number.</div>' +
+      '<div class="foot">Office: ' + e(PAY_INFO.office || '') + (PAY_INFO.phone ? ' &middot; ' + e(PAY_INFO.phone) : '') + (PAY_INFO.email ? ' &middot; ' + e(PAY_INFO.email) : '') + '<br>Printed ' + e(new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' })) + '</div></body></html>';
+    const f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(f);
+    const d = f.contentWindow.document; d.open(); d.write(html); d.close();
+    setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); setTimeout(() => f.remove(), 60000); }, 300);
+  }
+  window.ghPrintReservation = printMyReservation;
   /* Mall-style price: red price, old price crossed out, red "-27%" tag. */
   const RED = '#d0342c';
   function offPct(was, now) { return was > now && was > 0 ? Math.round(((was - now) / was) * 100) : 0; }
@@ -697,6 +720,7 @@
             <div style={{ ...S.note, marginTop: 12 }}>
               <b>Track your payments anytime:</b> open <a href={'/my-payments?ref=' + encodeURIComponent(done.ref)} target="_blank" rel="noopener" style={{ color: '#2f5d4c', fontWeight: 700 }}>Check my payments</a> and type your reference number and mobile number. You can see how many months are left.
             </div>
+            <button type="button" style={{ ...S.big, marginTop: 18, background: '#fff', color: '#1f4a39', border: '2px solid #2f5d4c' }} onClick={() => printMyReservation(done)}>Print or save my reservation (PDF)</button>
             <button type="button" style={{ ...S.big, marginTop: 18 }} onClick={closeAll}>Close</button>
           </div>
         </div>);
