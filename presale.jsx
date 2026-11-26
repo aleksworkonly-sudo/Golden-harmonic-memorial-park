@@ -73,7 +73,7 @@
     if (['regular', 'premium', 'corner-premium'].includes(id)) return ['regular'];
     return [];
   }
-  function ParkMapLink({ typeId, name }) {
+  function ParkMapLink({ typeId, name, label }) {
     const [open, setOpen] = useState(false);
     const [zoom, setZoom] = useState(1);
     const maps = parkMapFor(typeId);
@@ -89,7 +89,7 @@
     const imgStyle = zoom === 1 ? { maxWidth: '100%', maxHeight: 'calc(100dvh - 150px)', display: 'block', margin: '0 auto', borderRadius: 8 } : { width: zoom * 100 + '%', maxWidth: 'none', display: 'block', borderRadius: 8 };
     return (
       <>
-        <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 6, marginRight: 8, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid #2f5d4c', background: '#fff', color: '#1f4a39', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>📍 See location in the park</button>
+        <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 6, marginRight: 8, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid #2f5d4c', background: '#fff', color: '#1f4a39', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>{label || '📍 See location in the park'}</button>
         {open && ReactDOM.createPortal(
           <div role="dialog" aria-modal="true" aria-label={name + ' location in the park'} style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(18,22,20,.97)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 16px', color: '#f3ecd9' }}>
@@ -411,6 +411,13 @@
           <div>
             <h1 style={{ margin: 0, fontSize: 44, lineHeight: 1.1, fontWeight: 800, color: '#0f2a21' }}>Choose your plot</h1>
             <div style={{ fontSize: 20, lineHeight: 1.5, color: '#2f3f38', maxWidth: 680, marginTop: 8 }}>This is the real plan of the park. Every square is one plot. We will guide you step by step.</div>
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 16, color: '#2f3f38', fontWeight: 600 }}>Where is each plot type in the park?</div>
+              <ParkMapLink typeId="regular" name="Regular, Premium and Corner Premium plots" label="📍 Regular" />
+              <ParkMapLink typeId="garden-regular" name="Garden plots" label="📍 Garden" />
+              <ParkMapLink typeId="valor" name="Valor plots" label="📍 Valor" />
+              <ParkMapLink typeId="family-vault" name="Family Vault" label="📍 Family Vault" />
+            </div>
           </div>
           {phone ? (
             <a href={'tel:' + phone.replace(/[^0-9+]/g, '')} style={{ display: 'flex', flexDirection: 'column', minHeight: 64, padding: '10px 22px', border: '2px solid #0f2a21', borderRadius: 12, background: '#fff', textDecoration: 'none', color: '#0f2a21' }}>
