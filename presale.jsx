@@ -64,6 +64,48 @@
 
   // "P-0123" is how the office sees a plot; buyers just see "Plot 123".
   function code(block, lot) { return block === BLOCK ? 'Plot ' + lot : block + '-' + String(lot).padStart(4, '0'); }
+
+  /* Park location map for the plot type the buyer is looking at (same images as the homepage). */
+  function parkMapFor(id) {
+    if (id === 'family-vault') return ['family-vault'];
+    if (String(id).includes('valor')) return ['valor'];
+    if (String(id).startsWith('garden')) return ['garden'];
+    if (['regular', 'premium', 'corner-premium'].includes(id)) return ['regular'];
+    return [];
+  }
+  function ParkMapLink({ typeId, name }) {
+    const [open, setOpen] = useState(false);
+    const [zoom, setZoom] = useState(1);
+    const maps = parkMapFor(typeId);
+    useEffect(() => {
+      if (!open) return;
+      const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+      window.addEventListener('keydown', onKey);
+      const prev = document.body.style.overflow; document.body.style.overflow = 'hidden';
+      return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+    }, [open]);
+    if (!maps.length) return null;
+    const pill = { border: '1px solid rgba(255,255,255,.35)', background: 'rgba(255,255,255,.1)', color: '#f3ecd9', borderRadius: 999, padding: '8px 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', minHeight: 44 };
+    const imgStyle = zoom === 1 ? { maxWidth: '100%', maxHeight: 'calc(100dvh - 150px)', display: 'block', margin: '0 auto', borderRadius: 8 } : { width: zoom * 100 + '%', maxWidth: 'none', display: 'block', borderRadius: 8 };
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 6, marginRight: 8, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid #2f5d4c', background: '#fff', color: '#1f4a39', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>📍 See location in the park</button>
+        {open && ReactDOM.createPortal(
+          <div role="dialog" aria-modal="true" aria-label={name + ' location in the park'} style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(18,22,20,.97)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 16px', color: '#f3ecd9' }}>
+              <div style={{ fontWeight: 700, fontSize: 18, flex: '1 1 160px' }}>{name} · location in the park</div>
+              <button type="button" aria-label="Zoom out" style={pill} disabled={zoom === 1} onClick={() => setZoom((z) => Math.max(1, z - 1))}>−</button>
+              <span style={{ fontSize: 15, minWidth: 34, textAlign: 'center' }}>{zoom === 1 ? 'Fit' : zoom + '×'}</span>
+              <button type="button" aria-label="Zoom in" style={pill} disabled={zoom === 3} onClick={() => setZoom((z) => Math.min(3, z + 1))}>+</button>
+              <button type="button" aria-label="Close" style={pill} onClick={() => setOpen(false)}>✕</button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px', WebkitOverflowScrolling: 'touch' }}>
+              <img src={'/park-maps/' + maps[0] + '.jpg'} alt={name + ' lot map of the park'} style={imgStyle} />
+            </div>
+          </div>, document.body)}
+      </>);
+  }
+
   function nicePlot(plotCode) { const m = /^P-0*(\d+)$/.exec(String(plotCode || '')); return m ? 'Plot ' + m[1] : plotCode; }
   function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{minimumFractionDigits:Number.isInteger(Number(n))?0:2,maximumFractionDigits:2}); }
   // The buyer's own copy: a one-page slip they can print or save as PDF (print dialog > Save as PDF).
@@ -738,6 +780,7 @@
               <div style={{ fontSize: 14, color: '#4a564f' }}>You are buying</div>
               <div style={{ fontSize: 22, fontWeight: 800 }}>{lot ? code(block, lot) : '...'}</div>
               <div style={{ fontSize: 16 }}>{t.name}</div>
+              <ParkMapLink typeId={typeId} name={t.name} />
               <button type="button" onClick={back} style={{ marginTop: 6, minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid #2f5d4c', background: '#fff', color: '#1f4a39', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Change my plot</button>
             </div>
           </div>
