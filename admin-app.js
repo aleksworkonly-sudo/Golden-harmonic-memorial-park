@@ -1906,6 +1906,7 @@ function Pipeline({
 // account is created we trigger Firebase's built-in "set your password"
 // email, so they choose their own password themselves.
 async function createPortalAccount(email) {
+  await assertLegacyAccountSetup();
   const secondaryApp = firebase.initializeApp(window.firebaseConfig, 'PortalCreate_' + Date.now());
   try {
     const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!'; // never shown to anyone; overwritten by the reset-email flow below
@@ -1917,6 +1918,11 @@ async function createPortalAccount(email) {
   } finally {
     await secondaryApp.delete();
   }
+}
+async function assertLegacyAccountSetup() {
+  const response=await fetch('/api/account-access',{cache:'no-store'});
+  if(!response.ok)throw new Error('Could not check buyer account setup. Try again.');
+  if((await response.json()).enabled)throw new Error('Use Buyer account support in the sidebar. Buyers verify their own email and choose their password.');
 }
 function CustomerDetailModal({
   customer,
@@ -2012,6 +2018,7 @@ function CustomerDetailModal({
     setPortalBusy(true);
     setPortalError('');
     try {
+      await assertLegacyAccountSetup();
       await window.paymentLegacyGuard.update('customers', customer._id, {
         authUid: uid,
         portalCreatedAt: Date.now(),
@@ -5841,7 +5848,7 @@ function Dashboard({
       padding: '2px 7px',
       borderRadius: 10
     }
-  }, t.id==='pending'?paymentNotifications.error?'!':paymentNotifications.pending===null?'…':paymentNotifications.pending:counts[t.id]))), isAdminOrHigher && React.createElement("div", {className:"sidebar-section"}, "Payments (admins only)"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🧾"), React.createElement("span",null,"Cash receipts")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🔗"), React.createElement("span",null,"Unmatched online payments")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📌"), React.createElement("span",null,"Held reservations")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"✉️"), React.createElement("span",null,"Payment emails and reports"))), /*#__PURE__*/React.createElement("div", {
+  }, t.id==='pending'?paymentNotifications.error?'!':paymentNotifications.pending===null?'…':paymentNotifications.pending:counts[t.id]))), isAdminOrHigher && React.createElement("div", {className:"sidebar-section"}, "Payments (admins only)"), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-cash.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🧾"), React.createElement("span",null,"Cash receipts")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-gateway-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"🔗"), React.createElement("span",null,"Unmatched online payments")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-lifecycle-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"📌"), React.createElement("span",null,"Held reservations")), isAdminOrHigher && React.createElement("a", {className:"nav-item",href:"/payment-operations-admin.html",title:"Opens in its own page"}, React.createElement("span",{className:"ico"},"✉️"), React.createElement("span",null,"Payment emails and reports")), isAdminOrHigher && React.createElement("a",{className:"nav-item",href:"/account-admin.html"},React.createElement("span",null,"Buyer account support"))), /*#__PURE__*/React.createElement("div", {
     className: "sidebar-footer"
   }, /*#__PURE__*/React.createElement("button", {
     className: "logout-btn",

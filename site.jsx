@@ -602,7 +602,7 @@ function App() {
           ref,
           message: 'Checkout returned. Payment confirmation is still pending. Open secure payment history to check the recorded result.'
         });
-        if (type === 'portal_installment') setPortalOpen(true);
+        if (type === 'portal_installment') window.location.assign('/my-payments?mode=account');
         window.history.replaceState(null, '', window.location.pathname + window.location.hash);
       } else if (status === 'cancelled') {
         setPaymentNotice({
@@ -725,7 +725,7 @@ function App() {
         <LightboxRoot>
           <Header />
           <main>
-            <Hero onOpenPortal={() => setPortalOpen(true)} />
+            <Hero onOpenPortal={() => { window.location.href='/my-payments?mode=account'; }} />
           <Tiers tiers={tiers} />
           <Mausoleum />
           <PaymentPlans tiers={tiers} />

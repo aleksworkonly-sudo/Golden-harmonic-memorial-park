@@ -26,7 +26,7 @@
     } finally { bitmap.close(); }
   }
 
-  function PaymentSubmission({ mode, customerId, plots, onAccessLost, qrFirst = false, onSubmitted, reservationRef }) {
+  function PaymentSubmission({ mode, customerId, source, plots, onAccessLost, qrFirst = false, onSubmitted, reservationRef }) {
     const [enabled,setEnabled] = useState(null), [options,setOptions] = useState(null), [rows,setRows] = useState([]);
     const [cursor,setCursor] = useState(null), [busy,setBusy] = useState(false), [error,setError] = useState(''), [message,setMessage] = useState('');
     const [form,setForm] = useState(null), [review,setReview] = useState(false), [uncertain,setUncertain] = useState(false);
@@ -42,7 +42,7 @@
       }
       let response;
       try { response = await fetch('/api/payment-submission', { method:'POST', credentials:'same-origin', headers,
-        body:JSON.stringify({ action, mode, ...(mode === 'account' ? { customerId } : {}), ...(reservationRef ? {reservationRef} : {}), ...fields }) }); }
+        body:JSON.stringify({ action, mode, ...(mode === 'account' ? (source ? {source} : { customerId }) : {}), ...(reservationRef ? {reservationRef} : {}), ...fields }) }); }
       catch (_) { throw Object.assign(new Error('Connection interrupted. Retry with these same details. If you leave, check your submissions before starting again.'), { uncertain:true }); }
       const result = await response.json().catch(() => ({}));
       if (['SESSION_REQUIRED','UNAUTHENTICATED','FORBIDDEN'].includes(result.code)) onAccessLost();
@@ -62,7 +62,7 @@
     }
     const applyReload = ({ nextOptions,list }) => {
       setOptions(nextOptions); setRows(list.cases); setCursor(list.nextCursor);
-      if (qrFirst && !autoStarted.current && nextOptions.offers.length && !list.cases.length) {
+      if (qrFirst && !nextOptions.accountRequired && !autoStarted.current && nextOptions.offers.length && !list.cases.length) {
         autoStarted.current = true;
         const first = nextOptions.offers[0];
         setForm({offerId:first.id,amount:String(first.expectedAmountCentavos/100),reference:'',transferDate:'',transferTime:'',payerName:'',payerMobile:'',image:'',existing:null});
@@ -77,6 +77,12 @@
       return () => { mounted.current = false; ticket.current++; request.current = null; };
     }, []);
     useEffect(() => { if (error) alert.current?.focus(); }, [error]);
+    useEffect(() => {
+      if(!enabled || busy || form || !rows.some(row=>['pending_verification','needs_reconciliation'].includes(row.status)))return;
+      const refresh=()=>{if(!document.hidden)run(reload,applyReload);};
+      const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);
+      return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};
+    },[enabled,busy,!!form,rows]);
     useEffect(() => { if (form) heading.current?.focus(); }, [review,!!form]);
     const update = (key,value) => { request.current = null; setForm((valueNow) => ({ ...valueNow,[key]:value, ...(valueNow.claimAssistance ? {claimAssistance:{...valueNow.claimAssistance,source:'ocr_edited'}} : {}) })); };
     const start = (row) => {
@@ -125,8 +131,9 @@
       enabled === false ? h('p', { className:'pv-notice' },'Online proof submission is not available yet. Please contact the office.') :
         options && h(React.Fragment, null,
           !options.offers.length && h('p', { className:'pv-notice' },options.settled ? 'Your contract balance is fully paid. No further payment is needed.' : 'The office must confirm your payment amount and receiving instructions before you submit online.'),
-          !form && options.offers.filter(item=>item.allowPartial).map(item=>h('p',{key:item.id,className:'pv-notice'},`${item.label} is available for your remaining balance of ${peso(item.maxAmountCentavos)}. You may pay it in full or make a smaller partial payment. Open payment details below to see the verified receiving QR.`)),
-          !form && options.offers.length > 0 && !(qrFirst && rows.some(r=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(r.status))) && h('button', { className:'pv-primary',disabled:busy,onClick:() => start(null) },options.offers.some(item=>item.allowPartial)?'Pay remaining balance / submit proof':'Add payment proof'),
+          options.accountRequired && h('div',{className:'pv-notice'},h('p',null,'Your payment is recorded. Activate your buyer account to make your next payment.'),h('a',{className:'pv-primary',href:'/account-activate.html?new=1'},'Activate account / resend setup link'),h('a',{className:'pv-secondary',href:'/my-payments?mode=account'},'Sign in')),
+          !form && !options.accountRequired && options.offers.filter(item=>item.allowPartial).map(item=>h('p',{key:item.id,className:'pv-notice'},`${item.label} is available for your remaining balance of ${peso(item.maxAmountCentavos)}. You may pay it in full or make a smaller partial payment. Open payment details below to see the verified receiving QR.`)),
+          !form && !options.accountRequired && options.offers.length > 0 && !(qrFirst && rows.some(r=>['pending_verification','resubmit_requested','needs_reconciliation'].includes(r.status))) && h('button', { className:'pv-primary',disabled:busy,onClick:() => start(null) },options.offers.some(item=>item.allowPartial)?'Pay remaining balance / submit proof':'Add payment proof'),
           form && h('div', { className:'ps-form' },
             h('h3', { ref:heading,tabIndex:-1 },review ? 'Review before submitting' : form.existing ? 'Correct your submission' : 'Payment details'),
             !proofEntry && offer ? h(React.Fragment,null,

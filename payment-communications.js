@@ -13,9 +13,9 @@
       h('dl',{className:'pv-dates'},[['Received date',r.receivedDate],['Channel',r.channel],['Principal credited',peso(r.creditCentavos)],['Unapplied credit',peso(r.unappliedCentavos)],['Buyer fee',peso(r.buyerFeeCentavos)],['Balance after receipt',peso(r.balanceAfterCentavos)]].map(([k,v])=>h('div',{key:k},h('dt',null,k),h('dd',null,v)))),
       h('button',{className:'pv-secondary',onClick:printPayment},'Print acknowledgement'));
   }
-  function PaymentCommunications({mode,customerId,entries,onAccessLost}) {
+  function PaymentCommunications({mode,customerId,source,entries,onAccessLost}) {
     const [enabled,setEnabled]=useState(false),[rows,setRows]=useState([]),[cursor,setCursor]=useState(null),[receipt,setReceipt]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');const generation=useRef(0);
-    const api=(a,fields)=>operationsApi(a,{mode,...(mode==='account'?{customerId}:{}),...fields},mode==='account');
+    const api=(a,fields)=>operationsApi(a,{mode,...(mode==='account'?(source?{source}:{customerId}):{}),...fields},mode==='account');
     const run=async(work,apply)=>{const n=++generation.current;setBusy(true);setError('');try{const r=await work();if(n===generation.current)apply(r);}catch(e){if(n===generation.current){if(['FORBIDDEN','SESSION_REQUIRED','UNAUTHENTICATED'].includes(e.code))onAccessLost();else setError(e.message);}}finally{if(n===generation.current)setBusy(false);}};
     const load=(more=false)=>run(()=>api('notices',{cursor:more?cursor:null}),(r)=>{setRows((old)=>more?[...old,...r.rows]:r.rows);setCursor(r.nextCursor);});
     useEffect(()=>{let live=true;fetch('/api/payment-operations',{cache:'no-store'}).then((r)=>r.json()).then((c)=>{if(live && c.enabled){setEnabled(true);load();}}).catch(()=>{});return()=>{live=false;generation.current++;};},[]);

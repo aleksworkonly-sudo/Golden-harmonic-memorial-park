@@ -65,7 +65,7 @@ test('account reads require a verified bearer identity and return no private own
   const {handler}=setup();
   assert.equal((await call(handler,{action:'account_list'})).code,401);
   const result=await call(handler,{action:'account_list'},{headers:{authorization:'Bearer buyer'}});
-  assert.deepEqual(result.body.accounts,[{id:'c1',label:'Plot account'}]);
+  assert.deepEqual(result.body.accounts,[{id:'c1',kind:'customer',label:'Plot account'}]);
   assert.equal((await call(handler,{action:'account_summary',customerId:'c1'},{headers:{authorization:'Bearer another'}})).code,403);
 });
 

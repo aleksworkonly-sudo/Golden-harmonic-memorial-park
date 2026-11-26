@@ -21,6 +21,18 @@
         { "key": "Content-Security-Policy", "value": "object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'" }
       ]
     },
+    { "source": "/account(.*)", "headers": [
+      { "key": "Cache-Control", "value": "no-store" },
+      { "key": "Referrer-Policy", "value": "no-referrer" },
+      { "key": "X-Frame-Options", "value": "DENY" },
+      { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+      { "key": "Content-Security-Policy", "value": "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" }
+    ] },
+    { "source": "/my-account", "headers": [
+      { "key": "Cache-Control", "value": "no-store" },
+      { "key": "Referrer-Policy", "value": "no-referrer" },
+      { "key": "X-Frame-Options", "value": "DENY" }
+    ] },
     {
       "source": "/admin(.*)",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" }]
@@ -85,6 +97,11 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/account-access", "destination": "/api/payments" },
+    { "source": "/api/account-worker", "destination": "/api/payments" },
+    { "source": "/api/account-access.js", "destination": "/api/payments" },
+    { "source": "/api/account-worker.js", "destination": "/api/payments" },
+    { "source": "/my-account", "destination": "/my-payments.html" },
     { "source": "/api/payment-access", "destination": "/api/payments" },
     { "source": "/api/payment-submission", "destination": "/api/payments" },
     { "source": "/api/payment-review", "destination": "/api/payments" },

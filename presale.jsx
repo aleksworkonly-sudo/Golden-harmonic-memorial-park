@@ -542,6 +542,9 @@
       try { return JSON.parse(sessionStorage.getItem('ghmp-presale-payment') || 'null'); } catch (_) { return null; }
     });
     const [wallets,setWallets] = useState({gcash:false,maya:false});
+    const [accountsEnabled,setAccountsEnabled] = useState(false);
+    useEffect(()=>{let active=true;fetch('/api/account-access',{cache:'no-store'}).then(r=>r.json())
+      .then(v=>{if(active)setAccountsEnabled(v.enabled===true);}).catch(()=>{});return()=>{active=false;};},[]);
     const [recovery,setRecovery] = useState(() => {
       try { return JSON.parse(sessionStorage.getItem('ghmp-presale-request') || 'null'); } catch (_) { return null; }
     });
@@ -866,7 +869,8 @@
             <label style={S.label} htmlFor="ps-mob">Mobile number</label>
             <input id="ps-mob" style={S.input} value={form.mobile} onChange={(e) => setF('mobile', e.target.value)} inputMode="tel" autoComplete="tel" />
             <label style={S.label} htmlFor="ps-mail">Email address</label>
-            <input id="ps-mail" style={S.input} value={form.email} onChange={(e) => setF('email', e.target.value)} inputMode="email" autoComplete="email" />
+            <input id="ps-mail" style={S.input} value={form.email} onChange={(e) => setF('email', e.target.value)} inputMode="email" autoComplete="email" aria-describedby="ps-mail-help" />
+            <p id="ps-mail-help" style={{fontSize:15,lineHeight:1.5}}>Use your own email address. {accountsEnabled?'After your first payment is verified, we will send you a link to activate your account for future payments. ':''}Check the spelling before sending your details.</p>
             {/* honeypot: people never see or fill this */}
             <input tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={(e) => setF('website', e.target.value)} style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
             <label style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 16, fontSize: 17, lineHeight: 1.4, cursor: 'pointer' }}>

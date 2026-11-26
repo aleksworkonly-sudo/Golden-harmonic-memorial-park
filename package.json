@@ -2,6 +2,7 @@
   "name": "golden-harmonic-memorial-park",
   "private": true,
   "scripts": {
+    "test:accounts": "node --test tests/accounts/*.test.js",
     "test:payments": "node --test tests/payments/*.test.js",
     "preview:payments": "node tests/payments/preview-server.js",
     "rehearse:payments": "node scripts/payments/rehearse.cjs"

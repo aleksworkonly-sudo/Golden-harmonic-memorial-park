@@ -19,7 +19,7 @@ async function staffFromToken(idToken, db) {
   return { uid: dec.uid, email: d.email || dec.email || '', name: d.name || d.displayName || d.email || dec.email || 'Staff', role: d.role };
 }
 async function uidFromToken(idToken) {
-  try { return (await admin.auth().verifyIdToken(String(idToken || ''))).uid; }
+  try { return (await admin.auth().verifyIdToken(String(idToken || ''), true)).uid; }
   catch (e) { const err = new Error('Please log in again.'); err.status = 401; throw err; }
 }
 const parseBody = (req) => (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {}));

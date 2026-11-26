@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
+  <title>Activate your account — Golden Harmonic</title>
+  <link rel="icon" href="/favicon-32.png"><link rel="stylesheet" href="/payment-view.css"><link rel="stylesheet" href="/account.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js" defer></script>
+  <script src="/firebase-config.js" defer></script><script src="/account-auth.js" defer></script><script src="/account-activate.js" defer></script>
+</head>
+<body>
+<a class="pv-skip" href="#account-main">Skip to account setup</a>
+<header class="pv-header"><a href="/">Golden Harmonic <span>Memorial Park</span></a><a href="/my-payments?mode=account">Sign in</a></header>
+<main id="account-main" class="account-wrap">
+  <p class="pv-eyebrow">Your buyer account</p><h1>Keep your payments in one place.</h1>
+  <p class="pv-muted">Use the email registered with your purchase. Your recorded payments stay with your contract.</p>
+  <p id="account-status" role="status" aria-live="polite">Checking account access…</p>
+  <div id="account-error" role="alert" tabindex="-1" class="pv-notice pv-error" hidden></div>
+  <section class="pv-card">
+    <form id="verify-form" hidden>
+      <h2>Verify your email</h2><p>Enter the email that received this setup link.</p>
+      <div class="pv-field"><label for="verify-email">Buyer email</label><input id="verify-email" type="email" autocomplete="email" required maxlength="254"></div>
+      <p id="switch-notice" class="pv-notice" hidden></p>
+      <button class="pv-primary pv-block" type="submit">Verify email and continue</button>
+    </form>
+    <form id="password-form" hidden>
+      <h2 id="setup-title" tabindex="-1">Finish setting up your account</h2>
+      <p id="verified-email"></p><p id="verified-source" class="pv-muted"></p>
+      <div class="pv-field"><label for="password-mode">Password choice</label><select id="password-mode"><option value="new">Choose a password</option><option value="existing">Use my existing password</option></select></div>
+      <div class="pv-field"><label id="password-label" for="account-password">New password</label><input id="account-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="password-hint"><small id="password-hint">Use at least 8 characters. Password managers and paste are welcome.</small></div>
+      <label class="account-check"><input id="show-password" type="checkbox"> Show password</label>
+      <label class="account-check"><input id="account-terms" type="checkbox" required> <span>I accept the <a href="/terms.html" target="_blank" rel="noopener">terms</a> and acknowledge the <a href="/privacy.html" target="_blank" rel="noopener">privacy notice</a>.</span></label>
+      <button class="pv-primary pv-block" type="submit">Activate my account</button>
+      <button id="setup-reset" class="pv-secondary pv-block" type="button">Forgot my existing password</button>
+      <button id="setup-signout" class="pv-secondary pv-block" type="button">Use a different account</button>
+    </form>
+    <div id="account-complete" hidden><h2 tabindex="-1">Your account is ready</h2><p>Sign in with your email and password to view your records and make future payments.</p><a class="pv-primary pv-block" href="/my-payments?mode=account">Open My Account</a></div>
+    <form id="resend-form" hidden>
+      <h2>Get an account setup link</h2><p>Setup becomes available after your first qualifying payment is verified. Your payment remains recorded if an email is delayed.</p>
+      <div class="pv-field"><label for="source-kind">Record type</label><select id="source-kind"><option value="presale">Presale reservation</option><option value="customer">Customer account</option></select></div>
+      <div class="pv-field"><label for="source-id">Reservation or customer reference</label><input id="source-id" required maxlength="128" autocomplete="off" placeholder="PS-0001"></div>
+      <div class="pv-field"><label for="setup-email">Registered buyer email</label><input id="setup-email" type="email" autocomplete="email" required maxlength="254"></div>
+      <button class="pv-primary pv-block" type="submit">Send setup link</button>
+    </form>
+  </section>
+  <p><a href="/account-activate.html?new=1">Request a new setup link</a> · <a href="/my-payments?mode=account">Already activated? Sign in</a></p>
+  <p class="pv-muted">Wrong email or no longer have access to your inbox? Contact the office to verify and update your details.</p>
+</main><noscript>Enable JavaScript to activate your account, or contact the office.</noscript>
+</body></html>

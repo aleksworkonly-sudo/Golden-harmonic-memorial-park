@@ -49,9 +49,9 @@
         h('dl', { className:'pv-dates' }, h('div', null, h('dt', null, data.planLabel === 'Spot cash' ? 'Spot-cash balance deadline' : 'Deposit deadline'), h('dd', null, date(data.deadlineDate))),
           h('div', null, h('dt', null, 'Next installment due'), h('dd', null, data.planLabel === 'Spot cash' ? 'Not applicable' : date(data.nextDueDate))))),
       data.pendingCount > 0 && h('p', { className:'pv-notice' }, `${data.pendingCount} earlier payment submission${data.pendingCount === 1 ? '' : 's'} awaiting review. New online proofs are listed separately below. Pending amounts do not reduce your balance.`),
-      window.PaymentCommunications && h(window.PaymentCommunications,{key:`communications:${mode}:${data.id}`,mode,customerId:data.id,entries:data.canonical?data.entries:[],onAccessLost}),
-      window.PaymentGateway && h(window.PaymentGateway, { key:`gateway:${mode}:${data.id}`, mode, customerId:data.id, onAccessLost }),
-      window.PaymentSubmission && h(window.PaymentSubmission, { key:`${mode}:${data.id}`, mode, customerId:data.id, plots:data.plots, onAccessLost }),
+      window.PaymentCommunications && h(window.PaymentCommunications,{key:`communications:${mode}:${data.kind}:${data.id}`,mode,source:{kind:data.kind,id:data.id},entries:data.canonical?data.entries:[],onAccessLost}),
+      window.PaymentGateway && h(window.PaymentGateway, { key:`gateway:${mode}:${data.kind}:${data.id}`, mode, source:{kind:data.kind,id:data.id}, onAccessLost }),
+      window.PaymentSubmission && h(window.PaymentSubmission, { key:`${mode}:${data.kind}:${data.id}`, mode, source:{kind:data.kind,id:data.id}, plots:data.plots, onAccessLost }),
       h('section', { className:'pv-card' }, h('h2', null, 'Recorded payment history'),
         !data.entries.length ? h('p', { className:'pv-muted' }, 'No itemized payments are recorded yet. Contact the office if you have already paid.') :
           h('div', { className:'pv-table-wrap', role:'region', 'aria-label':'Payment history table', tabIndex:0 },
@@ -66,7 +66,7 @@
 
   function App() {
     const query = new URLSearchParams(location.search);
-    const [mode,setMode] = useState(query.get('mode') === 'account' ? 'account' : 'reservation');
+    const [mode,setMode] = useState(query.get('mode') === 'account' || location.pathname==='/my-account' ? 'account' : 'reservation');
     const [enabled,setEnabled] = useState(null);
     const [reference,setReference] = useState((query.get('ref') || '').slice(0,32));
     const [email,setEmail] = useState('');
@@ -92,8 +92,8 @@
         }
       } finally { if (ticket === generation.current) setBusy(false); }
     }
-    const load = (id, append = false) => run(() => mode === 'account'
-      ? api('account_summary', { customerId:id, cursor:append ? data.nextCursor : null }, true)
+    const load = (selected, append = false) => run(() => mode === 'account'
+      ? api('account_summary', { source:{kind:selected.kind || 'customer',id:selected.id}, cursor:append ? data.nextCursor : null }, true)
       : api('guest_summary', { cursor:append ? data.nextCursor : null }), (result) => {
         setData((current) => append && current ? { ...result.summary, entries:[...current.entries,...result.summary.entries] } : result.summary);
       });
@@ -113,6 +113,9 @@
       window.addEventListener('pageshow', restore);
       const unsubscribe = window.auth?.onAuthStateChanged((user) => {
         if (accountUid.current && accountUid.current !== user?.uid) { clear(); setMessage('Your sign-in changed. Sign in to open your records again.'); }
+        if(user && !accountUid.current && (query.get('mode')==='account' || location.pathname==='/my-account')) {
+          accountUid.current=user.uid;run(()=>api('account_list',{},true),result=>setAccounts(result.accounts));
+        }
       });
       return () => { window.removeEventListener('pageshow', restore); if (unsubscribe) unsubscribe(); };
     }, []);
@@ -128,6 +131,7 @@
       run(async () => {
         if (!window.auth) throw new Error('Sign-in could not load. Reload the page or contact the office.');
         try {
+          await window.firebaseAuthReady;
           await window.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
           const login = await window.auth.signInWithEmailAndPassword(email.trim(),password);
           accountUid.current = login.user.uid;
@@ -151,24 +155,27 @@
       enabled === null ? h('p', { role:'status' }, 'Checking secure access…') : enabled === false
         ? h('section', { className:'pv-card' }, h('h2', null, 'Please contact the office'), h('p', null, 'Secure online payment history is not available yet. Our office can help you check your records.'),
           h('button', { className:'pv-secondary', onClick:() => location.reload() }, 'Check again'))
-        : data ? h(Summary, { data, mode, busy, refresh:() => load(data.id), loadMore:() => load(data.id,true), close,
+        : data ? h(Summary, { data, mode, busy, refresh:() => load(data), loadMore:() => load(data,true), close,
           onAccessLost:() => { clear(); setMessage('Your access has expired or changed. Verify your access again to continue.'); },
           chooseAccount: mode === 'account' && accounts?.length > 1 ? () => { generation.current++; setData(null); setError(''); setBusy(false); } : null })
         : accounts ? h('section', { className:'pv-card' }, h('h2', null, 'Choose your account'),
-          accounts.length ? accounts.map((account) => h('button', { key:account.id, className:'pv-secondary pv-account', disabled:busy, onClick:() => load(account.id) }, account.label, h('span', null, 'View history →')))
-            : h('p', null, 'No plot account is linked to this login. Please contact the office; accounts are not linked automatically by email.'),
+          accounts.length ? accounts.map((account) => h('button', { key:`${account.kind}:${account.id}`, className:'pv-secondary pv-account', disabled:busy, onClick:() => load(account) }, account.label, h('span', null, 'View history →')))
+            : h('div',null,h('p', null, 'No plot account is linked to this login. Finish your setup invitation, or contact the office for help.'),
+              h('a',{className:'pv-secondary',href:'/account-activate.html'},'Continue account setup')),
           h('button', { className:'pv-secondary', onClick:close }, 'Sign out'))
         : h('div', { className:'pv-access-grid' },
           h('section', { className:'pv-card' }, h('div', { className:'pv-tabs', role:'group', 'aria-label':'Choose how to access your records' },
             [['reservation','Reservation email link'],['account','Account login']].map(([value,label]) => h('button', { key:value, type:'button', className:'pv-tab', 'aria-pressed':mode === value,
               onClick:() => { clear(); setMode(value); } }, label))),
             h('h2', null, mode === 'reservation' ? 'Open your reservation' : 'Sign in to your account'),
-            h('p', { className:'pv-muted' }, mode === 'reservation' ? 'We’ll send a private link to the email already registered with your reservation.' : 'Use the account provided by our office.'),
+            h('p', { className:'pv-muted' }, mode === 'reservation' ? 'We’ll send a private link to the email already registered with your reservation.' : 'Use your buyer email and password to view all your connected contracts.'),
             h('form', { onSubmit:submit },
               mode === 'reservation' && h(Field, { id:'payment-reference', label:'Reservation reference', hint:'Find this in your reservation email, for example PS-0004.', value:reference, required:true, maxLength:32, autoComplete:'off', onChange:(e) => setReference(e.target.value.toUpperCase()) }),
               h(Field, { id:'payment-email', label:mode === 'reservation' ? 'Registered email address' : 'Account email', type:'email', value:email, required:true, maxLength:254, autoComplete:'email', onChange:(e) => setEmail(e.target.value) }),
               mode === 'account' && h(Field, { id:'payment-password', label:'Password', type:'password', value:password, required:true, autoComplete:'current-password', onChange:(e) => setPassword(e.target.value) }),
-              h('button', { className:'pv-primary pv-block', type:'submit', disabled:busy }, busy ? 'Please wait…' : mode === 'reservation' ? 'Send verification link' : 'Sign in'))),
+              h('button', { className:'pv-primary pv-block', type:'submit', disabled:busy }, busy ? 'Please wait…' : mode === 'reservation' ? 'Send verification link' : 'Sign in')),
+            mode==='account' && h('button',{type:'button',className:'pv-secondary pv-block',disabled:busy,onClick:()=>run(()=>window.AccountAuth.reset(email),setMessage)},'Forgot password'),
+            h('a',{className:'pv-secondary pv-block',href:'/account-activate.html?new=1'},'Activate account / resend setup link')),
           h('aside', { className:'pv-card' }, h('h2', null, mode === 'reservation' ? 'A simple, private check' : 'Your account stays yours'),
             h('ol', { className:'pv-steps' }, h('li', null, 'Verify your access with your registered email or account login.'), h('li', null, 'Review your recorded payments and balance.'), h('li', null, 'Contact the office if a payment or date needs checking.')),
             h('p', { className:'pv-muted' }, 'Using a different email? Ask the office to update your contact details after checking your identity.'))));

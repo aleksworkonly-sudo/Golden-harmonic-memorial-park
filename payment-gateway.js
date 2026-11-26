@@ -11,11 +11,11 @@
     let data;try{data=await response.json();}catch(_){throw Object.assign(Error('Response uncertain. Retrieve your saved attempt before paying.'),{uncertain:true});}
     if(!response.ok)throw Object.assign(Error(data.error || 'Gateway request failed.'),{code:data.code,uncertain:response.status>=500});return data;
   }
-  function PaymentGateway({mode,customerId,onAccessLost}) {
+  function PaymentGateway({mode,customerId,source,onAccessLost}) {
     const [enabled,setEnabled]=useState(null),[data,setData]=useState(null),[offerId,setOfferId]=useState(''),[command,setCommand]=useState(null);
     const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false);
     const ticket=useRef(0),mounted=useRef(true),alert=useRef(null),heading=useRef(null);
-    const api=(action,extra={})=>gatewayApi(action,{mode,...(mode==='account'?{customerId}:{}),...extra},mode==='account');
+    const api=(action,extra={})=>gatewayApi(action,{mode,...(mode==='account'?(source?{source}:{customerId}):{}),...extra},mode==='account');
     const apply=(d)=>{setData(d);setOfferId(d.offers[0]?.id || '');};
     const run=async(work,save)=>{const t=++ticket.current;setBusy(true);setError('');try{const result=await work();if(mounted.current && t===ticket.current)save(result);}
       catch(e){if(mounted.current && t===ticket.current){if(['UNAUTHENTICATED','SESSION_REQUIRED','FORBIDDEN'].includes(e.code))onAccessLost();else setError(e.message);}}

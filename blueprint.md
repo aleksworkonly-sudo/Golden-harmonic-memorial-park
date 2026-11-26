@@ -2,15 +2,15 @@
 
 Project: Golden Harmonic Memorial Park
 
-Updated: November 25, 2026 (Asia/Manila)
+Updated: November 26, 2026 (Asia/Manila)
 
-Status: Planning complete; implementation has not started.
+Status: Local implementation and synthetic verification complete. Actual Firebase/Auth/rules and hosting release gates remain open; see [checkpoints](docs/accounts/checkpoints.md) and [release runbook](docs/accounts/release.md).
 
-Inspected baseline: `presale-system`, commit `670038c`, plus the pre-existing working-tree changes listed in section 12.
+Implementation baseline: clean checkout at `efe6311`; earlier planning used `670038c`. Preserve subsequent work on continuation.
 
 This document is the durable plan for customer accounts covering presale and future payments. It supersedes the previous registration proposal in this file, including its direct browser email-matching linkage and example root security rules. Do not deploy those earlier examples. Existing financial requirements remain in [payment-feature-blueprint.md](payment-feature-blueprint.md).
 
-The current request authorizes this documentation update only. No application implementation, live email, account creation, rules deployment, migration or hosting change has been performed. When implementation is requested, proceed through the checkpoints below and save progress after each small deliverable. Continuation must depend on repository records rather than chat memory.
+The user subsequently authorized implementation. Source modules, interfaces and tests are now saved locally. No live email, production account creation, rules deployment, migration or hosting change has been performed. Continuation depends on the saved checkpoint/handoff records rather than chat memory.
 
 ## 1. Outcome and confirmed decisions
 
@@ -28,17 +28,17 @@ Buyer pays through the existing flow → payment is verified and recorded → bu
 
 The account email is the buyer's registered contact email. Do not replace it with a wallet sender, agent or provider billing email. Verified email proves mailbox control; the server must separately authorize access to each reservation or contract.
 
-## 2. Open business decisions
+## 2. Confirmed business decisions
 
-Recommendations below are not approvals. Record answers and dates when received. Continue independent foundation work while a decision is pending.
+Confirmed by the user on November 26, 2026; see [decisions](docs/accounts/decisions.md).
 
-| ID | Question | Recommendation | Blocks |
+| ID | Question | Confirmed answer | Implementation |
 | --- | --- | --- | --- |
-| D1 | Invite buyers who paid before this feature launches? | Yes, after reviewing contact details and existing links | Historical invitation campaign |
-| D2 | Is activation optional or eventually mandatory for future payments? | Encourage activation; retain verified reservation email access during transition | Mandatory-access rollout; do not remove guest access by assumption |
-| D3 | Does any positive verified payment qualify, or must the required deposit be fully funded? | Any positive payment successfully credited to the contract | Production invitation eligibility policy |
+| D1 | Invite buyers who paid before this feature launches? | Only payments verified after launch | No historical campaign; an older buyer's next post-launch verified payment can qualify |
+| D2 | Is activation optional or eventually mandatory for future payments? | Require an account for future payments | After a qualifying payment, new buyer payment intake requires login; guest history, existing proof corrections and retry recovery remain |
+| D3 | Does any positive verified payment qualify, or must the required deposit be fully funded? | Any positive verified credit | Explicit `positive_credit` policy and launch timestamp; partial deposits qualify |
 
-Model D3 as an explicit policy with tests for both choices. An unset policy must not send invitations. Pending proof, a browser success page, a printed cash receipt, an unverified cheque or funds awaiting reconciliation are insufficient.
+An unset or unsupported policy must not send invitations. Pending proof, a browser success page, a printed cash receipt, an unverified cheque or funds awaiting reconciliation are insufficient.
 
 Proposed multiple-purchase behavior: one login can have multiple individually authorized contracts. This does not approve changing the current rule rejecting another active reservation for the same mobile number. Address that reservation policy separately if needed.
 
@@ -124,7 +124,7 @@ Firebase user creation alone does not activate source access. Auth creation, pas
 - One My Account entry leads to linked contracts, plots, balances, verified payments, pending submissions, available payment methods, receipts and notices.
 - Use existing office-approved due dates and payment logic. Pending amounts do not reduce balances.
 - Provide password reset, setup resend, expired-link recovery and clear sign-out.
-- Keep guest email access during transition unless D2 explicitly changes that policy.
+- D2 keeps guest history and existing-evidence corrections, but requires an activated account for a new payment after qualifying credit.
 - A later contract can be claimed by the same UID without another login account.
 - Incorrect email or loss of inbox access uses audited office-assisted verification in v1. Editing an email must not silently transfer account ownership.
 - Full settlement retains history access. Cancellation/refund changes financial status, not automatically account identity or historical visibility.
@@ -135,7 +135,7 @@ Reuse the existing design. Do not add unrelated sex/address/profile questions so
 
 ## 6. Feature modules and API contracts
 
-The following paths are proposals, not files already created. Add them in their assigned checkpoint. Keep business logic separate from HTTP, providers and UI.
+These modules are implemented locally. Business logic stays separate from HTTP, providers and UI. Live provider/rules validation remains separate evidence.
 
 | Feature | Proposed modules | Responsibility |
 | --- | --- | --- |
@@ -148,7 +148,7 @@ The following paths are proposals, not files already created. Add them in their 
 | HTTP | `lib/accounts/http.js` | Origin/token checks, body limits, rate limits and safe responses |
 | Activation UI | `account-activate.html`, `account-activate.js`, `account-auth.js`, `account.css` | Setup, login, password and recovery components |
 | Payment adapters | Small edits to existing payment modules | Typed source selection and shared authorization |
-| Office support | `account-admin.js` and thin admin integration | Status, resend and audited correction/revocation |
+| Office support | `lib/accounts/contact.js`, `account-admin.html`, `account-admin.js` and thin admin integration | Status, resend, audited unlinked-contact confirmation and access revocation |
 | Verification | `tests/accounts/` | Domain, HTTP, Auth/rules integration and browser tests |
 
 Avoid expanding `site.jsx` and `admin-app.js` with unrelated account business logic. No new framework migration is part of this work.
@@ -168,13 +168,13 @@ Use an explicit customer/presale selector; do not overload `customerId` with a p
 
 Preserve trusted existing `customers.authUid` access through a documented compatibility adapter. Email matching must never become an alternate authorization path.
 
-### Proposed API and switches
+### Implemented API and switches
 
-Route `/api/account-access` through the existing function/router where practical. Suggested actions: `request_setup`, `setup_context`, `complete_claim`, `account_sources`, `setup_status`. Private actions require Firebase identity or the appropriate scoped setup proof. Public resend responses remain generic and rate limited.
+`/api/account-access` uses the existing payment function/router. Actions are `request_setup`, `setup_context`, `complete_claim`, `admin_status`, `admin_resend`, `admin_contact`, `admin_revoke`. Source listing remains the existing payment `account_list` action. `/api/account-worker` is bearer-secret protected. Public setup requests only queue mail, return generic responses and use requester/source/global limits.
 
 Staff support actions use fresh role verification and separate schemas. The client cannot choose arbitrary recipients, grant roles, declare payment verified or set authoritative ownership. Whitelist redirect destinations. Use no-store/no-referrer protections and avoid analytics on credential-handling pages.
 
-Proposed feature switches: `ACCOUNT_ACCESS_ENABLED`, `ACCOUNT_INVITES_ENABLED`, `ACCOUNT_EMAIL_DISPATCH_ENABLED`, `ACCOUNT_INVITE_POLICY`. New behavior defaults off. Existing payment and guest flags retain their meaning. A completed source checkpoint does not authorize live activation.
+Feature switches: `ACCOUNT_ACCESS_ENABLED`, `ACCOUNT_INVITES_ENABLED`, `ACCOUNT_EMAIL_DISPATCH_ENABLED`, `ACCOUNT_INVITE_POLICY`, plus `ACCOUNT_LAUNCH_AT`. New invitation behavior defaults off. Existing payment and guest flags retain their meaning. Persisted future-payment restrictions survive disabling invitation switches; see rollback instructions. A completed source checkpoint does not authorize live activation.
 
 ## 7. Data model and invariants
 
@@ -184,7 +184,8 @@ Proposed feature switches: `ACCOUNT_ACCESS_ENABLED`, `ACCOUNT_INVITES_ENABLED`, 
 | `portalAccess/{sourceKey}` | Active buyer UID, source kind/ID, booking ID where applicable, contact authority version, status and audit timestamps |
 | `accountInvitations/{inviteId}` | Source, qualifying receipt, intended normalized email, contact/policy version, generation, expiry and claim state |
 | `accountDeliveryEvents/{eventId}` | Invitation delivery intent, attempts, lease, outcome and provider message ID; no usable action URLs |
-| `accountOperationKeys/{id}` | Idempotency hash and safe operation result |
+| `accountInvitationSources/{sourceKey}` | Current invitation pointer; valid public resends reuse it |
+| `accountPaymentEvents/{receiptId}` | Atomic receipt-triggered event; worker prepares/reconciles delivery without scanning old payments |
 | `accountAccessLimits/{id}` | Bounded server-managed counters without raw IP logging |
 
 Authoritative account/link/invitation records are server-only. Expose minimal customer views through APIs. Any later direct profile editing requires a separate field allowlist. Protect these collections in the actual composed rules, including overlapping matches.
@@ -198,7 +199,7 @@ Required invariants:
 - Source contact changes invalidate applicable outstanding invitations and access according to an audited version policy. Do not increment presale `accessVersion` simply to add login; true contact corrections must coordinate existing financial binding/reconciliation behavior.
 - After claim, provision verified notification contact using the correct version and existing booking binding. Email verification is not marketing consent.
 - Passwords remain in Firebase flows. Never log/store passwords, refresh tokens or usable action links in Firestore, ordinary outbox content or handoff notes.
-- If a custom invitation capability is needed, use strong randomness, a stored hash, scope, expiration and one-time claim. Firebase verification still establishes mailbox ownership.
+- Application invitation IDs are random 256-bit lookup references, not bearer authority: the server always requires the intended verified Firebase identity. Firebase owns the actual email action code; it is generated at send time and never saved in the application database.
 - Claim transactions recheck current contact, identity, eligibility and ownership before consuming the invitation. Repeated successful requests from the same UID return the saved result.
 - Customer setup never grants staff roles. Existing staff identities or conflicting legacy links follow an explicit reviewed path.
 
@@ -208,7 +209,7 @@ Track payment, delivery and claim states separately. Suggested invitation states
 
 Record a deterministic invitation intent with the first qualifying successful posting, or use an equivalently durable reconciled event adapter. Respect Firestore read-before-write transaction ordering. Never call Auth or Brevo inside a retriable financial transaction.
 
-Send after commit through awaited/bounded work or a supported durable runner. Do not rely on detached promises in a serverless response. Email failure must not turn a committed payment into a payment failure or cause another credit. Choose and verify a prompt retry mechanism supported by the actual hosting plan; the existing daily cron is not enough.
+After commit, prepare at most one durable invitation using awaited database work. Auth/provider calls run in the authenticated worker (and explicit office resend), never in payment responses or detached promises. Email failure cannot turn a committed payment into another credit. A frequent authenticated runner is a mandatory release dependency; the existing daily cron is not enough.
 
 The initial setup message uses the stored buyer address and minimal information before verification. Recheck invitation/contact generation, eligibility and claim state before each send. Suppress obsolete invitations. Generate action links at delivery time and keep usable secrets out of durable ordinary logs/outbox text.
 
@@ -231,7 +232,7 @@ Each checkpoint has a small scope, dependencies, acceptance criteria and saved h
 | A06a | Account list and history | A01, A05 | Typed source selection; multi-contract view; account navigation | Correct customer/presale records per UID; no first-record-only restriction |
 | A06b | Proof and future payments | A06a | Submission HTTP/domain/UI integration | Presale account can submit/correct proof; wrong grants denied; pending credit unchanged |
 | A06c | Gateway, receipts and notices | A06b | Gateway/operations adapters and legacy compatibility | Uniform authorization and unchanged financial bindings/receipts |
-| A07 | Office support and prior buyers | A04, A06c | Status/resend; audited correction; historical dry-run report | Role checks pass; campaign gated by D1; no bulk email-match auto-linking |
+| A07 | Office support | A04, A06c | Status/resend; audited unlinked contact correction and revocation | Role races pass; no historical campaign or bulk email-match auto-linking |
 | A08 | Integration and release readiness | A03–A07 | Auth/rules integration; payment regression; staging and rollback evidence | Required checks pass; production gates and activation status recorded accurately |
 
 Within each checkpoint, work in smaller saved substeps. For example A02: prototype SDK behavior and save evidence; implement invitation validation and save tests; implement transaction and recovery and save tests. A new chat resumes the first unfinished substep.
@@ -246,7 +247,7 @@ Build the source-scoped resolver without changing money records. Keep claim logi
 
 ### A03–A04: keep payment success independent
 
-Integrate active posting paths and review any remaining compatibility writers. Do not trigger from generic status labels or imported opening balances without the approved historical policy. Accounts being disabled must not block ordinary payment posting. Include a bounded reconciliation scan for missed eligible events with deterministic deduplication.
+Integrate canonical manual/cash/gateway posting paths. Do not trigger from generic status labels, compatibility receipts or imported opening balances. Accounts being disabled must not block ordinary payment posting. Atomic receipt-keyed events and a bounded worker recover interrupted preparation; do not scan pre-launch payments to create historical invitations.
 
 ### A05–A06: integrate every access path
 
@@ -254,11 +255,11 @@ Build small components and reuse payment functions. Account grants must work acr
 
 ### A07: historical and office operations
 
-Preserve existing UIDs and trusted links. First produce a read-only report of missing emails, duplicates, conflicting owners, staff identities and already activated accounts. Legacy paid records without canonical bookings require a reviewed eligibility adapter. Never create a receipt or re-credit a payment just to trigger an invitation. Support operations are audited server calls, not direct browser ownership writes.
+Preserve existing UIDs and trusted links. D1 excludes a historical campaign and its bulk report. Support checks one canonical source at a time. Unlinked contacts can be confirmed/corrected after office identity verification; the server increments a separate contact version, invalidates old invitations/guest sessions, and suppresses stale notification destinations without altering financial identity. Already linked/revoked accounts and legacy sources without canonical bookings require a separate reviewed reconciliation. Never create a receipt or re-credit money to trigger an invitation.
 
 ### A08: stage and recover
 
-Use synthetic domain/browser fixtures, real Firebase emulator/rules checks and isolated staging evidence. Live sender/Auth configuration, deployment and campaigns are separate release work. Activate by flag and an approved small cohort. On failure, stop new invites/claims while preserving payment intake, active users and audit records. Do not restore an old database over newer payments or delete accounts as rollback. Document the guest-access fallback.
+Use synthetic domain/browser fixtures, actual composed Firebase emulator/rules checks and isolated staging evidence. Live sender/Auth configuration and deployment are separate release work. On failure, stop new invites/claims while preserving active access and audit records. A persisted account requirement continues to block new guest payments; provide assisted office intake or restore onboarding. Do not erase gates, restore an old database over new payments, or delete accounts as rollback.
 
 ## 10. Verification matrix
 
@@ -326,36 +327,24 @@ Allowed statuses: `not_started`, `in_progress`, `implemented_unverified`, `verif
 
 | Checkpoint | Status | Evidence / next action |
 | --- | --- | --- |
-| Blueprint | complete | Modular account plan documented; no application implementation |
-| A00 | not_started | On implementation request, inspect baseline and create continuation records |
-| A01 | not_started | Depends on A00 |
-| A02 | not_started | Depends on A01 |
-| A03 | not_started | Depends on A02; production D3 policy unresolved |
-| A04 | not_started | Depends on A02–A03 |
-| A05 | not_started | Depends on A02, A04 |
-| A06a | not_started | Depends on A01, A05 |
-| A06b | not_started | Depends on A06a |
-| A06c | not_started | Depends on A06b |
-| A07 | not_started | Depends on A04, A06c; D1 campaign unresolved |
-| A08 | not_started | Depends on integration and actual release evidence |
+| Blueprint | complete | Updated for authorized implementation and D1–D3 |
+| A00 | complete | Clean `efe6311` baseline; decisions and skills recorded |
+| A01 | verified_local | Shared identity/source resolver and revocation precedence |
+| A02 | verified_local | Claim, conflict, expiry, replay and interrupted setup; actual Firebase staging remains a release gate |
+| A03 | verified_local | Real manual/cash/gateway domain posting tests; no historical invitations |
+| A04 | verified_local | Durable worker, bounded retries, uncertainty, stale-contact suppression; injected Auth/mail |
+| A05 | verified_local | Activation/password/recovery browser test at 320/390/768/1365px |
+| A06a | verified_local | Typed source listing/history and existing customer compatibility |
+| A06b | verified_local | New guest payment gate; existing corrections/retries preserved |
+| A06c | verified_local | Gateway, receipt and notification source adapters |
+| A07 | verified_local | Admin status/resend/contact/revoke; role-race and contact invalidation tests |
+| A08 | blocked_external | Actual Firebase rules/Auth, hosting/scheduler and staging evidence unavailable; two inherited regression failures documented |
 
-Current next action: when implementation is requested, start A00. No account code or account tests have been created by this documentation task.
+Current next action: use [the release runbook](docs/accounts/release.md) and [current handoff](docs/accounts/handoff.md). Do not restart A00. Local source is saved; no deployment/configuration changes or live email were performed.
 
-Pre-existing modified files observed November 25, 2026:
+The remaining-balance work that was uncommitted during planning is included in the clean implementation baseline. Preserve it and recheck Git status on continuation. Current implementation edits belong to this authorized account feature; no commit has been made in this implementation session.
 
-- `lib/payments/submission.js`
-- `payment-submit.js`
-
-Pre-existing untracked files:
-
-- `docs/payments/remaining-balance-payments.md`
-- `tests/payments/remaining-balance-browser.cjs`
-- `tests/payments/remaining-balance-fixture.js`
-- `tests/payments/remaining-balance.test.js`
-
-These are existing remaining-balance changes, not account implementation. Preserve them and recheck current status on continuation.
-
-Key findings to retain: customer login and presale sessions currently have different access paths; account activation must preserve financial bindings; every payment access route needs the shared resolver; first setup email needs a dedicated verification path rather than the verified-contact financial outbox unchanged. Production configuration and deployed rules remain unverified.
+Local validation: 18 account tests pass. Combined account/payment suite: 251/253 pass; inherited lifecycle unsupported-term assertion and Vercel API-budget assertion remain. Synthetic account browser scenarios pass, including lost-claim recovery and responsive layout. See checkpoint records for exact evidence and later updates.
 
 ## 13. Copyable resume prompt
 

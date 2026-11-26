@@ -9,6 +9,8 @@ const { MemoryFirestore } = require('./memory-firestore');
 const config = require('../../vercel.json');
 
 const factories = {
+  'account-access': require('../../lib/accounts/http').createAccountHandler,
+  'account-worker': require('../../lib/accounts/http').createAccountWorker,
   'payment-access': require('../../lib/payments/access-http').createAccessHandler,
   'payment-submission': require('../../lib/payments/submission-http').createSubmissionHandler,
   'payment-review': require('../../lib/payments/review-http').createReviewHandler,
@@ -19,6 +21,7 @@ const factories = {
 };
 const origin = 'https://park.example.test';
 const enabledEnv = {
+  ACCOUNT_ACCESS_ENABLED:'true', ACCOUNT_WORKER_SECRET:'account-worker-secret-at-least-32-characters',
   PAYMENT_ACCESS_ENABLED: 'true', PAYMENT_ACCESS_ORIGIN: origin,
   PAYMENT_ACCESS_RATE_SECRET: 'test-secret-with-at-least-32-characters',
   BREVO_API_KEY: 'test-only', SENDER_EMAIL: 'office@example.test',
