@@ -221,7 +221,7 @@ function LightboxRoot({ children }) {
           <button className="lb-btn lb-prev" onClick={() => step(-1)} aria-label="Previous">‹</button>}
 
             <div className={`ph ${(isPortraitImage(state.items[state.index].image) || tallSrc[state.items[state.index].image]) ? 'aspect-portrait' : 'aspect-wide'} ${(state.items[state.index].image || state.items[state.index].scene) ? 'illustrated' : ''}`}
-              style={(isPortraitImage(state.items[state.index].image) || tallSrc[state.items[state.index].image]) ? { width: 'min(100%, 68vh)', margin: '0 auto' } : undefined}>
+              style={(isPortraitImage(state.items[state.index].image) || tallSrc[state.items[state.index].image]) ? { width: 'min(100%, 58vh)', margin: '0 auto' } : undefined}>
               {state.items[state.index].image
                 ? <img
                     src={state.items[state.index].image}
