@@ -255,6 +255,62 @@ const isPortraitImage = (src) => PORTRAIT_IMAGES.includes(String(src || '').spli
 /* A picture that turns out taller than wide gets the tall frame too, whatever its file name. */
 const isTallEl = (el) => !!el && el.naturalHeight > el.naturalWidth * 1.1;
 
+
+/* ---------- Park location maps (one per plot type) ---------- */
+const PARK_MAP_LABELS = { 'elysian-left': 'Left side', 'elysian-right': 'Right side' };
+function parkMapsFor(tier) {
+  const id = String(tier.id || '');
+  if (id === 'family-vault') return ['family-vault'];
+  if (id.includes('valor')) return ['valor'];
+  if (id.startsWith('garden')) return ['garden'];
+  if (['regular', 'premium', 'corner-premium'].includes(id)) return ['regular'];
+  return [];
+}
+function parkMapsForMausoleum(size) {
+  const n = String(size || '').toLowerCase();
+  if (n.includes('serenity')) return ['serenity'];
+  if (n.includes('elysian')) return ['elysian-left', 'elysian-right'];
+  if (n.includes('solace')) return ['solace'];
+  return [];
+}
+function ParkMapOverlay({ title, maps, onClose }) {
+  const [which, setWhich] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  useBodyScrollLock(true);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  const pill = (active) => ({ border: '1px solid rgba(255,255,255,.35)', background: active ? '#c9a24b' : 'rgba(255,255,255,.08)', color: active ? '#1b1b18' : '#f3ecd9', borderRadius: 999, padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 40 });
+  const imgStyle = zoom === 1 ? { maxWidth: '100%', maxHeight: 'calc(100dvh - 150px)', display: 'block', margin: '0 auto', borderRadius: 8 } : { width: zoom * 100 + '%', maxWidth: 'none', display: 'block', borderRadius: 8 };
+  return ReactDOM.createPortal(
+    <div role="dialog" aria-modal="true" aria-label={title + ' location in the park'} style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(18,22,20,.97)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px max(16px, env(safe-area-inset-left,0px))', color: '#f3ecd9' }}>
+        <div style={{ fontWeight: 700, fontSize: 16, flex: '1 1 160px' }}>{title} · location in the park</div>
+        {maps.length > 1 && maps.map((m, i) => <button key={m} type="button" style={pill(i === which)} onClick={() => { setWhich(i); setZoom(1); }}>{PARK_MAP_LABELS[m] || 'Map ' + (i + 1)}</button>)}
+        <button type="button" aria-label="Zoom out" style={pill(false)} disabled={zoom === 1} onClick={() => setZoom((z) => Math.max(1, z - 1))}>−</button>
+        <span style={{ fontSize: 13, minWidth: 34, textAlign: 'center' }}>{zoom === 1 ? 'Fit' : zoom + '×'}</span>
+        <button type="button" aria-label="Zoom in" style={pill(false)} disabled={zoom === 3} onClick={() => setZoom((z) => Math.min(3, z + 1))}>+</button>
+        <button type="button" aria-label="Close" style={pill(false)} onClick={onClose}>✕</button>
+      </div>
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 max(16px, env(safe-area-inset-left,0px)) 16px', WebkitOverflowScrolling: 'touch' }}>
+        <img src={'/park-maps/' + maps[which] + '.jpg'} alt={title + ' lot map of the park'} style={imgStyle} />
+      </div>
+    </div>, document.body);
+}
+function ParkMapButton({ title, maps }) {
+  const [open, setOpen] = useState(false);
+  if (!maps.length) return null;
+  return (
+    <>
+      <button type="button" className="btn" onClick={() => setOpen(true)} style={{ marginTop: 10, width: '100%', background: 'transparent', color: 'var(--accent)', border: '1.5px solid var(--accent)', cursor: 'pointer', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13.5, padding: '9px 12px' }}>
+        <span aria-hidden="true">📍</span> See location in the park
+      </button>
+      {open && <ParkMapOverlay title={title} maps={maps} onClose={() => setOpen(false)} />}
+    </>);
+}
+
 /* Clickable photo frame — drop-in replacement for a bare .ph placeholder */
 function Photo({ label, caption, items, index, aspect = '', className = '', style, scene, image, imagePosition }) {
   const [tall, setTall] = useState(false);
@@ -1368,6 +1424,7 @@ function Tier({ tier, i = 0, allTiers = [] }) {
         <div>
           <h3>{tier.name}</h3>
           <div className="desc">{tier.desc}</div>
+          <ParkMapButton title={tier.name} maps={parkMapsFor(tier)} />
         </div>
         <div className="price-row">
           <div>
@@ -1700,6 +1757,7 @@ function Mausoleum() {
                 <div>
                   <h3>{m.size}</h3>
                   <div className="desc">{m.desc}</div>
+                  <ParkMapButton title={m.size} maps={parkMapsForMausoleum(m.size)} />
                 </div>
                 <div className="price-row">
                   <div>
