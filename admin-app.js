@@ -3971,6 +3971,60 @@ function PresaleRules({ canEdit, tick, setToast, actor }) {
   return plotEl("div", { style: { padding: 10, borderRadius: 8, background: '#f1f8ec', marginBottom: 12, fontSize: 13, lineHeight: 1.6 } }, plotEl("b", null, "Allocation rules: "), `agent commission ${pct(SOP_RULES.commissionRate)}% of the plot price, ${pct(SOP_RULES.agentFirstShare)}% of it released from the down payment, ${pct(SOP_RULES.brokerRate)}% of the down payment held for broker and agent compensation, the rest to the company. `, canEdit ? plotEl("button", { className: "btn btn-outline btn-sm", onClick: () => setOpen(!open) }, open ? "Close" : "Change rules") : plotEl("em", null, "(only an admin can change these)"), open && canEdit && plotEl("div", { style: { marginTop: 8 } }, labels.map(([k, l]) => plotEl("label", { key: k, style: { display: 'block', marginBottom: 6 } }, l, plotEl("input", { value: f[k], inputMode: "decimal", onChange: e => setF({ ...f, [k]: e.target.value }), style: { display: 'block', padding: 6, width: 120 } }))), plotEl("button", { className: "btn btn-primary btn-sm", onClick: save }, "Save rules")));
 }
 
+// Contract / payment agreement: details come from the reservation, staff fill the blanks, then print.
+function ContractFiller({ app, actor, onClose, onToast }) {
+  const ce = React.createElement;
+  const ls = { get: k => { try { return localStorage.getItem('ghmp-contract-' + k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem('ghmp-contract-' + k, v); } catch (e) {} } };
+  const L = presaleLedger(app);
+  const plots = presalePlots(app);
+  const isCash = app.plan === 'cash';
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const saved = app.contractInfo || {};
+  const firstDate = (L.list && L.list[0] && L.list[0].date) ? new Date(Number(L.list[0].date.toDate ? L.list[0].date.toDate().getTime() : L.list[0].date)) : null;
+  const [f, setF] = React.useState({
+    buyer: app.name || '', address: saved.address || app.address || '', place: saved.place || ls.get('place'),
+    day: saved.day || String(now.getDate()), month: saved.month || MONTHS[now.getMonth()], year: saved.year || String(now.getFullYear()),
+    sellerOffice: saved.sellerOffice || ls.get('office'), officerName: saved.officerName || ls.get('officer'), officerTitle: saved.officerTitle || ls.get('title'),
+    area: saved.area || '', crypts: saved.crypts || '', witness1: saved.witness1 || '', witness2: saved.witness2 || '',
+    total: saved.total || String(app.totalPrice || ''), down: saved.down != null && saved.down !== '' ? saved.down : String(app.depositPerPlotCentavos ? plots.length * app.depositPerPlotCentavos / 100 : ''), monthly: saved.monthly || String(L.monthly || ''), months: saved.months || String((app.years || 0) * 12 || ''),
+    dueDay: saved.dueDay || (firstDate && !isNaN(firstDate) ? String(firstDate.getDate()) : '')
+  });
+  const set = k => ev => setF(o => ({ ...o, [k]: ev.target.value }));
+  const field = (label, k, ph, w) => ce('label', { key: k, style: { display: 'block', fontSize: 12, fontWeight: 600, margin: '8px 0 0', width: w || '100%' } }, label,
+    ce('input', { value: f[k], onChange: set(k), placeholder: ph || '', style: { display: 'block', width: '100%', boxSizing: 'border-box', padding: '7px 8px', border: '1px solid #ccc', borderRadius: 6, fontSize: 14, marginTop: 3 } }));
+  const go = async () => {
+    const nn = v => Number(String(v == null ? '' : v).replace(/[^0-9.]/g, '')) || 0;
+    const d = {
+      plan: isCash ? 'cash' : 'installment', ref: app.ref, buyer: f.buyer, address: f.address, place: f.place, day: f.day, month: f.month, year: f.year,
+      sellerOffice: f.sellerOffice, officerName: f.officerName, officerTitle: f.officerTitle, witness1: f.witness1, witness2: f.witness2, area: f.area, crypts: f.crypts,
+      plots: plots.map(p => ({ type: PRESALE_TYPE_LABEL[p.typeId] || p.typeId, location: p.plotCode || [p.blockId, p.lotNo].filter(Boolean).join('-') })),
+      total: nn(f.total), down: nn(f.down), monthly: nn(f.monthly), months: f.months, dueDay: f.dueDay
+    };
+    ls.set('place', f.place); ls.set('office', f.sellerOffice); ls.set('officer', f.officerName); ls.set('title', f.officerTitle);
+    try { window.GHContract.print(d); } catch (err) { onToast('Could not open the print window: ' + (err && err.message || 'error')); return; }
+    try {
+      await window.paymentLegacyGuard.update('presaleApplications', app._id, { contractInfo: { address: f.address, place: f.place, day: f.day, month: f.month, year: f.year, sellerOffice: f.sellerOffice, officerName: f.officerName, officerTitle: f.officerTitle, area: f.area, crypts: f.crypts, witness1: f.witness1, witness2: f.witness2, dueDay: f.dueDay, total: f.total, down: f.down, monthly: f.monthly, months: f.months }, contractPrintedAt: Date.now(), contractPrintedBy: actor });
+    } catch (err) { onToast('Printed, but the details could not be saved on the reservation.'); return; }
+    onToast('Contract sent to the printer.');
+  };
+  return ce('div', { className: 'modal-bg', style: { zIndex: 200 }, onClick: onClose },
+    ce('div', { className: 'modal', style: { maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }, onClick: ev => ev.stopPropagation() },
+      ce('h3', null, isCash ? 'Spot Cash Full Payment Contract' : 'Payment Agreement'),
+      ce('p', { style: { fontSize: 13, color: '#555', margin: '2px 0 6px' } }, app.ref + ' · ' + (isCash ? 'Spot cash · ' + fmt2(app.totalPrice || 0) : app.years + ' years · ' + fmt2(L.monthly) + '/mo · total ' + fmt2(app.totalPrice || 0)) + '. Buyer, plot, price and plan are filled in for you. Anything you leave empty prints as a line to write by hand.'),
+      field('Buyer full name', 'buyer'), field('Buyer residence / postal address', 'address'),
+      field('Total price (PHP)', 'total', 'e.g. 36000'),
+      !isCash && ce('div', { style: { display: 'flex', gap: 8 } }, field('Down payment (PHP)', 'down', '', '34%'), field('Monthly (PHP)', 'monthly', '', '33%'), field('No. of months', 'months', '', '33%')),
+      field('Area / size of the plot', 'area', 'e.g. 1 m × 2.5 m'), field('Number of crypts', 'crypts', 'e.g. 1'),
+      !isCash && field('Monthly due day (1–31)', 'dueDay', 'e.g. 15'),
+      field('Signed in (city / municipality)', 'place', 'e.g. Taytay'),
+      ce('div', { style: { display: 'flex', gap: 8 } }, field('Day', 'day', '', '25%'), field('Month', 'month', '', '45%'), field('Year', 'year', '', '30%')),
+      field('Company principal office address', 'sellerOffice'), field('Company officer name', 'officerName'), field('Officer title', 'officerTitle'),
+      ce('div', { style: { display: 'flex', gap: 8 } }, field('Witness 1', 'witness1', '', '50%'), field('Witness 2', 'witness2', '', '50%')),
+      ce('div', { style: { marginTop: 14, display: 'flex', gap: 8, justifyContent: 'flex-end' } },
+        ce('button', { className: 'btn btn-outline', onClick: onClose }, 'Cancel'),
+        ce('button', { className: 'btn btn-primary', onClick: go }, '🖨 Print contract'))));
+}
 function PresaleApplications({
   currentUser,
   canEditRules
@@ -3998,6 +4052,7 @@ function PresaleApplications({
   const [fPlot, setFPlot] = useState('');
   const [lastPay, setLastPay] = useState(null);
   const [sheetData, setSheetData] = useState(null);
+  const [contractFor, setContractFor] = useState(null);
   const [autoSheet, setAutoSheet] = useState(() => {
     try {
       return localStorage.getItem('ghAutoSheet') !== '0';
@@ -4164,7 +4219,7 @@ function PresaleApplications({
         balance: Math.max(0, (a.totalPrice || 0) - L.paid - amount),
         ...split
       });
-      setToast((a.payments && a.payments.length) ? 'Payment recorded' : 'Payment recorded. Now print the Payment terms for the buyer to sign (📄 button).');
+      setToast((a.payments && a.payments.length) ? 'Payment recorded' : 'Payment recorded. Now fill in and print the Payment terms for the buyer to sign (📄 button).');
       if (emailAR && a.email) sendAR(a.ref, payIndex);
       if (autoSheet) {
         // Opens the sheet for review, built from the sale as it is now, including the payment just recorded.
@@ -4830,7 +4885,14 @@ function PresaleApplications({
     style: { marginLeft: 6 },
     title: r.printedAt ? "Already printed. Print again." : "Print the reservation form",
     onClick: ev => { ev.stopPropagation(); printForms([r]); }
-  }, r.printedAt ? "🖨 Form ✓" : "🖨 Form"))))))), sheetData && plotEl(CustomerSheetEditor, {
+  }, r.printedAt ? "🖨 Form ✓" : "🖨 Form"), plotEl("button", {
+    className: "btn btn-outline btn-sm",
+    style: { marginLeft: 6 },
+    title: r.plan === 'cash' ? "Fill in and print the spot cash contract" : "Fill in and print the payment agreement",
+    onClick: ev => { ev.stopPropagation(); setContractFor(r); }
+  }, r.contractPrintedAt ? "📄 Terms ✓" : "📄 Terms"))))))), contractFor && plotEl(ContractFiller, {
+    app: contractFor, actor, onClose: () => setContractFor(null), onToast: setToast
+  }), sheetData && plotEl(CustomerSheetEditor, {
     data: sheetData,
     onClose: () => setSheetData(null),
     onToast: setToast,
@@ -5152,11 +5214,8 @@ function PresaleApplications({
     onClick: () => cancelApp(sel)
   }, sel.status === 'paid' ? "Cancel this paid reservation (admin only)" : "Cancel and free this plot") : plotEl("span", null), plotEl("button", {
     className: "btn btn-outline btn-sm",
-    onClick: () => {
-      if (!(sel.payments && sel.payments.length)) { setToast('Record the first payment first.'); return; }
-      if (!window.printPaymentTerms(sel)) setToast('Please allow pop-ups to print.');
-    }
-  }, "📄 Payment terms (print)"), plotEl("button", {
+    onClick: () => setContractFor(sel)
+  }, "📄 Payment terms (fill in & print)"), plotEl("button", {
     className: "btn btn-outline btn-sm",
     onClick: () => setSheetData(presaleSheetData(sel))
   }, "📝 Customer sheet (edit, then Word)"), plotEl("button", {
