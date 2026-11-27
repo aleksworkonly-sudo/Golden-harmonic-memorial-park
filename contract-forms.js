@@ -16,7 +16,7 @@
     '.kv{margin:4px 0 4px 36px}.kv div{margin:2px 0}ul,ol{margin:3px 0 3px 22px;padding-left:12px}li{margin:2px 0}' +
     '.sig{display:flex;gap:30px;margin-top:14px}.sig>div{flex:1}.ln{border-bottom:1px solid #000;height:22px}.pb{page-break-before:always}' +
     'table.g{width:100%;border-collapse:collapse;margin:8px 0}table.g td,table.g th{border:1px solid #000;padding:6px;text-align:left;height:26px}.foot{margin-top:18px;font-size:10px;color:#444}' +
-    '.keep{page-break-inside:avoid}';
+    '.keep{page-break-inside:avoid}.sl{display:flex;align-items:flex-end;gap:6px;height:30px}.sl i{flex:1;border-bottom:1px solid #000;height:1px}';
   function ordinal(n) { n = parseInt(n, 10); if (!n) return ''; var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
   function parties(d, kind) {
     return '<p>This ' + kind + ' (“' + (/Agreement$/.test(kind) ? 'Agreement' : 'Contract') + '”) is made and entered into this ' + b(ordinal(d.day) , 50) + ' day of ' + b(d.month, 90) + ', ' + b(d.year, 40) + ', in ' + b(d.place, 130) + ', Philippines, by and between:</p>' +
@@ -37,8 +37,8 @@
   }
   function sigs(d, n, kind) {
     return '<div class="keep"><h3>' + n + '. SIGNATURES</h3><p>IN WITNESS WHEREOF, the PARTIES have hereunto set their hands this ' + b('', 40) + ' day of ' + b('', 90) + ', ' + b(d.year, 40) + ', in ' + b(d.place, 130) + ', Philippines.</p>' +
-      '<div class="sig"><div><b>SELLER:</b><br>GOLDEN HARMONIC MEMORIAL PARK, INC.<br><br>By: <div class="ln"></div>Name: ' + b(d.officerName, 170) + '<br>Title: ' + b(d.officerTitle, 170) + '</div>' +
-      '<div><b>BUYER:</b><br><br><br>Name: ' + b(d.buyer, 170) + '<br>Signature: <div class="ln"></div></div></div>' +
+      '<div class="sig"><div><b>SELLER:</b><br>GOLDEN HARMONIC MEMORIAL PARK, INC.<div class="sl"><span>By:</span><i></i></div>Name: ' + b(d.officerName, 150) + '<br>Title: ' + b(d.officerTitle, 150) + '</div>' +
+      '<div><b>BUYER:</b><br>&nbsp;<div class="sl"><span>Signature:</span><i></i></div>Name: ' + b(d.buyer, 150) + '</div></div>' +
       '<p style="margin-top:12px">Signed in the presence of:</p><div class="sig"><div>Witness: ' + b(d.witness1, 170) + '</div><div>Witness: ' + b(d.witness2, 170) + '</div></div></div>';
   }
   function notary(d) {
