@@ -13,6 +13,7 @@
 // A verified payment is never edited or deleted. A void adds a NEGATIVE "reversal" entry to the account.
 
 const crypto = require('crypto');
+const { relabelCode } = require('../lib/presale-plan');
 const { ledger } = require('./_presale-reminders');
 
 const TZ = 'Asia/Manila';
@@ -56,7 +57,7 @@ function maskName(name) {
 // presale reservation (presaleApplications/{PS-0001})
 function presaleView(id, a) {
   const L = ledger(a);
-  const plots = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode }]).map((p) => p.plotCode).filter(Boolean);
+  const plots = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode }]).map((p) => relabelCode(p.plotCode)).filter(Boolean);
   const months = (a.years || 0) * 12;
   return {
     kind: 'presale', id, name: a.name || '', contact: a.mobile || '', email: a.email || '',

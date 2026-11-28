@@ -3730,13 +3730,24 @@ const PRESALE_METHOD_LABEL = {
   cheque: 'Cheque'
 };
 const PRESALE_TYPE_LABEL = PRESALE_TYPE_NAME;
+/* The architect's lot numbers (/architect-lots.json). Old reservations stored "P-0037"; show them
+   with the architect number (e.g. "REG-910") like new ones. */
+window.GH_ARCH = window.GH_ARCH || null;
+try { fetch('/architect-lots.json').then(r => r.ok ? r.json() : null).then(d => { window.GH_ARCH = d; }).catch(() => {}); } catch (e) {}
+function ghRelabel(code) {
+  const m = /^P-0*(\d+)$/.exec(String(code || ''));
+  if (!m || !window.GH_ARCH) return code;
+  for (const k of Object.keys(window.GH_ARCH)) { const n = window.GH_ARCH[k][m[1]]; if (n) return k + '-' + n; }
+  return code;
+}
 function presalePlots(a) {
-  return Array.isArray(a.plots) && a.plots.length ? a.plots : [{
+  const list = Array.isArray(a.plots) && a.plots.length ? a.plots : [{
     blockId: a.blockId,
     lotNo: a.lotNo,
     plotCode: a.plotCode,
     typeId: a.typeId
   }];
+  return list.map(p => ({ ...p, plotCode: ghRelabel(p.plotCode) }));
 }
 function presalePlanText(a) {
   return a.plan === 'cash' ? 'Spot cash' : `${a.years} years · ${fmt2(presaleLedger(a).monthly)}/mo`;
@@ -4288,7 +4299,7 @@ function PresaleApplications({
   };
   const cancelApp = async a => {
     if (a.status === 'paid' && !window.confirm(`${a.ref} is already PAID. Cancelling will NOT refund the buyer; the money must be returned by the office. Continue?`)) return;
-    if (!window.confirm(`Cancel ${a.ref} and free ${presalePlots(a).length > 1 ? 'all ' + presalePlots(a).length + ' plots' : 'plot ' + a.plotCode}? This cannot be undone.`)) return;
+    if (!window.confirm(`Cancel ${a.ref} and free ${presalePlots(a).length > 1 ? 'all ' + presalePlots(a).length + ' plots' : 'plot ' + ghRelabel(a.plotCode)}? This cannot be undone.`)) return;
     setBusy(true);
     try {
       await window.paymentLegacyGuard.updatePresaleWithPlots(a._id, {
@@ -4296,7 +4307,7 @@ function PresaleApplications({
         cancelledAt: Date.now(),
         cancelledBy: actor
       }, 'cancel');
-      setToast(presalePlots(a).length > 1 ? 'The plots are free again' : `${a.plotCode} is free again`);
+      setToast(presalePlots(a).length > 1 ? 'The plots are free again' : `${ghRelabel(a.plotCode)} is free again`);
       setOpen(null);
     } catch (err) {
       setToast(err && err.message || 'Could not cancel');
@@ -4910,7 +4921,7 @@ function PresaleApplications({
     onClick: e => e.target === e.currentTarget && setOpen(null)
   }, plotEl("div", {
     className: "modal"
-  }, plotEl("h3", null, sel.ref, " · ", presalePlots(sel).length > 1 ? `${presalePlots(sel).length} plots` : `${sel.plotCode} · ${PRESALE_TYPE_LABEL[sel.typeId]}`), presalePlots(sel).length > 1 && plotEl("div", {
+  }, plotEl("h3", null, sel.ref, " · ", presalePlots(sel).length > 1 ? `${presalePlots(sel).length} plots` : `${ghRelabel(sel.plotCode)} · ${PRESALE_TYPE_LABEL[sel.typeId]}`), presalePlots(sel).length > 1 && plotEl("div", {
     style: {
       lineHeight: 1.6,
       marginBottom: 6
