@@ -12,6 +12,7 @@
 // Env: FIREBASE_SERVICE_ACCOUNT_B64, BREVO_API_KEY, SENDER_EMAIL, SENDER_NAME
 
 const admin = require('firebase-admin');
+const { relabelCode } = require('../lib/presale-plan');
 
 function init() {
   if (!admin.apps.length) {
@@ -78,7 +79,7 @@ module.exports = async function handler(req, res) {
     const arNo = `AR-${ref}-${index + 1}`;
     // What the buyer bought: "Regular Plot - Block A, plot A-0352 (₱22,000.00)"
     const items = (Array.isArray(a.plots) && a.plots.length ? a.plots : [{ plotCode: a.plotCode, typeId: a.typeId, blockId: a.blockId }])
-      .map((x) => `${esc(TYPE_LABEL[x.typeId] || x.typeId)} Plot &middot; Block ${esc(x.blockId || String(x.plotCode || '').split('-')[0])}, plot ${esc(x.plotCode)}`);
+      .map((x) => `${esc(TYPE_LABEL[x.typeId] || x.typeId)} Plot &middot; Block ${esc(x.blockId || String(x.plotCode || '').split('-')[0])}, plot ${esc(relabelCode(x.plotCode))}`);
     const firstType = ((Array.isArray(a.plots) && a.plots[0] && a.plots[0].typeId) || a.typeId || 'regular');
     const photoType = TYPE_LABEL[firstType] ? firstType : 'regular'; // picture of the plot type they chose
     const planText = a.plan === 'installment'

@@ -62,8 +62,24 @@
     { id: 'cheque', label: 'Cheque', hint: 'Bring or send a cheque to our office.' }
   ];
 
-  // "P-0123" is how the office sees a plot; buyers just see "Plot 123".
-  function code(block, lot) { return block === BLOCK ? 'Plot ' + lot : block + '-' + String(lot).padStart(4, '0'); }
+  /* The architect's lot numbers (/architect-lots.json): each park map (Valor, Regular, Garden, Family Vault)
+     has its own 1, 2, 3... Plots the architect map does not number show as "Plot <n>". */
+  const ARCH_NAME = { VAL: 'Valor', REG: 'Regular', GAR: 'Garden', FV: 'Family Vault' };
+  const ARCH = { by: {}, rev: {} };
+  function loadArch(d) {
+    Object.keys(d || {}).forEach((k) => { ARCH.rev[k] = {}; Object.keys(d[k]).forEach((lot) => { ARCH.by[lot] = ARCH_NAME[k] + ' ' + d[k][lot]; ARCH.rev[k][d[k][lot]] = Number(lot); }); });
+  }
+  function lotLabel(lot) { return ARCH.by[lot] || 'Plot ' + lot; }
+  // "Valor 245", "val-245", "regular 839", "garden 600", "fv 12" -> plan lot number (or a message)
+  function findLot(text) {
+    const t = String(text || '').trim();
+    const m = /^(val(?:or)?|reg(?:ular)?|gar(?:den)?|fv|family(?:\s*vault)?)\s*[-#:.\s]*\s*(\d+)$/i.exec(t);
+    if (!m) return { msg: 'Please type the map and the number from the architect\'s plan, for example: Valor 245, Regular 839 or Garden 600.' };
+    const k = /^v/i.test(m[1]) ? 'VAL' : /^r/i.test(m[1]) ? 'REG' : /^g/i.test(m[1]) ? 'GAR' : 'FV';
+    const lot = (ARCH.rev[k] || {})[Number(m[2])];
+    return lot ? { lot } : { msg: ARCH_NAME[k] + ' ' + Number(m[2]) + ' was not found. Please check the number on the park map.' };
+  }
+  function code(block, lot) { return block === BLOCK ? lotLabel(lot) : block + '-' + String(lot).padStart(4, '0'); }
 
   /* Park location map for the plot type the buyer is looking at (same images as the homepage). */
   function parkMapFor(id) {
@@ -106,7 +122,10 @@
       </>);
   }
 
-  function nicePlot(plotCode) { const m = /^P-0*(\d+)$/.exec(String(plotCode || '')); return m ? 'Plot ' + m[1] : plotCode; }
+  function nicePlot(plotCode) {
+    const a = /^(VAL|REG|GAR|FV)-(\d+)$/.exec(String(plotCode || '')); if (a) return ARCH_NAME[a[1]] + ' ' + a[2];
+    const m = /^P-0*(\d+)$/.exec(String(plotCode || '')); return m ? lotLabel(Number(m[1])) : plotCode;
+  }
   function peso(n) { return '₱' + Number(n).toLocaleString('en-PH',{minimumFractionDigits:Number.isInteger(Number(n))?0:2,maximumFractionDigits:2}); }
   // The buyer's own copy: a one-page slip they can print or save as PDF (print dialog > Save as PDF).
   function printMyReservation(r) {
@@ -392,17 +411,17 @@
     const selId = sel && plan ? BY_LETTER[plan.t[sel - 1]] : '';
     const pick = (n) => {
       const id = BY_LETTER[plan.t[n - 1]];
-      if (taken.has(n)) { setNotice('Plot ' + n + ' is already taken. Please touch another plot.'); return; }
-      if (held.has(n)) { setNotice(TYPES[id].short + ' plot ' + n + ' is not open for sale yet. Please touch another plot.'); return; }
+      if (taken.has(n)) { setNotice(lotLabel(n) + ' is already taken. Please touch another plot.'); return; }
+      if (held.has(n)) { setNotice(lotLabel(n) + ' (' + TYPES[id].short + ') is not open for sale yet. Please touch another plot.'); return; }
       if (STAFF_ONLY.includes(id)) { setNotice(TYPES[id].short + ' plots have their own down payment. Please ask our staff for assistance' + (phone ? ': call ' + phone : '') + (PAY_INFO.email ? ' or email ' + PAY_INFO.email : '') + '.'); return; }
       if (!openIds[id]) { setNotice(TYPES[id].short + ' plots are not open for online reservation yet. Please call our office' + (phone ? ' at ' + phone : '') + '.'); return; }
       setNotice(''); setLot(n);
     };
     const goFind = (e) => {
       e.preventDefault();
-      const n = parseInt(find, 10);
-      if (!plan || !Number.isInteger(n) || n < 1 || n > plan.t.length) { setNotice('Please type a plot number from 1 to ' + (plan ? plan.t.length : 3696) + '.'); return; }
-      pick(n); setFocus({ lot: n, k: Date.now() });
+      const f = findLot(find);
+      if (!plan || !f.lot) { setNotice(f.msg || 'Please type the map and number, for example: Valor 245.'); return; }
+      pick(f.lot); setFocus({ lot: f.lot, k: Date.now() });
     };
     const disc = selId ? discOf(selId, 'cash') : 0;
     return (
@@ -445,7 +464,7 @@
             <form onSubmit={goFind} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <label htmlFor="ps-find" style={{ fontSize: 20, fontWeight: 800, color: '#0f2a21' }}>Know your plot number?</label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input id="ps-find" inputMode="numeric" placeholder="Example: 1250" value={find} onChange={(e) => setFind(e.target.value)} style={{ ...S.input, flex: 1, minWidth: 0 }} />
+                <input id="ps-find" inputMode="numeric" placeholder="Example: Valor 245" value={find} onChange={(e) => setFind(e.target.value)} style={{ ...S.input, flex: 1, minWidth: 0 }} />
                 <button type="submit" style={{ minHeight: 52, padding: '0 18px', borderRadius: 10, border: 'none', background: '#0f2a21', color: '#f6e7b4', fontSize: 18, fontWeight: 800, cursor: 'pointer' }}>Go</button>
               </div>
             </form>
@@ -485,7 +504,7 @@
             <>
               <img src={TYPES[selId].photo} alt="" style={{ width: 84, height: 62, objectFit: 'cover', objectPosition: 'center 68%', borderRadius: 8 }} />
               <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#0f2a21' }}>Plot {sel} · {TYPES[selId].name}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0f2a21' }}>{lotLabel(sel)} · {TYPES[selId].name}</div>
                 <div style={{ fontSize: 18, color: '#2f3f38' }}>
                   <b style={{ color: disc > 0 ? RED : '#0f2a21' }}>{peso(priceOf(selId) - disc)}</b> spot cash{disc > 0 ? <span> <Was n={priceOf(selId)} size={15} /> <OffTag was={priceOf(selId)} now={priceOf(selId) - disc} size={13} /></span> : null} · monthly plans available
                 </div>
@@ -569,7 +588,7 @@
         .catch(() => { setLoadErr(true); return null; });
     }, []);
     useEffect(() => {
-      fetch('/presale-plan.json').then((r) => { if (!r.ok) throw new Error('bad'); return r.json(); }).then(setPlan0).catch(() => setPlanErr(true));
+      Promise.all([fetch('/presale-plan.json'), fetch('/architect-lots.json')]).then(([a, b]) => { if (!a.ok) throw new Error('bad'); return Promise.all([a.json(), b.ok ? b.json() : {}]); }).then(([pl, ar]) => { loadArch(ar); setPlan0(pl); }).catch(() => setPlanErr(true));
       loadTaken();
       const t = setInterval(() => { if (!document.hidden) loadTaken(); }, 45000); // see plots other buyers just took
       return () => clearInterval(t);
